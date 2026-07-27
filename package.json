@@ -1,0 +1,26 @@
+{
+  "name": "ghacem-equipment-documentation-portal",
+  "version": "1.0.0",
+  "description": "GHACEM Equipment Documentation Portal",
+  "main": "index.html",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"No tests available for static HTML site\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dkadonteng-developer/EDP.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dkadonteng-developer/EDP/issues"
+  },
+  "homepage": "https://github.com/dkadonteng-developer/EDP#readme",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
