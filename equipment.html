@@ -454,7 +454,7 @@ async function buildPageEntries() {
     wrap.appendChild(textLayer);
     el.pdfPagesContainer.appendChild(wrap);
 
-    pageEntries.push({ wrap, loadingTag, canvas, textLayer, rendered: false, rendering: null });
+    pageEntries.push({ wrap, loadingTag, canvas, textLayer, renderedAtScale: null, rendering: null });
   }
 
   el.nextPageBtn.disabled = pdfDoc.numPages <= 1;
@@ -467,11 +467,15 @@ async function buildPageEntries() {
 
 async function renderPageEntry(num) {
   const entry = pageEntries[num - 1];
-  if (!entry || entry.rendered || entry.rendering) return entry && entry.rendering;
+  if (!entry) return;
+  if (entry.renderedAtScale === scale) return; // already up to date at the current zoom
+  if (entry.rendering) return entry.rendering;   // a render is already in flight for this page
+
+  const requestedScale = scale;
 
   entry.rendering = (async () => {
     const page = await pdfDoc.getPage(num);
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: requestedScale });
 
     // Render at device pixel ratio so text/lines stay crisp on Retina/HiDPI
     // screens instead of being upscaled and blurred by the browser.
@@ -484,6 +488,8 @@ async function renderPageEntry(num) {
     canvas.style.width = Math.floor(viewport.width) + 'px';
     canvas.style.height = Math.floor(viewport.height) + 'px';
 
+    // Only this page's own box resizes — not the whole document — so
+    // zooming doesn't cause a layout jump/flash across every other page.
     entry.wrap.style.width = viewport.width + 'px';
     entry.wrap.style.height = viewport.height + 'px';
 
@@ -503,10 +509,14 @@ async function renderPageEntry(num) {
     });
 
     entry.loadingTag.style.display = 'none';
-    entry.rendered = true;
+    entry.renderedAtScale = requestedScale;
     entry.rendering = null;
 
     if (searchTerm) highlightOnPage(num);
+
+    // If the zoom level changed again while this render was in flight,
+    // immediately kick off another render for the latest scale.
+    if (scale !== requestedScale) renderPageEntry(num);
   })();
 
   return entry.rendering;
@@ -524,29 +534,14 @@ el.nextPageBtn.addEventListener('click', () => goToPage(pageNum + 1));
 
 async function rescaleAndRerender(newScale) {
   if (!pdfDoc) return;
+  newScale = Math.max(0.5, Math.min(newScale, 3));
+  if (Math.abs(newScale - scale) < 0.01) return;
   scale = newScale;
 
-  const page1 = await pdfDoc.getPage(1);
-  const baseViewport = page1.getViewport({ scale });
-
-  pageEntries.forEach(entry => {
-    entry.rendered = false;
-    entry.rendering = null;
-    entry.wrap.style.width = baseViewport.width + 'px';
-    entry.wrap.style.height = baseViewport.height + 'px';
-    entry.textLayer.innerHTML = '';
-    entry.loadingTag.style.display = 'flex';
-    // Clear the old bitmap/size too — otherwise an off-screen page keeps
-    // showing its previous-zoom image, stretched to the new wrapper size,
-    // until it scrolls back into view and re-renders.
-    entry.canvas.width = 0;
-    entry.canvas.height = 0;
-    entry.canvas.style.width = '';
-    entry.canvas.style.height = '';
-  });
-
-  // Re-render whatever is currently on screen right away; anything scrolled
-  // out of view will lazily re-render again via the observer when revisited.
+  // Only re-render pages that are actually on screen right now. Pages
+  // scrolled out of view keep their old bitmap until you scroll back to
+  // them — at which point the IntersectionObserver notices renderedAtScale
+  // no longer matches and re-renders them lazily, same as first load.
   await Promise.all([...pagesInView].map(num => renderPageEntry(num)));
 }
 
@@ -568,6 +563,10 @@ function touchDistance(touches) {
 
 el.pdfScroll.addEventListener('touchstart', (ev) => {
   if (ev.touches.length === 2 && pdfDoc) {
+    const rect = el.pdfPagesContainer.getBoundingClientRect();
+    const midX = (ev.touches[0].clientX + ev.touches[1].clientX) / 2 - rect.left;
+    const midY = (ev.touches[0].clientY + ev.touches[1].clientY) / 2 - rect.top;
+    el.pdfPagesContainer.style.transformOrigin = `${midX}px ${midY}px`;
     pinchState = {
       startDist: touchDistance(ev.touches),
       startScale: scale,
@@ -583,7 +582,6 @@ el.pdfScroll.addEventListener('touchmove', (ev) => {
   const factor = dist / pinchState.startDist;
   const liveScale = Math.max(0.5, Math.min(pinchState.startScale * factor, 3));
   pinchState.liveScale = liveScale;
-  el.pdfPagesContainer.style.transformOrigin = 'top center';
   el.pdfPagesContainer.style.transform = `scale(${liveScale / scale})`;
 }, { passive: false });
 
@@ -710,7 +708,7 @@ function escapeRegex(str) {
 
 function highlightOnPage(num) {
   const entry = pageEntries[num - 1];
-  if (!entry || !entry.rendered || !searchTerm) return;
+  if (!entry || entry.renderedAtScale === null || !searchTerm) return;
   const re = new RegExp(escapeRegex(searchTerm), 'gi');
   const spans = entry.textLayer.querySelectorAll('span');
 
@@ -726,7 +724,7 @@ function highlightOnPage(num) {
 
 function clearAllHighlights() {
   pageEntries.forEach(entry => {
-    if (!entry.rendered) return;
+    if (entry.renderedAtScale === null) return;
     entry.textLayer.querySelectorAll('span').forEach(span => {
       span.textContent = span.textContent; // strips <mark> wrappers, keeps the text
     });
@@ -787,7 +785,7 @@ async function goToMatch(i) {
   const entry = pageEntries[targetPage - 1];
   if (!entry) return;
 
-  if (!entry.rendered) await renderPageEntry(targetPage);
+  if (entry.renderedAtScale === null) await renderPageEntry(targetPage);
   highlightOnPage(targetPage);
 
   if (currentMarkEl) currentMarkEl.classList.remove('current');
