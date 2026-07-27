@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Equipment Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --brand:#006937;
+    --brand-light:#00a651;
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --text:#1f2a24;
+    --muted:#6b7280;
+    --border:#e6e9ec;
+    --danger:#d92d20;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text)}
+
+  header{
+    background:var(--brand);color:#fff;padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  }
+  header h2{margin:0;font-size:1.1rem;font-weight:600}
+  header a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;display:flex;align-items:center;gap:6px}
+  header a:hover{opacity:1;text-decoration:underline}
+
+  .container{max-width:1200px;margin:auto;padding:20px}
+
+  .hero{display:grid;grid-template-columns:380px 1fr;gap:20px}
+  .card,.section{background:var(--card);padding:20px;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.06);border:1px solid var(--border)}
+  .section{margin-top:20px}
+  .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+  .section h2 i{color:var(--brand)}
+
+  .image-wrap{position:relative;border-radius:10px;overflow:hidden;background:#e2e5e9;height:380px}
+  .image-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+  .image-wrap .no-image{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);gap:8px}
+  .image-wrap .no-image i{font-size:2.2rem}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--brand-light);color:#fff;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:500;letter-spacing:.2px}
+  .badge.status-down{background:var(--danger)}
+  .badge.status-maintenance{background:#dc6803}
+  .badge i{font-size:.7rem}
+
+  h1#name{margin:14px 0 6px;font-size:1.5rem;font-weight:600}
+  p#description{color:var(--muted);line-height:1.5;margin:0 0 16px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .item{background:#f7f8fa;border:1px solid var(--border);padding:10px 12px;border-radius:8px}
+  .item b{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px}
+  .item span{font-size:.92rem;font-weight:500}
+
+  .doc-list{display:flex;flex-direction:column;gap:8px}
+  .doc{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border:1px solid var(--border);padding:12px 14px;border-radius:10px;cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .doc span.doc-name{display:flex;align-items:center;gap:10px;font-size:.92rem;cursor:pointer;padding:4px 2px;border-radius:6px;transition:color .15s ease;width:100%}
+  .doc span.doc-name i{color:var(--brand);width:18px;text-align:center}
+  .doc:hover span.doc-name{color:var(--brand)}
+  .doc.active{border-color:var(--brand-light);background:#f0faf4}
+  .doc.active span.doc-name{color:var(--brand);font-weight:600}
+
+  /* Search bar */
+  .search-bar{
+    display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;
+    background:#f7f8fa;border:1px solid var(--border);border-radius:10px;padding:8px 12px;
+  }
+  .search-bar > i.fa-magnifying-glass{color:var(--muted)}
+  .search-bar input{
+    flex:1;min-width:140px;border:none;background:transparent;outline:none;font-family:inherit;font-size:.92rem;padding:6px 0;
+  }
+  .search-bar button{
+    border:none;border-radius:8px;font-family:inherit;font-size:.85rem;cursor:pointer;
+    padding:8px 12px;display:flex;align-items:center;gap:6px;transition:background .15s ease;
+  }
+  .search-bar #pdfSearchBtn{background:var(--brand);color:#fff}
+  .search-bar #pdfSearchBtn:hover{background:#005229}
+  .search-bar #pdfSearchClear{background:transparent;color:var(--muted);padding:8px}
+  .search-bar #pdfSearchClear:hover{color:var(--danger)}
+  .search-bar .match-nav{display:flex;align-items:center;gap:4px}
+  .search-bar .match-nav button{background:#fff;color:var(--text);border:1px solid var(--border);padding:6px 10px}
+  .search-bar .match-nav button:hover{background:#eef1f3}
+  .search-bar .match-nav button:disabled{opacity:.4;cursor:not-allowed}
+  #matchCounter{font-size:.82rem;color:var(--muted);min-width:70px;text-align:center}
+
+  /* PDF viewer */
+  .viewer-wrap{position:relative}
+  .viewer-empty{
+    height:700px;display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:8px;color:var(--muted);border:1px dashed var(--border);border-radius:10px;
+  }
+  .viewer-empty i{font-size:2rem}
+
+  .pdf-toolbar{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    padding:10px;background:#f7f8fa;border:1px solid var(--border);border-radius:10px 10px 0 0;
+  }
+  .pdf-toolbar button{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;font-family:inherit;font-size:.85rem;
+  }
+  .pdf-toolbar button:hover{background:#eef1f3}
+  .pdf-toolbar button:disabled{opacity:.4;cursor:not-allowed}
+  .pdf-toolbar .page-info{font-size:.85rem;color:var(--muted)}
+
+  .pdf-canvas-scroll{
+    max-height:700px;overflow-y:auto;overflow-x:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;
+    background:#525659;padding:16px 0;
+    -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;
+  }
+  #pdfPagesContainer{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .pdf-page-wrap{position:relative;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);flex:0 0 auto}
+  .pdf-page-wrap canvas{display:block;width:100%;height:100%}
+  .page-loading-tag{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:.85rem;background:#eceff1;
+  }
+  .textLayer{
+    position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;line-height:1;opacity:1;
+    pointer-events:none; /* let scroll/pinch gestures pass through to the canvas beneath */
+  }
+  .textLayer span{
+    color:transparent;position:absolute;white-space:pre;transform-origin:0 0;
+  }
+  .textLayer mark.pdf-hit{background:rgba(255,212,0,.55);color:transparent;border-radius:2px}
+  .textLayer mark.pdf-hit.current{background:rgba(255,140,0,.75)}
+
+  .pdf-loading{
+    height:700px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--muted);
+    border:1px solid var(--border);border-radius:10px;
+  }
+  #pdfViewerBox{display:none}
+  #pdfViewerBox.is-visible{display:block}
+  .spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .not-found{text-align:center;padding:80px 20px;color:var(--muted)}
+  .not-found i{font-size:3rem;color:var(--danger);margin-bottom:12px}
+
+  .skeleton{animation:pulse 1.2s infinite ease-in-out;background:#e6e9ec;border-radius:6px;color:transparent!important}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+  @media (max-width:860px){
+    .hero{grid-template-columns:1fr}
+    .image-wrap{height:280px}
+    .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:500px;height:500px}
+  }
+
+  /* Full screen preview mode (native Fullscreen API) */
+  #previewFsWrap:fullscreen,
+  #previewFsWrap.fake-fullscreen{
+    background:#525659;padding:16px;display:flex;flex-direction:column;
+  }
+  #previewFsWrap.fake-fullscreen{
+    position:fixed;inset:0;z-index:9999;
+    padding-top:max(16px, env(safe-area-inset-top));
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+    padding-left:max(16px, env(safe-area-inset-left));
+    padding-right:max(16px, env(safe-area-inset-right));
+  }
+  #previewFsWrap:fullscreen .search-bar,
+  #previewFsWrap.fake-fullscreen .search-bar{flex:0 0 auto;background:#fff}
+  #previewFsWrap:fullscreen .viewer-wrap,
+  #previewFsWrap.fake-fullscreen .viewer-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+  #previewFsWrap:fullscreen #pdfViewerBox,
+  #previewFsWrap.fake-fullscreen #pdfViewerBox{flex:1;min-height:0;display:flex;flex-direction:column}
+  #previewFsWrap:fullscreen .pdf-canvas-scroll,
+  #previewFsWrap.fake-fullscreen .pdf-canvas-scroll{flex:1;max-height:none;height:auto;border-radius:0 0 10px 10px;-webkit-overflow-scrolling:touch}
+  #previewFsWrap:fullscreen .viewer-empty,
+  #previewFsWrap.fake-fullscreen .viewer-empty,
+  #previewFsWrap:fullscreen .pdf-loading,
+  #previewFsWrap.fake-fullscreen .pdf-loading{flex:1;max-height:none;height:auto}
+  #fullscreenBtn.is-active i{color:var(--brand)}
+</style>
+</head>
+<body>
+
+<header>
+  <h2><i class="fa-solid fa-industry"></i> GHACEM - Equipment Documentation Portal</h2>
+  <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</header>
+
+<div class="container" id="container">
+
+  <div class="hero">
+    <div class="card">
+      <div class="image-wrap">
+        <img id="equipmentImage" alt="Equipment photo">
+        <div class="no-image" id="noImage"><i class="fa-solid fa-image"></i><span>No image available</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span id="status" class="badge skeleton">Loading…</span>
+      <h1 id="name" class="skeleton">Loading equipment…</h1>
+      <p id="description" class="skeleton">Loading description…</p>
+      <div class="grid">
+        <div class="item"><b>ID</b><span id="equipmentId"></span></div>
+        <div class="item"><b>Department</b><span id="department"></span></div>
+        <div class="item"><b>Manufacturer</b><span id="manufacturer"></span></div>
+        <div class="item"><b>Model</b><span id="model"></span></div>
+        <div class="item"><b>Serial</b><span id="serial"></span></div>
+        <div class="item"><b>Installation</b><span id="installation"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><i class="fa-solid fa-folder-open"></i> Equipment Documents</h2>
+    <div id="documents" class="doc-list"></div>
+  </div>
+
+  <div class="section">
+    <h2><i class="fa-solid fa-file-pdf"></i> Document Preview</h2>
+
+    <div id="previewFsWrap">
+      <div class="search-bar" id="searchBar" style="display:none">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="pdfSearchInput" placeholder="Search inside this PDF…">
+        <button type="button" id="pdfSearchBtn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        <div class="match-nav">
+          <button type="button" id="prevMatchBtn" title="Previous match"><i class="fa-solid fa-chevron-up"></i></button>
+          <span id="matchCounter"></span>
+          <button type="button" id="nextMatchBtn" title="Next match"><i class="fa-solid fa-chevron-down"></i></button>
+        </div>
+        <button type="button" id="pdfSearchClear" title="Clear search"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="viewer-wrap" id="viewerWrap">
+        <div class="viewer-empty" id="viewerEmpty">
+          <i class="fa-regular fa-file-lines"></i>
+          <span>Tap a document name above to preview it here</span>
+        </div>
+
+        <div id="pdfLoading" class="pdf-loading" style="display:none">
+          <div class="spinner"></div>
+          <span>Loading document…</span>
+        </div>
+
+        <div id="pdfViewerBox">
+          <div class="pdf-toolbar">
+            <button type="button" id="prevPageBtn"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+            <span class="page-info"><span id="pageNumLabel">1</span> / <span id="pageCountLabel">1</span></span>
+            <button type="button" id="nextPageBtn">Next <i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" id="zoomOutBtn"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <button type="button" id="zoomInBtn"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+            <button type="button" id="fullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
+          </div>
+          <div class="pdf-canvas-scroll" id="pdfScroll">
+            <div id="pdfPagesContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const icons = {
+  'Operation Manual': 'fa-book',
+  'Maintenance Manual': 'fa-screwdriver-wrench',
+  'Electrical Drawings': 'fa-bolt',
+  'Spare Parts Catalogue': 'fa-gears',
+  'PM Checklist': 'fa-clipboard-check'
+};
+
+const statusClass = (status) => {
+  const s = (status || '').toLowerCase();
+  if (s.includes('down') || s.includes('fault') || s.includes('breakdown')) return 'status-down';
+  if (s.includes('maint')) return 'status-maintenance';
+  return '';
+};
+
+const statusIcon = (status) => {
+  const s = (status || '').toLowerCase();
+  if (s.includes('down') || s.includes('fault') || s.includes('breakdown')) return 'fa-triangle-exclamation';
+  if (s.includes('maint')) return 'fa-tools';
+  return 'fa-circle-check';
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const el = {
+  container: document.getElementById('container'),
+  equipmentImage: document.getElementById('equipmentImage'),
+  noImage: document.getElementById('noImage'),
+  status: document.getElementById('status'),
+  name: document.getElementById('name'),
+  description: document.getElementById('description'),
+  equipmentId: document.getElementById('equipmentId'),
+  department: document.getElementById('department'),
+  manufacturer: document.getElementById('manufacturer'),
+  model: document.getElementById('model'),
+  serial: document.getElementById('serial'),
+  installation: document.getElementById('installation'),
+  documents: document.getElementById('documents'),
+  viewerEmpty: document.getElementById('viewerEmpty'),
+  pdfLoading: document.getElementById('pdfLoading'),
+  pdfViewerBox: document.getElementById('pdfViewerBox'),
+  searchBar: document.getElementById('searchBar'),
+  searchInput: document.getElementById('pdfSearchInput'),
+  searchBtn: document.getElementById('pdfSearchBtn'),
+  searchClear: document.getElementById('pdfSearchClear'),
+  prevMatchBtn: document.getElementById('prevMatchBtn'),
+  nextMatchBtn: document.getElementById('nextMatchBtn'),
+  matchCounter: document.getElementById('matchCounter'),
+  prevPageBtn: document.getElementById('prevPageBtn'),
+  nextPageBtn: document.getElementById('nextPageBtn'),
+  zoomOutBtn: document.getElementById('zoomOutBtn'),
+  zoomInBtn: document.getElementById('zoomInBtn'),
+  fullscreenBtn: document.getElementById('fullscreenBtn'),
+  previewFsWrap: document.getElementById('previewFsWrap'),
+  pageNumLabel: document.getElementById('pageNumLabel'),
+  pageCountLabel: document.getElementById('pageCountLabel'),
+  pdfScroll: document.getElementById('pdfScroll'),
+  pdfPagesContainer: document.getElementById('pdfPagesContainer'),
+};
+
+let currentDoc = null;
+let pdfDoc = null;
+let pageNum = 1;             // page currently most visible in the scroll view
+let scale = 1.2;
+let searchTerm = '';
+let matchPages = [];          // list of page numbers containing a match, one entry per occurrence
+let currentMatchIndex = -1;
+let currentMarkEl = null;
+let pageEntries = [];          // {wrap, canvas, textLayer, rendered, rendering}
+let pagesInView = new Set();
+let pageObserver = null;
+
+function clearSkeletons() {
+  [el.status, el.name, el.description].forEach(node => node.classList.remove('skeleton'));
+}
+
+function showNotFound(message) {
+  el.container.innerHTML = `
+    <div class="not-found">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <h2>${message}</h2>
+      <p><a href="index.html">← Back to Dashboard</a></p>
+    </div>`;
+}
+
+// ---------- PDF viewer (continuous scroll, lazily-rendered pages) ----------
+
+function setupPageObserver() {
+  if (pageObserver) pageObserver.disconnect();
+  pagesInView = new Set();
+  pageObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const num = parseInt(entry.target.dataset.pageNumber, 10);
+      if (entry.isIntersecting) {
+        pagesInView.add(num);
+        renderPageEntry(num);
+        if (entry.intersectionRatio > 0.5) {
+          pageNum = num;
+          el.pageNumLabel.textContent = num;
+          el.prevPageBtn.disabled = pageNum <= 1;
+          el.nextPageBtn.disabled = pageNum >= pdfDoc.numPages;
+        }
+      } else {
+        pagesInView.delete(num);
+      }
+    });
+  }, {
+    root: el.pdfScroll,
+    rootMargin: '600px 0px', // preload pages just before they scroll into view
+    threshold: [0, 0.5, 1]
+  });
+}
+
+async function openDocument(doc, docEl) {
+  currentDoc = doc;
+  document.querySelectorAll('.doc').forEach(d => d.classList.remove('active'));
+  if (docEl) docEl.classList.add('active');
+
+  el.viewerEmpty.style.display = 'none';
+  el.pdfViewerBox.classList.remove('is-visible');
+  el.pdfLoading.style.display = 'flex';
+  el.pdfLoading.innerHTML = '<div class="spinner"></div><span>Loading document…</span>';
+  el.searchBar.style.display = 'flex';
+  el.searchInput.value = '';
+  searchTerm = '';
+  matchPages = [];
+  currentMatchIndex = -1;
+  currentMarkEl = null;
+  el.matchCounter.textContent = '';
+
+  try {
+    const loadingTask = pdfjsLib.getDocument(encodeURI(doc.file));
+    pdfDoc = await loadingTask.promise;
+    scale = 1.2;
+    el.pageCountLabel.textContent = pdfDoc.numPages;
+    el.pdfLoading.style.display = 'none';
+    el.pdfViewerBox.classList.add('is-visible');
+    await buildPageEntries();
+  } catch (err) {
+    console.error('Failed to load PDF', err);
+    el.pdfLoading.style.display = 'flex';
+    el.pdfViewerBox.classList.remove('is-visible');
+    el.pdfLoading.innerHTML = `
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
+      <span>Could not load this PDF. It may be missing or blocked.</span>`;
+  }
+}
+
+async function buildPageEntries() {
+  if (pageObserver) pageObserver.disconnect();
+  el.pdfPagesContainer.innerHTML = '';
+  pageEntries = [];
+  pageNum = 1;
+  el.pageNumLabel.textContent = 1;
+  el.prevPageBtn.disabled = true;
+
+  // Assumes uniform page dimensions across the document (true for the vast
+  // majority of scanned/exported manuals) so every placeholder can be sized
+  // up front from page 1, without fetching every single page.
+  const page1 = await pdfDoc.getPage(1);
+  const baseViewport = page1.getViewport({ scale });
+
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pdf-page-wrap';
+    wrap.dataset.pageNumber = p;
+    wrap.style.width = baseViewport.width + 'px';
+    wrap.style.height = baseViewport.height + 'px';
+
+    const loadingTag = document.createElement('div');
+    loadingTag.className = 'page-loading-tag';
+    loadingTag.textContent = `Page ${p}`;
+
+    const canvas = document.createElement('canvas');
+    const textLayer = document.createElement('div');
+    textLayer.className = 'textLayer';
+
+    wrap.appendChild(loadingTag);
+    wrap.appendChild(canvas);
+    wrap.appendChild(textLayer);
+    el.pdfPagesContainer.appendChild(wrap);
+
+    pageEntries.push({ wrap, loadingTag, canvas, textLayer, rendered: false, rendering: null });
+  }
+
+  el.nextPageBtn.disabled = pdfDoc.numPages <= 1;
+  setupPageObserver();
+  pageEntries.forEach(entry => pageObserver.observe(entry.wrap));
+
+  // Render the first page immediately so there's no blank flash on open.
+  await renderPageEntry(1);
+}
+
+async function renderPageEntry(num) {
+  const entry = pageEntries[num - 1];
+  if (!entry || entry.rendered || entry.rendering) return entry && entry.rendering;
+
+  entry.rendering = (async () => {
+    const page = await pdfDoc.getPage(num);
+    const viewport = page.getViewport({ scale });
+
+    // Render at device pixel ratio so text/lines stay crisp on Retina/HiDPI
+    // screens instead of being upscaled and blurred by the browser.
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2.5);
+
+    const canvas = entry.canvas;
+    const ctx = canvas.getContext('2d');
+    canvas.width = Math.floor(viewport.width * outputScale);
+    canvas.height = Math.floor(viewport.height * outputScale);
+    canvas.style.width = Math.floor(viewport.width) + 'px';
+    canvas.style.height = Math.floor(viewport.height) + 'px';
+
+    entry.wrap.style.width = viewport.width + 'px';
+    entry.wrap.style.height = viewport.height + 'px';
+
+    const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+
+    await page.render({ canvasContext: ctx, viewport, transform }).promise;
+
+    entry.textLayer.innerHTML = '';
+    entry.textLayer.style.width = viewport.width + 'px';
+    entry.textLayer.style.height = viewport.height + 'px';
+    const textContent = await page.getTextContent();
+    pdfjsLib.renderTextLayer({
+      textContentSource: textContent,
+      container: entry.textLayer,
+      viewport,
+      textDivs: []
+    });
+
+    entry.loadingTag.style.display = 'none';
+    entry.rendered = true;
+    entry.rendering = null;
+
+    if (searchTerm) highlightOnPage(num);
+  })();
+
+  return entry.rendering;
+}
+
+function goToPage(num) {
+  if (!pdfDoc) return;
+  num = Math.min(Math.max(num, 1), pdfDoc.numPages);
+  const entry = pageEntries[num - 1];
+  if (entry) entry.wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+el.prevPageBtn.addEventListener('click', () => goToPage(pageNum - 1));
+el.nextPageBtn.addEventListener('click', () => goToPage(pageNum + 1));
+
+async function rescaleAndRerender(newScale) {
+  if (!pdfDoc) return;
+  scale = newScale;
+
+  const page1 = await pdfDoc.getPage(1);
+  const baseViewport = page1.getViewport({ scale });
+
+  pageEntries.forEach(entry => {
+    entry.rendered = false;
+    entry.rendering = null;
+    entry.wrap.style.width = baseViewport.width + 'px';
+    entry.wrap.style.height = baseViewport.height + 'px';
+    entry.textLayer.innerHTML = '';
+    entry.loadingTag.style.display = 'flex';
+    // Clear the old bitmap/size too — otherwise an off-screen page keeps
+    // showing its previous-zoom image, stretched to the new wrapper size,
+    // until it scrolls back into view and re-renders.
+    entry.canvas.width = 0;
+    entry.canvas.height = 0;
+    entry.canvas.style.width = '';
+    entry.canvas.style.height = '';
+  });
+
+  // Re-render whatever is currently on screen right away; anything scrolled
+  // out of view will lazily re-render again via the observer when revisited.
+  await Promise.all([...pagesInView].map(num => renderPageEntry(num)));
+}
+
+el.zoomInBtn.addEventListener('click', () => rescaleAndRerender(Math.min(scale + 0.2, 3)));
+el.zoomOutBtn.addEventListener('click', () => rescaleAndRerender(Math.max(scale - 0.2, 0.5)));
+
+// ---------- Pinch to zoom (touch) ----------
+// Two-finger pinch gives live, cheap CSS-transform feedback while the
+// gesture is happening; on release we commit a real PDF.js re-render at
+// the new scale so text stays crisp instead of a blurry stretched canvas.
+
+let pinchState = null;
+
+function touchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+el.pdfScroll.addEventListener('touchstart', (ev) => {
+  if (ev.touches.length === 2 && pdfDoc) {
+    pinchState = {
+      startDist: touchDistance(ev.touches),
+      startScale: scale,
+      liveScale: scale
+    };
+  }
+}, { passive: true });
+
+el.pdfScroll.addEventListener('touchmove', (ev) => {
+  if (!pinchState || ev.touches.length !== 2) return;
+  ev.preventDefault();
+  const dist = touchDistance(ev.touches);
+  const factor = dist / pinchState.startDist;
+  const liveScale = Math.max(0.5, Math.min(pinchState.startScale * factor, 3));
+  pinchState.liveScale = liveScale;
+  el.pdfPagesContainer.style.transformOrigin = 'top center';
+  el.pdfPagesContainer.style.transform = `scale(${liveScale / scale})`;
+}, { passive: false });
+
+async function endPinch() {
+  if (!pinchState) return;
+  const finalScale = pinchState.liveScale;
+  pinchState = null;
+  if (Math.abs(finalScale - scale) > 0.02) {
+    await rescaleAndRerender(finalScale);
+  }
+  el.pdfPagesContainer.style.transform = '';
+}
+
+el.pdfScroll.addEventListener('touchend', endPinch, { passive: true });
+el.pdfScroll.addEventListener('touchcancel', endPinch, { passive: true });
+
+// ---------- Full screen (native API + CSS fallback for iOS Safari) ----------
+
+let scaleBeforeFullscreen = null;
+let usingFakeFullscreen = false;
+let preFullscreenScrollY = 0;
+
+function isFullscreenActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement) || usingFakeFullscreen;
+}
+
+async function fitScaleToContainer() {
+  if (!pdfDoc) return scale;
+  const page = await pdfDoc.getPage(1);
+  const unscaledWidth = page.getViewport({ scale: 1 }).width;
+  const available = el.pdfScroll.clientWidth - 32; // padding allowance
+  if (available <= 0) return scale;
+  return Math.max(0.5, Math.min(available / unscaledWidth, 3));
+}
+
+async function applyFullscreenState(active) {
+  el.fullscreenBtn.classList.toggle('is-active', active);
+  el.fullscreenBtn.innerHTML = active
+    ? '<i class="fa-solid fa-compress"></i>'
+    : '<i class="fa-solid fa-expand"></i>';
+
+  if (pdfDoc) {
+    if (active) {
+      scaleBeforeFullscreen = scale;
+      await new Promise(r => requestAnimationFrame(r));
+      await rescaleAndRerender(await fitScaleToContainer());
+    } else if (scaleBeforeFullscreen !== null) {
+      const restoreScale = scaleBeforeFullscreen;
+      scaleBeforeFullscreen = null;
+      await rescaleAndRerender(restoreScale);
+    }
+  }
+
+  if (!active) {
+    // Restore the page's scroll position — without this the browser
+    // snaps back to the top of the site once the overlay is removed.
+    requestAnimationFrame(() => window.scrollTo(0, preFullscreenScrollY));
+  }
+}
+
+function enableFakeFullscreen() {
+  preFullscreenScrollY = window.scrollY || document.documentElement.scrollTop;
+  usingFakeFullscreen = true;
+  el.previewFsWrap.classList.add('fake-fullscreen');
+  // Standard iOS scroll-lock pattern: pin body in place at its current
+  // visual offset, rather than just hiding overflow (which collapses the
+  // page's scroll height and zeroes out scrollY).
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${preFullscreenScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+  applyFullscreenState(true);
+}
+
+function disableFakeFullscreen() {
+  usingFakeFullscreen = false;
+  el.previewFsWrap.classList.remove('fake-fullscreen');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  applyFullscreenState(false);
+}
+
+el.fullscreenBtn.addEventListener('click', () => {
+  if (isFullscreenActive()) {
+    if (usingFakeFullscreen) {
+      disableFakeFullscreen();
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+    return;
+  }
+
+  preFullscreenScrollY = window.scrollY || document.documentElement.scrollTop;
+  const req = el.previewFsWrap.requestFullscreen || el.previewFsWrap.webkitRequestFullscreen;
+  if (req) {
+    const result = req.call(el.previewFsWrap);
+    // Some browsers advertise the method but reject the promise (or it's undefined on old WebKit) — fall back to CSS mode
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => enableFakeFullscreen());
+    }
+  } else {
+    // iOS Safari (and other browsers without element Fullscreen API support) land here
+    enableFakeFullscreen();
+  }
+});
+
+document.addEventListener('fullscreenchange', () => applyFullscreenState(!!document.fullscreenElement));
+document.addEventListener('webkitfullscreenchange', () => applyFullscreenState(!!document.webkitFullscreenElement));
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && usingFakeFullscreen) disableFakeFullscreen();
+});
+
+// ---------- Search ----------
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightOnPage(num) {
+  const entry = pageEntries[num - 1];
+  if (!entry || !entry.rendered || !searchTerm) return;
+  const re = new RegExp(escapeRegex(searchTerm), 'gi');
+  const spans = entry.textLayer.querySelectorAll('span');
+
+  spans.forEach(span => {
+    const text = span.textContent;
+    if (!text) return;
+    re.lastIndex = 0;
+    if (!re.test(text)) return;
+    re.lastIndex = 0;
+    span.innerHTML = text.replace(re, m => `<mark class="pdf-hit">${m}</mark>`);
+  });
+}
+
+function clearAllHighlights() {
+  pageEntries.forEach(entry => {
+    if (!entry.rendered) return;
+    entry.textLayer.querySelectorAll('span').forEach(span => {
+      span.textContent = span.textContent; // strips <mark> wrappers, keeps the text
+    });
+  });
+  if (currentMarkEl) {
+    currentMarkEl.classList.remove('current');
+    currentMarkEl = null;
+  }
+}
+
+async function runSearch() {
+  if (!currentDoc || !pdfDoc) return;
+  const term = el.searchInput.value.trim();
+  if (!term) return;
+
+  clearAllHighlights();
+  searchTerm = term;
+  matchPages = [];
+  const lower = term.toLowerCase();
+
+  el.matchCounter.textContent = 'Searching…';
+
+  for (let p = 1; p <= pdfDoc.numPages; p++) {
+    const page = await pdfDoc.getPage(p);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it => it.str).join(' ').toLowerCase();
+    let idx = 0, count = 0;
+    while ((idx = pageText.indexOf(lower, idx)) !== -1) {
+      count++;
+      idx += lower.length;
+    }
+    for (let i = 0; i < count; i++) matchPages.push(p);
+  }
+
+  if (matchPages.length === 0) {
+    currentMatchIndex = -1;
+    el.matchCounter.textContent = 'No matches';
+    return;
+  }
+
+  currentMatchIndex = 0;
+  updateMatchCounter();
+  await goToMatch(0);
+}
+
+function updateMatchCounter() {
+  el.matchCounter.textContent = matchPages.length
+    ? `${currentMatchIndex + 1} / ${matchPages.length}`
+    : 'No matches';
+}
+
+async function goToMatch(i) {
+  if (!matchPages.length) return;
+  currentMatchIndex = ((i % matchPages.length) + matchPages.length) % matchPages.length;
+  updateMatchCounter();
+
+  const targetPage = matchPages[currentMatchIndex];
+  const entry = pageEntries[targetPage - 1];
+  if (!entry) return;
+
+  if (!entry.rendered) await renderPageEntry(targetPage);
+  highlightOnPage(targetPage);
+
+  if (currentMarkEl) currentMarkEl.classList.remove('current');
+  const marks = entry.textLayer.querySelectorAll('mark.pdf-hit');
+  if (marks.length) {
+    currentMarkEl = marks[0];
+    currentMarkEl.classList.add('current');
+    currentMarkEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  } else {
+    currentMarkEl = null;
+    entry.wrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+}
+
+el.searchBtn.addEventListener('click', runSearch);
+el.searchInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') runSearch(); });
+el.nextMatchBtn.addEventListener('click', () => goToMatch(currentMatchIndex + 1));
+el.prevMatchBtn.addEventListener('click', () => goToMatch(currentMatchIndex - 1));
+el.searchClear.addEventListener('click', () => {
+  el.searchInput.value = '';
+  searchTerm = '';
+  matchPages = [];
+  currentMatchIndex = -1;
+  el.matchCounter.textContent = '';
+  clearAllHighlights();
+});
+
+// ---------- Equipment data ----------
+
+function renderEquipment(e) {
+  clearSkeletons();
+
+  el.equipmentImage.onerror = () => {
+    el.equipmentImage.style.display = 'none';
+    el.noImage.style.display = 'flex';
+  };
+  el.equipmentImage.onload = () => {
+    el.equipmentImage.style.display = 'block';
+    el.noImage.style.display = 'none';
+  };
+  el.equipmentImage.src = e.image || '';
+
+  el.status.className = `badge ${statusClass(e.status)}`;
+  el.status.innerHTML = `<i class="fa-solid ${statusIcon(e.status)}"></i> ${e.status || 'Unknown'}`;
+
+  el.name.textContent = e.name || '—';
+  el.description.textContent = e.description || 'No description available.';
+  el.equipmentId.textContent = e.id || '—';
+  el.department.textContent = e.department || '—';
+  el.manufacturer.textContent = e.manufacturer || '—';
+  el.model.textContent = e.model || '—';
+  el.serial.textContent = e.serial || '—';
+  el.installation.textContent = formatDate(e.installation);
+
+  el.documents.innerHTML = '';
+  const docs = Array.isArray(e.documents) ? e.documents : [];
+
+  if (docs.length === 0) {
+    el.documents.innerHTML = '<p style="color:var(--muted)">No documents available for this equipment.</p>';
+    return;
+  }
+
+  docs.forEach((d) => {
+    const div = document.createElement('div');
+    div.className = 'doc';
+    div.innerHTML = `<span class="doc-name" title="Preview"><i class="fa-solid ${icons[d.name] || 'fa-file-pdf'}"></i> ${d.name}</span>`;
+    div.addEventListener('click', () => openDocument(d, div));
+    el.documents.appendChild(div);
+  });
+}
+
+const id = new URLSearchParams(location.search).get('id');
+
+if (!id) {
+  showNotFound('No equipment ID was provided in the URL.');
+} else {
+  fetch('equipment.json')
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      const e = data.find(x => x.id === id);
+      if (!e) {
+        showNotFound(`Equipment with ID "${id}" was not found.`);
+        return;
+      }
+      renderEquipment(e);
+    })
+    .catch(err => {
+      console.error('Failed to load equipment.json', err);
+      showNotFound('Could not load equipment data. Please check equipment.json.');
+    });
+}
+</script>
+</body>
+</html>

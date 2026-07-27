@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>GHACEM Equipment Documentation Portal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Poppins,sans-serif;
+background:#f5f7fa;
+color:#333;
+}
+
+/* NAVBAR */
+
+nav{
+background:#006937;
+padding:15px 40px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+color:white;
+position:sticky;
+top:0;
+z-index:999;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.logo img{
+width:50px;
+height:50px;
+border-radius:50%;
+background:rgb(218, 203, 4);
+object-fit:cover;
+}
+
+.logo h2{
+font-size:22px;
+}
+
+/* HERO */
+
+.hero{
+
+height:420px;
+
+background:
+
+linear-gradient(rgba(0,70,40,.75),
+
+rgba(0,70,40,.75)),
+
+url("assets/ghacem-banner.jpeg");
+
+background-size:cover;
+
+background-position:center;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+text-align:center;
+
+color:white;
+
+padding:30px;
+
+}
+
+.hero h1{
+
+font-size:48px;
+
+margin-bottom:20px;
+
+}
+
+.hero p{
+
+font-size:20px;
+
+opacity:.9;
+
+}
+
+/* STATS */
+
+.stats{
+
+max-width:1200px;
+
+margin:auto;
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+
+gap:25px;
+
+padding:20px;
+
+}
+
+.stat{
+
+background:white;
+
+padding:30px;
+
+border-radius:15px;
+
+text-align:center;
+
+box-shadow:0 10px 20px rgba(0,0,0,.08);
+
+}
+
+.stat i{
+
+font-size:35px;
+
+color:#006937;
+
+margin-bottom:15px;
+
+}
+
+.stat h2{
+
+font-size:40px;
+
+color:#006937;
+
+}
+
+/* EQUIPMENT */
+
+.container{
+
+max-width:1200px;
+
+margin:50px auto;
+
+padding:20px;
+
+}
+
+.section-title{
+
+font-size:32px;
+
+margin-bottom:30px;
+
+color:#006937;
+
+}
+
+.cards{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+
+gap:30px;
+
+}
+
+.card{
+
+background:white;
+
+border-radius:18px;
+
+overflow:hidden;
+
+box-shadow:0 10px 20px rgba(0,0,0,.08);
+
+transition:.3s;
+
+}
+
+.card:hover{
+
+transform: translateY(-8px) scale(1.02);
+box-shadow: 0 18px 35px rgba(0,0,0,.15);
+
+}
+
+.card img{
+
+width:100%;
+
+height:220px;
+
+object-fit:cover;
+
+background:#ddd;
+
+}
+
+.card-content{
+
+padding:22px;
+
+}
+
+.badge{
+display:inline-block;
+background:#00a651;
+color:white;
+padding:7px 14px;
+border-radius:30px;
+font-size:12px;
+font-weight:600;
+margin-bottom:12px;
+}
+
+.card h3{
+
+margin-bottom:10px;
+
+}
+
+.card p{
+
+margin:6px 0;
+
+color:#666;
+
+}
+
+.card a{
+
+display:inline-block;
+
+margin-top:20px;
+
+text-decoration:none;
+
+background:#006937;
+
+color:white;
+
+padding:12px 20px;
+
+border-radius:8px;
+
+}
+
+/* FOOTER */
+
+footer{
+
+background:#006937;
+
+color:white;
+
+padding:20px;
+
+text-align:center;
+
+margin-top:60px;
+
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.hero h1{
+
+font-size:32px;
+
+}
+
+nav{
+
+padding:15px;
+
+}
+
+.logo h2{
+
+font-size:18px;
+
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav>
+
+<div class="logo">
+
+<img src="assets/logo.png">
+
+<h2>Equipment Documentation Portal
+</h2>
+
+</div>
+
+<div>
+
+</div>
+
+</nav>
+
+<section class="hero">
+
+<div>
+
+<h1>Equipment Documentation Portal</h1>
+
+<p>Search • Troubleshoot • Access Equipment Information Instantly</p>
+
+</div>
+
+</section>
+
+<section class="stats">
+
+<div class="stat">
+
+<i class="fa-solid fa-industry"></i>
+
+<h2>9</h2>
+
+<p>Total Equipment</p>
+
+</div>
+
+<div class="stat">
+
+<i class="fa-solid fa-file-pdf"></i>
+
+<h2>36</h2>
+
+<p>Documents</p>
+
+</div>
+
+<div class="stat">
+
+<i class="fa-solid fa-building"></i>
+
+<h2>3</h2>
+
+<p>Departments</p>
+
+</div>
+
+<div class="stat">
+
+<i class="fa-solid fa-qrcode"></i>
+
+<h2>10</h2>
+
+<p>QR Codes</p>
+
+</div>
+
+</section>
+
+<div class="container">
+
+<h2 class="section-title">
+
+Equipment List
+
+</h2>
+
+<div class="cards">
+
+<div class="card">
+
+<img src="assets/equipment/rt.JPG" alt="Rotor Packer 1">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational
+
+</span>
+
+<h3>Rotor Packer 1</h3>
+
+<p><strong>ID:</strong> rt-01</p>
+
+<p><strong>Manufacturer:</strong> Haver & Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=rt-01">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/rt2.JPG" alt="Rotor Packer 2">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational
+
+</span>
+
+<h3>Rotor Packer 2</h3>
+
+<p><strong>ID:</strong> rt-02</p>
+
+<p><strong>Manufacturer:</strong> Haver & Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=rt-02">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/rt4.JPG" alt="Rotor Packer 4">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Rotor Packer 4</h3>
+
+<p><strong>ID:</strong> rt-04</p>
+
+<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=rt-04">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/rt6.JPG" alt="Rotor Packer 6">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Rotor Packer 6</h3>
+
+<p><strong>ID:</strong> rt-06</p>
+
+<p><strong>Manufacturer:</strong> Haver</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=rt-06">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/be1.JPG" alt="Bucket Elevator (Packer 1 & 2)">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Bucket Elevator (Packer 1 & 2) </h3>
+
+<p><strong>ID:</strong> be1</p>
+
+<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=be1">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/be4.JPG" alt="Bucket Elevator (Packer 4)">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Bucket Elevator (Packer 4)</h3>
+
+<p><strong>ID:</strong> be4</p>
+
+<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=be4">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/rt4.JPG" alt="Bucket Elevator (Packer 6)">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Bucket Elevator (Packer 6)</h3>
+
+<p><strong>ID:</strong> be6</p>
+
+<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=be6">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/vs1.JPG" alt="Vibrating Screen (Packer 1 & 2)">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Vibrating Screen (Packer 1 & 2)</h3>
+
+<p><strong>ID:</strong> vs1</p>
+
+<p><strong>Manufacturer:</strong> Niagara & Haver</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=vs1">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<img src="assets/equipment/vs2.JPG" alt="Vibrating Screen (Packer 4)">
+
+<div class="card-content">
+
+<span class="badge">
+
+Operational</span>
+
+<h3>Vibrating Screen (Packer 4)</h3>
+
+<p><strong>ID:</strong> vs2</p>
+
+<p><strong>Manufacturer:</strong> Haver</p>
+
+<p><strong>Location:</strong> Packing Plant</p>
+
+<a href="equipment.html?id=vs2">
+
+View Details
+
+</a>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<footer>
+
+GHACEM LTD © 2026
+
+<br>
+
+Engineering Documentation Portal
+
+</footer>
+
+</body>
+
+</html>
