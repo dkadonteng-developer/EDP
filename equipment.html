@@ -154,6 +154,87 @@
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:500px;height:500px}
   }
 
+  /* ---------- AI Troubleshooting Assistant ---------- */
+  #aiLauncher{
+    position:fixed;bottom:24px;right:24px;z-index:500;
+    width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--brand);color:#fff;font-size:1.3rem;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .15s ease, background .15s ease;
+  }
+  #aiLauncher:hover{background:#005229;transform:scale(1.05)}
+
+  #aiPanel{
+    position:fixed;top:0;right:-420px;width:400px;max-width:100vw;height:100%;
+    background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.15);z-index:600;
+    display:flex;flex-direction:column;transition:right .25s ease;
+  }
+  #aiPanel.open{right:0}
+
+  .ai-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;background:var(--brand);color:#fff;flex:0 0 auto;
+  }
+  .ai-header-title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.95rem}
+  .ai-header-actions{display:flex;gap:6px}
+  .ai-header-actions button{
+    background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;
+  }
+  .ai-header-actions button:hover{background:rgba(255,255,255,.28)}
+
+  .ai-settings{padding:14px 16px;border-bottom:1px solid var(--border);background:#f7f8fa;flex:0 0 auto}
+  .ai-settings label{display:block;font-size:.75rem;color:var(--muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.3px}
+  .ai-settings label:first-child{margin-top:0}
+  .ai-settings input,.ai-settings select{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88rem;background:#fff;
+  }
+  .ai-settings-actions{display:flex;gap:8px;margin-top:10px}
+  .ai-settings-actions button{
+    flex:1;border:none;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:.85rem;cursor:pointer;
+  }
+  #aiSaveKeyBtn{background:var(--brand);color:#fff}
+  #aiSaveKeyBtn:hover{background:#005229}
+  #aiClearKeyBtn{background:#fff;border:1px solid var(--border);color:var(--muted)}
+  #aiClearKeyBtn:hover{color:var(--danger);border-color:var(--danger)}
+  .ai-settings-note{
+    font-size:.74rem;color:var(--muted);line-height:1.4;margin:10px 0 0;display:flex;gap:6px;
+  }
+  .ai-settings-note i{color:#dc6803;flex:0 0 auto;margin-top:2px}
+
+  .ai-status{
+    padding:8px 16px;font-size:.8rem;color:var(--muted);background:#f7f8fa;border-bottom:1px solid var(--border);flex:0 0 auto;
+    display:flex;align-items:center;gap:8px;
+  }
+
+  .ai-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+  .ai-empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:.85rem}
+  .ai-empty i{font-size:1.8rem;margin-bottom:10px;color:var(--brand-light)}
+
+  .ai-msg{max-width:88%;padding:10px 13px;border-radius:12px;font-size:.88rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+  .ai-msg.user{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:2px}
+  .ai-msg.assistant{align-self:flex-start;background:#f0f2f4;color:var(--text);border-bottom-left-radius:2px}
+  .ai-msg.error{align-self:stretch;background:#fdecea;color:var(--danger);border:1px solid #f5c2c0}
+  .ai-msg.thinking{align-self:flex-start;background:#f0f2f4;color:var(--muted);font-style:italic}
+
+  .ai-input-row{
+    display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);flex:0 0 auto;background:#fff;
+  }
+  .ai-input-row textarea{
+    flex:1;resize:none;border:1px solid var(--border);border-radius:10px;padding:9px 12px;
+    font-family:inherit;font-size:.88rem;max-height:120px;outline:none;
+  }
+  .ai-input-row textarea:focus{border-color:var(--brand-light)}
+  .ai-input-row button{
+    width:42px;height:42px;flex:0 0 auto;border:none;border-radius:10px;background:var(--brand);color:#fff;cursor:pointer;
+  }
+  .ai-input-row button:hover{background:#005229}
+  .ai-input-row button:disabled{opacity:.5;cursor:not-allowed}
+
+  @media (max-width:600px){
+    #aiPanel{width:100%;right:-100%}
+  }
+
   /* Full screen preview mode (native Fullscreen API) */
   #previewFsWrap:fullscreen,
   #previewFsWrap.fake-fullscreen{
@@ -264,6 +345,58 @@
 
 </div>
 
+<!-- AI Troubleshooting Assistant -->
+<button id="aiLauncher" title="Ask the troubleshooting assistant">
+  <i class="fa-solid fa-robot"></i>
+</button>
+
+<div id="aiPanel">
+  <div class="ai-header">
+    <div class="ai-header-title">
+      <i class="fa-solid fa-robot"></i>
+      <span>Troubleshooting Assistant</span>
+    </div>
+    <div class="ai-header-actions">
+      <button type="button" id="aiSettingsBtn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+      <button type="button" id="aiCloseBtn" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div id="aiSettingsPane" class="ai-settings" style="display:none">
+    <label for="aiApiKeyInput">Anthropic API key</label>
+    <input type="password" id="aiApiKeyInput" placeholder="sk-ant-...">
+    <label for="aiModelSelect">Model</label>
+    <select id="aiModelSelect">
+      <option value="claude-sonnet-5">Claude Sonnet 5 (higher quality)</option>
+      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (faster, cheaper)</option>
+    </select>
+    <div class="ai-settings-actions">
+      <button type="button" id="aiSaveKeyBtn">Save</button>
+      <button type="button" id="aiClearKeyBtn">Clear key</button>
+    </div>
+    <p class="ai-settings-note">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Your key is stored only in this browser (localStorage) and is sent directly from your
+      browser to Anthropic's API. Anyone with access to this device or browser devtools could read it.
+      Only use a key here on a trusted, internal device.
+    </p>
+  </div>
+
+  <div id="aiStatusLine" class="ai-status" style="display:none"></div>
+
+  <div id="aiMessages" class="ai-messages">
+    <div class="ai-empty" id="aiEmptyState">
+      <i class="fa-solid fa-wrench"></i>
+      <p>Ask a troubleshooting question about this equipment. Answers are grounded in its manuals, plus general engineering knowledge.</p>
+    </div>
+  </div>
+
+  <div class="ai-input-row">
+    <textarea id="aiInput" rows="1" placeholder="Describe the issue…"></textarea>
+    <button type="button" id="aiSendBtn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -333,6 +466,7 @@ const el = {
 };
 
 let currentDoc = null;
+let currentEquipmentData = null;
 let pdfDoc = null;
 let pageNum = 1;             // page currently most visible in the scroll view
 let scale = 1.2;
@@ -817,6 +951,7 @@ el.searchClear.addEventListener('click', () => {
 
 function renderEquipment(e) {
   clearSkeletons();
+  currentEquipmentData = e;
 
   el.equipmentImage.onerror = () => {
     el.equipmentImage.style.display = 'none';
@@ -880,6 +1015,259 @@ if (!id) {
       showNotFound('Could not load equipment data. Please check equipment.json.');
     });
 }
+
+// ---------- AI Troubleshooting Assistant ----------
+
+const AI_STORAGE_KEY = 'ghacem_ai_api_key';
+const AI_MODEL_STORAGE_KEY = 'ghacem_ai_model';
+
+const ai = {
+  launcher: document.getElementById('aiLauncher'),
+  panel: document.getElementById('aiPanel'),
+  closeBtn: document.getElementById('aiCloseBtn'),
+  settingsBtn: document.getElementById('aiSettingsBtn'),
+  settingsPane: document.getElementById('aiSettingsPane'),
+  apiKeyInput: document.getElementById('aiApiKeyInput'),
+  modelSelect: document.getElementById('aiModelSelect'),
+  saveKeyBtn: document.getElementById('aiSaveKeyBtn'),
+  clearKeyBtn: document.getElementById('aiClearKeyBtn'),
+  statusLine: document.getElementById('aiStatusLine'),
+  messages: document.getElementById('aiMessages'),
+  emptyState: document.getElementById('aiEmptyState'),
+  input: document.getElementById('aiInput'),
+  sendBtn: document.getElementById('aiSendBtn'),
+};
+
+let aiConversation = [];         // [{role:'user'|'assistant', content:'...'}]
+let aiDocsContextCache = {};     // { [equipmentId]: extractedText }
+let aiIsExtracting = false;
+let aiIsSending = false;
+
+function getStoredApiKey() {
+  try { return localStorage.getItem(AI_STORAGE_KEY) || ''; } catch (e) { return ''; }
+}
+function getStoredModel() {
+  try { return localStorage.getItem(AI_MODEL_STORAGE_KEY) || 'claude-sonnet-5'; } catch (e) { return 'claude-sonnet-5'; }
+}
+
+ai.apiKeyInput.value = getStoredApiKey();
+ai.modelSelect.value = getStoredModel();
+
+ai.launcher.addEventListener('click', () => {
+  ai.panel.classList.add('open');
+  if (!getStoredApiKey()) ai.settingsPane.style.display = 'block';
+});
+ai.closeBtn.addEventListener('click', () => ai.panel.classList.remove('open'));
+ai.settingsBtn.addEventListener('click', () => {
+  ai.settingsPane.style.display = ai.settingsPane.style.display === 'none' ? 'block' : 'none';
+});
+
+ai.saveKeyBtn.addEventListener('click', () => {
+  const key = ai.apiKeyInput.value.trim();
+  try {
+    if (key) localStorage.setItem(AI_STORAGE_KEY, key);
+    localStorage.setItem(AI_MODEL_STORAGE_KEY, ai.modelSelect.value);
+  } catch (e) { /* localStorage unavailable — key will just live in memory for this session */ }
+  ai.settingsPane.style.display = 'none';
+});
+
+ai.clearKeyBtn.addEventListener('click', () => {
+  ai.apiKeyInput.value = '';
+  try { localStorage.removeItem(AI_STORAGE_KEY); } catch (e) {}
+});
+
+function setAiStatus(text) {
+  if (!text) { ai.statusLine.style.display = 'none'; return; }
+  ai.statusLine.style.display = 'flex';
+  ai.statusLine.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px"></div><span>${text}</span>`;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// Very small, safe formatter: escape everything first, then re-introduce
+// just **bold** and line breaks — never raw HTML from the model or user.
+function formatAiText(text) {
+  const escaped = escapeHtml(text);
+  return escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
+function appendMessage(role, text) {
+  el2HideEmptyState();
+  const bubble = document.createElement('div');
+  bubble.className = `ai-msg ${role}`;
+  bubble.innerHTML = formatAiText(text);
+  ai.messages.appendChild(bubble);
+  ai.messages.scrollTop = ai.messages.scrollHeight;
+  return bubble;
+}
+
+function el2HideEmptyState() {
+  if (ai.emptyState) ai.emptyState.style.display = 'none';
+}
+
+// Extract text from every document belonging to the given equipment,
+// using PDF.js — this is the "grounded in the manual" context fed to the
+// model. Cached per equipment so re-opening the chat doesn't re-parse.
+async function getEquipmentDocsContext(equipment) {
+  if (aiDocsContextCache[equipment.id]) return aiDocsContextCache[equipment.id];
+
+  const docs = Array.isArray(equipment.documents) ? equipment.documents : [];
+  const MAX_CHARS_PER_DOC = 20000;
+  const sections = [];
+
+  for (const doc of docs) {
+    try {
+      setAiStatus(`Reading ${doc.name}…`);
+      const loadingTask = pdfjsLib.getDocument(encodeURI(doc.file));
+      const pdf = await loadingTask.promise;
+      let text = '';
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        text += content.items.map(it => it.str).join(' ') + '\n';
+        if (text.length > MAX_CHARS_PER_DOC) break;
+      }
+      sections.push(`--- ${doc.name} ---\n${text.slice(0, MAX_CHARS_PER_DOC)}`);
+    } catch (err) {
+      console.warn(`Could not extract text from ${doc.name}`, err);
+    }
+  }
+
+  const combined = sections.join('\n\n');
+  aiDocsContextCache[equipment.id] = combined;
+  return combined;
+}
+
+function buildSystemPrompt(equipment, docsContext) {
+  const meta = `
+Equipment: ${equipment.name} (ID: ${equipment.id})
+Department: ${equipment.department}
+Manufacturer: ${equipment.manufacturer}
+Model: ${equipment.model}
+Serial: ${equipment.serial}
+Status: ${equipment.status}
+Installed: ${equipment.installation}
+Description: ${equipment.description}`.trim();
+
+  return `You are a troubleshooting assistant embedded in an industrial equipment documentation portal for GHACEM (a cement manufacturer). You are helping a technician or engineer troubleshoot the specific piece of equipment described below.
+
+EQUIPMENT DETAILS:
+${meta}
+
+REFERENCE MATERIAL (extracted from this equipment's own manuals — treat as your primary source of truth):
+${docsContext || '(No manual text could be extracted for this equipment.)'}
+
+Instructions:
+- Prioritize the reference material above when it's relevant to the question.
+- You may also draw on your general mechanical/electrical/industrial-maintenance knowledge to fill gaps the manual doesn't cover — but say so explicitly when you're doing that (e.g. "The manual doesn't cover this, but generally...").
+- Be concise and practical: give clear, actionable troubleshooting steps.
+- Flag safety-relevant steps (lockout/tagout, electrical hazards, moving parts) explicitly.
+- If you're not confident in an answer, say so rather than guessing.`;
+}
+
+async function sendAiMessage() {
+  const text = ai.input.value.trim();
+  if (!text || aiIsSending) return;
+
+  const apiKey = getStoredApiKey();
+  if (!apiKey) {
+    ai.settingsPane.style.display = 'block';
+    appendMessage('error', 'Please add your Anthropic API key in settings first.');
+    return;
+  }
+  if (!currentEquipmentData) {
+    appendMessage('error', 'No equipment loaded yet.');
+    return;
+  }
+
+  aiIsSending = true;
+  ai.sendBtn.disabled = true;
+  ai.input.value = '';
+  ai.input.style.height = 'auto';
+
+  appendMessage('user', text);
+  aiConversation.push({ role: 'user', content: text });
+
+  const thinkingBubble = appendMessage('thinking', 'Thinking…');
+
+  try {
+    if (!aiDocsContextCache[currentEquipmentData.id] && !aiIsExtracting) {
+      aiIsExtracting = true;
+      await getEquipmentDocsContext(currentEquipmentData);
+      aiIsExtracting = false;
+    }
+    setAiStatus('');
+
+    const docsContext = aiDocsContextCache[currentEquipmentData.id] || '';
+    const systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
+    const model = getStoredModel();
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'anthropic-beta': 'prompt-caching-2024-07-31'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1200,
+        system: [
+          { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }
+        ],
+        messages: aiConversation
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const msg = (data && data.error && data.error.message) || `HTTP ${response.status}`;
+      throw new Error(msg);
+    }
+
+    const replyText = (data.content || [])
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n')
+      .trim() || '(No response text returned.)';
+
+    thinkingBubble.remove();
+    appendMessage('assistant', replyText);
+    aiConversation.push({ role: 'assistant', content: replyText });
+
+  } catch (err) {
+    console.error('AI request failed', err);
+    thinkingBubble.remove();
+    let friendly = err.message || 'Something went wrong contacting the API.';
+    if (/CORS/i.test(friendly)) {
+      friendly = 'Request blocked (CORS). Double-check your API key is valid.';
+    }
+    appendMessage('error', `⚠ ${friendly}`);
+  } finally {
+    aiIsSending = false;
+    ai.sendBtn.disabled = false;
+  }
+}
+
+ai.sendBtn.addEventListener('click', sendAiMessage);
+ai.input.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && !ev.shiftKey) {
+    ev.preventDefault();
+    sendAiMessage();
+  }
+});
+ai.input.addEventListener('input', () => {
+  ai.input.style.height = 'auto';
+  ai.input.style.height = Math.min(ai.input.scrollHeight, 120) + 'px';
+});
+
 </script>
 </body>
 </html>
