@@ -357,8 +357,8 @@
   <div id="aiSettingsPane" class="ai-settings" style="display:none">
     <label for="aiModelSelect">Model</label>
     <select id="aiModelSelect">
-      <option value="claude-sonnet-5">Claude Sonnet 5 (recommended — balanced quality/cost)</option>
-      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest, cheapest)</option>
+      <option value="gemini-flash-latest">Gemini Flash (latest — recommended, free-tier friendly)</option>
+      <option value="gemini-3.6-flash">Gemini 3.6 Flash (pinned version)</option>
     </select>
     <p class="ai-settings-note">
       <i class="fa-solid fa-triangle-exclamation"></i>
@@ -1004,9 +1004,11 @@ if (!id) {
 
 // ---------- AI Troubleshooting Assistant ----------
 
-// Paste your Anthropic API key below. It will be visible to anyone who
-// views this page's source — only do this on a trusted, internal site.
-const AI_API_KEY = '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';
+// Paste your Google Gemini API key below (get a free one at
+// https://aistudio.google.com/apikey — no card required for the free tier).
+// It will be visible to anyone who views this page's source — only do
+// this on a trusted, internal site.
+const AI_API_KEY = 'AQ.Ab8RN6L5wGFB8IVZRd-wi-jry6Zv6qGjhbwNmd2Xy_mgjchYbA';
 
 const AI_MODEL_STORAGE_KEY = 'ghacem_ai_model';
 
@@ -1030,7 +1032,7 @@ let aiIsExtracting = false;
 let aiIsSending = false;
 
 function getStoredModel() {
-  try { return localStorage.getItem(AI_MODEL_STORAGE_KEY) || 'claude-sonnet-5'; } catch (e) { return 'claude-sonnet-5'; }
+  try { return localStorage.getItem(AI_MODEL_STORAGE_KEY) || 'gemini-flash-latest'; } catch (e) { return 'gemini-flash-latest'; }
 }
 
 ai.modelSelect.value = getStoredModel();
@@ -1141,8 +1143,8 @@ async function sendAiMessage() {
   const text = ai.input.value.trim();
   if (!text || aiIsSending) return;
 
-  if (!AI_API_KEY || AI_API_KEY === 'PASTE_YOUR_ANTHROPIC_API_KEY_HERE') {
-    appendMessage('error', 'The assistant isn\'t configured yet — set AI_API_KEY in the code to your Anthropic API key.');
+  if (!AI_API_KEY || AI_API_KEY === 'PASTE_YOUR_GEMINI_API_KEY_HERE') {
+    appendMessage('error', 'The assistant isn\'t configured yet — set AI_API_KEY in the code to your Gemini API key.');
     return;
   }
   if (!currentEquipmentData) {
@@ -1156,7 +1158,7 @@ async function sendAiMessage() {
   ai.input.style.height = 'auto';
 
   appendMessage('user', text);
-  aiConversation.push({ role: 'user', content: text });
+  aiConversation.push({ role: 'user', parts: [{ text }] });
 
   const thinkingBubble = appendMessage('thinking', 'Thinking…');
 
@@ -1172,21 +1174,21 @@ async function sendAiMessage() {
     const systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
     const model = getStoredModel();
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': AI_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: aiConversation
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': AI_API_KEY
+        },
+        body: JSON.stringify({
+          contents: aiConversation,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { maxOutputTokens: 1200 }
+        })
+      }
+    );
 
     const data = await response.json();
 
@@ -1195,23 +1197,24 @@ async function sendAiMessage() {
       throw new Error(msg);
     }
 
-    const replyText = (data.content || [])
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('\n')
-      .trim();
-    const finalReplyText = replyText || '(No response text returned.)';
+    const candidate = (data.candidates || [])[0];
+    const replyText = candidate && candidate.content && candidate.content.parts
+      ? candidate.content.parts.map(p => p.text || '').join('\n').trim()
+      : '';
+    const finalReplyText = replyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)';
 
     thinkingBubble.remove();
     appendMessage('assistant', finalReplyText);
-    aiConversation.push({ role: 'assistant', content: finalReplyText });
+    aiConversation.push({ role: 'model', parts: [{ text: finalReplyText }] });
 
   } catch (err) {
     console.error('AI request failed', err);
     thinkingBubble.remove();
     let friendly = err.message || 'Something went wrong contacting the API.';
     if (/Failed to fetch|CORS/i.test(friendly)) {
-      friendly = 'Request blocked. Double-check AI_API_KEY is set correctly and is a valid Anthropic key.';
+      friendly = 'Request blocked. Double-check AI_API_KEY is set correctly and is a valid Gemini API key.';
+    } else if (/quota|rate/i.test(friendly)) {
+      friendly = `Free-tier rate limit hit: ${friendly}`;
     }
     appendMessage('error', `⚠ ${friendly}`);
   } finally {
