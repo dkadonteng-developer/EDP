@@ -669,7 +669,7 @@ el.zoomInBtn.addEventListener('click', () => rescaleAndRerender(Math.min(scale +
 el.zoomOutBtn.addEventListener('click', () => rescaleAndRerender(Math.max(scale - 0.2, 0.5)));
 
 // ---------- Pinch to zoom (touch) ----------
-// Two-finger pinch gives live, cheap CSS-transform feedback while the
+// Two-fingers pinch gives live, cheap CSS-transform feedback while the
 // gesture is happening; on release we commit a real PDF.js re-render at
 // the new scale so text stays crisp instead of a blurry stretched canvas.
 
