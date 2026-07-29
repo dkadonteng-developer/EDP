@@ -29,13 +29,6 @@
   header h2{margin:0;font-size:1.1rem;font-weight:600}
   header a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;display:flex;align-items:center;gap:6px}
   header a:hover{opacity:1;text-decoration:underline}
-  .header-actions{display:flex;align-items:center;gap:16px}
-  .call-btn{
-    background:rgba(255,255,255,.15);padding:7px 14px;border-radius:20px;
-    text-decoration:none!important;font-weight:500;transition:background .15s ease;
-  }
-  .call-btn:hover{background:rgba(255,255,255,.28);text-decoration:none!important}
-  .call-btn i{color:#8ef0b0}
 
   .container{max-width:1200px;margin:auto;padding:20px}
 
@@ -164,7 +157,23 @@
   @media (max-width:520px){
     header{flex-wrap:wrap;gap:8px;padding:12px 16px}
     header h2{font-size:1rem}
-    .call-btn{padding:6px 10px;font-size:.82rem}
+  }
+
+  /* ---------- Call Control Room (floating) ---------- */
+  #callFloatBtn{
+    position:fixed;bottom:24px;left:24px;z-index:500;
+    display:flex;align-items:center;gap:10px;
+    background:#d92d20;color:#fff;text-decoration:none!important;
+    padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+    transition:transform .15s ease, background .15s ease;
+  }
+  #callFloatBtn:hover{background:#b8241a;transform:scale(1.05);text-decoration:none!important}
+  #callFloatBtn i{font-size:1.1rem}
+
+  @media (max-width:600px){
+    #callFloatBtn span{display:none}
+    #callFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%}
   }
 
   /* ---------- AI Troubleshooting Assistant ---------- */
@@ -303,10 +312,7 @@
 
 <header>
   <h2><i class="fa-solid fa-industry"></i> GHACEM - Equipment Documentation Portal</h2>
-  <div class="header-actions">
-    <a href="tel:+233208200724" class="call-btn"><i class="fa-solid fa-phone"></i> Call Control Room</a>
-    <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
-  </div>
+  <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
 </header>
 
 <div class="container" id="container">
@@ -384,6 +390,12 @@
   </div>
 
 </div>
+
+<!-- Call Control Room -->
+<a href="tel:+233208200724" id="callFloatBtn" title="Call Control Room">
+  <i class="fa-solid fa-phone"></i>
+  <span>Call Control Room</span>
+</a>
 
 <!-- AI Troubleshooting Assistant -->
 <button id="aiLauncher" title="Ask the troubleshooting assistant">
