@@ -129,7 +129,7 @@
     "serial": "BE6-001",
     "installation": "2019-05-22",
     "description": "Bucket elevator supplying cement to Rotor Packer 6.",
-    "image": "assets/equipment/be6.JPG",
+    "image": "assets/equipment/be6.jpg",
     "documents": [
       { "name": "Operation Manual", "file": "docs/be6/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/be6/Maintenance Manual.pdf" },
