@@ -189,6 +189,14 @@
   .ai-settings input,.ai-settings select{
     width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88rem;background:#fff;
   }
+  .ai-settings-actions{display:flex;gap:8px;margin-top:10px}
+  .ai-settings-actions button{
+    flex:1;border:none;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:.85rem;cursor:pointer;
+  }
+  #aiSaveKeyBtn{background:var(--brand);color:#fff}
+  #aiSaveKeyBtn:hover{background:#005229}
+  #aiClearKeyBtn{background:#fff;border:1px solid var(--border);color:var(--muted)}
+  #aiClearKeyBtn:hover{color:var(--danger);border-color:var(--danger)}
   .ai-settings-note{
     font-size:.74rem;color:var(--muted);line-height:1.4;margin:10px 0 0;display:flex;gap:6px;
   }
@@ -355,16 +363,25 @@
   </div>
 
   <div id="aiSettingsPane" class="ai-settings" style="display:none">
+    <label for="aiApiKeyInput">Google Gemini API key</label>
+    <input type="password" id="aiApiKeyInput" placeholder="Paste your free-tier key…">
     <label for="aiModelSelect">Model</label>
     <select id="aiModelSelect">
       <option value="gemini-flash-latest">Gemini Flash (latest — recommended, free-tier friendly)</option>
       <option value="gemini-3.6-flash">Gemini 3.6 Flash (pinned version)</option>
     </select>
+    <div class="ai-settings-actions">
+      <button type="button" id="aiSaveKeyBtn">Save</button>
+      <button type="button" id="aiClearKeyBtn">Clear key</button>
+    </div>
     <p class="ai-settings-note">
       <i class="fa-solid fa-triangle-exclamation"></i>
-      No key entry needed here — an API key is built into this page's code by whoever
-      set it up. Note: that means the key is visible to anyone who views this page's
-      source, so only use this on a trusted, internal site.
+      Get a free key at <strong>aistudio.google.com/apikey</strong> — no card required.
+      Getting an "invalid authentication credentials" error? Google has been retiring
+      older-format keys, so try generating a fresh one. Your key is stored only in this
+      browser (localStorage) and sent directly to Google's API; anyone with access to
+      this device or browser devtools could read it.</p>
+
     </p>
   </div>
 
@@ -669,7 +686,7 @@ el.zoomInBtn.addEventListener('click', () => rescaleAndRerender(Math.min(scale +
 el.zoomOutBtn.addEventListener('click', () => rescaleAndRerender(Math.max(scale - 0.2, 0.5)));
 
 // ---------- Pinch to zoom (touch) ----------
-// Two-fingers pinch gives live, cheap CSS-transform feedback while the
+// Two-finger pinch gives live, cheap CSS-transform feedback while the
 // gesture is happening; on release we commit a real PDF.js re-render at
 // the new scale so text stays crisp instead of a blurry stretched canvas.
 
@@ -1004,12 +1021,7 @@ if (!id) {
 
 // ---------- AI Troubleshooting Assistant ----------
 
-// Paste your Google Gemini API key below (get a free one at
-// https://aistudio.google.com/apikey — no card required for the free tier).
-// It will be visible to anyone who views this page's source — only do
-// this on a trusted, internal site.
-const AI_API_KEY = 'AQ.Ab8RN6KNtU5YqLNfZ6t5dpRZs20o6qpmPeWA55FufBuj6fWtuA';
-
+const AI_STORAGE_KEY = 'ghacem_ai_gemini_api_key';
 const AI_MODEL_STORAGE_KEY = 'ghacem_ai_model';
 
 const ai = {
@@ -1018,7 +1030,10 @@ const ai = {
   closeBtn: document.getElementById('aiCloseBtn'),
   settingsBtn: document.getElementById('aiSettingsBtn'),
   settingsPane: document.getElementById('aiSettingsPane'),
+  apiKeyInput: document.getElementById('aiApiKeyInput'),
   modelSelect: document.getElementById('aiModelSelect'),
+  saveKeyBtn: document.getElementById('aiSaveKeyBtn'),
+  clearKeyBtn: document.getElementById('aiClearKeyBtn'),
   statusLine: document.getElementById('aiStatusLine'),
   messages: document.getElementById('aiMessages'),
   emptyState: document.getElementById('aiEmptyState'),
@@ -1026,24 +1041,46 @@ const ai = {
   sendBtn: document.getElementById('aiSendBtn'),
 };
 
-let aiConversation = [];         // [{role:'user'|'assistant', content:'...'}]
+let aiConversation = [];         // [{role:'user'|'model', parts:[{text:'...'}]}]
 let aiDocsContextCache = {};     // { [equipmentId]: extractedText }
 let aiIsExtracting = false;
 let aiIsSending = false;
 
+function getStoredApiKey() {
+  try { return localStorage.getItem(AI_STORAGE_KEY) || ''; } catch (e) { return ''; }
+}
 function getStoredModel() {
   try { return localStorage.getItem(AI_MODEL_STORAGE_KEY) || 'gemini-flash-latest'; } catch (e) { return 'gemini-flash-latest'; }
 }
 
+ai.apiKeyInput.value = getStoredApiKey();
 ai.modelSelect.value = getStoredModel();
+
+ai.launcher.addEventListener('click', () => {
+  ai.panel.classList.add('open');
+  if (!getStoredApiKey()) ai.settingsPane.style.display = 'block';
+});
 ai.modelSelect.addEventListener('change', () => {
   try { localStorage.setItem(AI_MODEL_STORAGE_KEY, ai.modelSelect.value); } catch (e) {}
 });
 
-ai.launcher.addEventListener('click', () => ai.panel.classList.add('open'));
 ai.closeBtn.addEventListener('click', () => ai.panel.classList.remove('open'));
 ai.settingsBtn.addEventListener('click', () => {
   ai.settingsPane.style.display = ai.settingsPane.style.display === 'none' ? 'block' : 'none';
+});
+
+ai.saveKeyBtn.addEventListener('click', () => {
+  const key = ai.apiKeyInput.value.trim();
+  try {
+    if (key) localStorage.setItem(AI_STORAGE_KEY, key);
+    localStorage.setItem(AI_MODEL_STORAGE_KEY, ai.modelSelect.value);
+  } catch (e) { /* localStorage unavailable — key will just live in memory for this session */ }
+  ai.settingsPane.style.display = 'none';
+});
+
+ai.clearKeyBtn.addEventListener('click', () => {
+  ai.apiKeyInput.value = '';
+  try { localStorage.removeItem(AI_STORAGE_KEY); } catch (e) {}
 });
 
 function setAiStatus(text) {
@@ -1143,8 +1180,10 @@ async function sendAiMessage() {
   const text = ai.input.value.trim();
   if (!text || aiIsSending) return;
 
-  if (!AI_API_KEY || AI_API_KEY === 'PASTE_YOUR_GEMINI_API_KEY_HERE') {
-    appendMessage('error', 'The assistant isn\'t configured yet — set AI_API_KEY in the code to your Gemini API key.');
+  const apiKey = getStoredApiKey();
+  if (!apiKey) {
+    ai.settingsPane.style.display = 'block';
+    appendMessage('error', 'Please add your Gemini API key in settings first.');
     return;
   }
   if (!currentEquipmentData) {
@@ -1180,7 +1219,7 @@ async function sendAiMessage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': AI_API_KEY
+          'x-goog-api-key': apiKey
         },
         body: JSON.stringify({
           contents: aiConversation,
@@ -1212,7 +1251,7 @@ async function sendAiMessage() {
     thinkingBubble.remove();
     let friendly = err.message || 'Something went wrong contacting the API.';
     if (/Failed to fetch|CORS/i.test(friendly)) {
-      friendly = 'Request blocked. Double-check AI_API_KEY is set correctly and is a valid Gemini API key.';
+      friendly = 'Request blocked. Double-check your API key is valid and freshly generated.';
     } else if (/quota|rate/i.test(friendly)) {
       friendly = `Free-tier rate limit hit: ${friendly}`;
     }
