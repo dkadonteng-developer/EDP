@@ -8,7 +8,7 @@
     "model": "Roto-Packer",
     "serial": "RP1-001",
     "installation": "2018-01-15",
-    "description": "Automatic rotary cement packing machine used for packing cement bags in Line 1.",
+    "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 1 & 2.",
     "image": "assets/equipment/rt.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-01/Operation Manual.pdf" },
@@ -28,7 +28,7 @@
     "model": "Roto-Packer",
     "serial": "RP2-001",
     "installation": "2018-01-15",
-    "description": "Automatic rotary cement packing machine used for packing cement bags in Line 2.",
+    "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 3 & 4.",
     "image": "assets/equipment/rt2.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-02/Operation Manual.pdf" },
@@ -48,7 +48,7 @@
     "model": "Roto-Packer",
     "serial": "RP4-001",
     "installation": "2018-01-15",
-    "description": "Automatic rotary cement packing machine used for packing cement bags in Line 4.",
+    "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 5 & 6.",
     "image": "assets/equipment/rt4.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-04/Operation Manual.pdf" },
@@ -68,7 +68,7 @@
     "model": "Roto-Packer",
     "serial": "RP6-001",
     "installation": "2018-01-15",
-    "description": "Automatic rotary cement packing machine used for packing cement bags in Line 6.",
+    "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 7 & 8.",
     "image": "assets/equipment/rt6.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-06/Operation Manual.pdf" },
@@ -148,7 +148,7 @@
     "model": "Vibrating Screen",
     "serial": "VS1-001",
     "installation": "2020-02-10",
-    "description": "Vibrating screen used before Rotor Packers 1 and 2.",
+    "description": "Vibrating screen used before Rotor Packers 1 and 2 for seiving cement.",
     "image": "assets/equipment/vs1.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/vs1/Operation Manual.pdf" },
@@ -168,7 +168,7 @@
     "model": "Vibrating Screen",
     "serial": "VS2-001",
     "installation": "2020-02-10",
-    "description": "Vibrating screen used before Rotor Packer 4.",
+    "description": "Vibrating screen used before Rotor Packer 4 for seiving cement.",
     "image": "assets/equipment/vs2.JPG",
     "documents": [
       { "name": "Operation Manual", "file": "docs/vs2/Operation Manual.pdf" },
