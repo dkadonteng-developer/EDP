@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --brand:#006937;
@@ -144,6 +146,42 @@
 
   .not-found{text-align:center;padding:80px 20px;color:var(--muted)}
   .not-found i{font-size:3rem;color:var(--danger);margin-bottom:12px}
+
+  /* ---------- Comments & Maintenance Log ---------- */
+  .log-form{display:flex;flex-direction:column;gap:14px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .log-form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .log-field{display:flex;flex-direction:column;gap:6px}
+  .log-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
+  .log-field input,.log-field textarea{
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.9rem;outline:none;resize:vertical;
+  }
+  .log-field input:focus,.log-field textarea:focus{border-color:var(--brand-light)}
+  .log-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+  .log-form-error{color:var(--danger);font-size:.82rem}
+  .log-form-actions button{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-size:.88rem;
+    font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s ease;
+  }
+  .log-form-actions button:hover{background:#005229}
+  .log-form-actions button:disabled{opacity:.6;cursor:not-allowed}
+
+  .log-entries{display:flex;flex-direction:column;gap:12px}
+  .log-empty{color:var(--muted);font-size:.88rem;text-align:center;padding:14px 0}
+  .log-entry{border:1px solid var(--border);border-radius:10px;padding:14px 16px;background:#f7f8fa}
+  .log-entry-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .log-entry-who{font-weight:600;font-size:.9rem}
+  .log-entry-who .dept{font-weight:400;color:var(--muted)}
+  .log-entry-date{font-size:.78rem;color:var(--muted);white-space:nowrap}
+  .log-entry-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .log-entry-tag{
+    background:#e8f6ee;color:var(--brand);font-size:.76rem;font-weight:500;padding:3px 10px;border-radius:20px;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .log-entry-comment{font-size:.9rem;line-height:1.5;white-space:pre-wrap}
+
+  @media (max-width:600px){
+    .log-form-row{grid-template-columns:1fr}
+  }
 
   .skeleton{animation:pulse 1.2s infinite ease-in-out;background:#e6e9ec;border-radius:6px;color:transparent!important}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -389,6 +427,52 @@
     </div>
   </div>
 
+  <div class="section">
+    <h2><i class="fa-solid fa-comments"></i> Comments & Maintenance Log</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
+      Log observations, lubrication details, dosage rates, or any other maintenance notes for this equipment.
+      Entries are visible to everyone here and cannot be edited or deleted once submitted.
+    </p>
+
+    <form id="logForm" class="log-form">
+      <div class="log-form-row">
+        <div class="log-field">
+          <label for="logFullName">Full Name *</label>
+          <input type="text" id="logFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
+        </div>
+        <div class="log-field">
+          <label for="logDepartment">Department *</label>
+          <input type="text" id="logDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
+        </div>
+      </div>
+
+      <div class="log-form-row">
+        <div class="log-field">
+          <label for="logLubeType">Lubrication Type (if applicable)</label>
+          <input type="text" id="logLubeType" maxlength="100" placeholder="e.g. Shell Gadus S2 V220 2">
+        </div>
+        <div class="log-field">
+          <label for="logDosage">Dosage Rate (if applicable)</label>
+          <input type="text" id="logDosage" maxlength="100" placeholder="e.g. 15g per point, every 250 hrs">
+        </div>
+      </div>
+
+      <div class="log-field">
+        <label for="logComment">Comments / Observations *</label>
+        <textarea id="logComment" rows="3" required maxlength="2999" placeholder="Describe what was done, observed, or any other relevant maintenance history…"></textarea>
+      </div>
+
+      <div class="log-form-actions">
+        <span id="logFormError" class="log-form-error"></span>
+        <button type="submit" id="logSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Entry</button>
+      </div>
+    </form>
+
+    <div id="logEntries" class="log-entries">
+      <p class="log-empty" id="logEmptyState">Loading entries…</p>
+    </div>
+  </div>
+
 </div>
 
 <!-- Call Control Room -->
@@ -460,6 +544,19 @@
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ---------- Firebase (shared Comments & Maintenance Log) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const icons = {
   'Operation Manual': 'fa-book',
@@ -1036,6 +1133,8 @@ function renderEquipment(e) {
   el.serial.textContent = e.serial || '—';
   el.installation.textContent = formatDate(e.installation);
 
+  loadEquipmentLogs(e.id);
+
   el.documents.innerHTML = '';
   const docs = Array.isArray(e.documents) ? e.documents : [];
 
@@ -1422,6 +1521,123 @@ ai.input.addEventListener('keydown', (ev) => {
 ai.input.addEventListener('input', () => {
   ai.input.style.height = 'auto';
   ai.input.style.height = Math.min(ai.input.scrollHeight, 120) + 'px';
+});
+
+// ---------- Comments & Maintenance Log ----------
+
+const logEl = {
+  form: document.getElementById('logForm'),
+  fullName: document.getElementById('logFullName'),
+  department: document.getElementById('logDepartment'),
+  lubeType: document.getElementById('logLubeType'),
+  dosage: document.getElementById('logDosage'),
+  comment: document.getElementById('logComment'),
+  error: document.getElementById('logFormError'),
+  submitBtn: document.getElementById('logSubmitBtn'),
+  entries: document.getElementById('logEntries'),
+};
+
+function formatLogDate(ts) {
+  if (!ts || typeof ts.toDate !== 'function') return 'Just now';
+  return ts.toDate().toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
+
+function renderLogEntries(snapshot) {
+  const rows = [];
+  snapshot.forEach(doc => rows.push(doc.data()));
+
+  // Sorted client-side (newest first) rather than via a Firestore orderBy,
+  // so this works without needing a composite index set up in the console.
+  rows.sort((a, b) => {
+    const ta = a.timestamp && typeof a.timestamp.toMillis === 'function' ? a.timestamp.toMillis() : 0;
+    const tb = b.timestamp && typeof b.timestamp.toMillis === 'function' ? b.timestamp.toMillis() : 0;
+    return tb - ta;
+  });
+
+  logEl.entries.innerHTML = '';
+
+  if (rows.length === 0) {
+    logEl.entries.innerHTML = '<p class="log-empty">No entries logged yet. Be the first to add a maintenance note.</p>';
+    return;
+  }
+
+  rows.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+
+    const tags = [];
+    if (r.lubricationType) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-oil-can"></i> ${escapeHtml(r.lubricationType)}</span>`);
+    if (r.dosageRate) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-gauge"></i> ${escapeHtml(r.dosageRate)}</span>`);
+
+    div.innerHTML = `
+      <div class="log-entry-head">
+        <span class="log-entry-who">${escapeHtml(r.fullName || 'Unknown')} <span class="dept">— ${escapeHtml(r.department || 'Unknown dept.')}</span></span>
+        <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
+      </div>
+      ${tags.length ? `<div class="log-entry-tags">${tags.join('')}</div>` : ''}
+      <div class="log-entry-comment">${escapeHtml(r.comment || '')}</div>
+    `;
+    logEl.entries.appendChild(div);
+  });
+}
+
+function loadEquipmentLogs(equipmentId) {
+  logEl.entries.innerHTML = '<p class="log-empty">Loading entries…</p>';
+  db.collection('equipmentLogs')
+    .where('equipmentId', '==', equipmentId)
+    .get()
+    .then(renderLogEntries)
+    .catch(err => {
+      console.error('Failed to load log entries', err);
+      logEl.entries.innerHTML = '<p class="log-empty">Could not load entries right now. Please try refreshing the page.</p>';
+    });
+}
+
+logEl.form.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  logEl.error.textContent = '';
+
+  if (!currentEquipmentData) return;
+
+  const fullName = logEl.fullName.value.trim();
+  const department = logEl.department.value.trim();
+  const lubricationType = logEl.lubeType.value.trim();
+  const dosageRate = logEl.dosage.value.trim();
+  const comment = logEl.comment.value.trim();
+
+  if (!fullName || !department || !comment) {
+    logEl.error.textContent = 'Full name, department, and comments are required.';
+    return;
+  }
+
+  logEl.submitBtn.disabled = true;
+  logEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+
+  const entry = {
+    equipmentId: currentEquipmentData.id,
+    fullName,
+    department,
+    comment,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (lubricationType) entry.lubricationType = lubricationType;
+  if (dosageRate) entry.dosageRate = dosageRate;
+
+  db.collection('equipmentLogs').add(entry)
+    .then(() => {
+      logEl.form.reset();
+      loadEquipmentLogs(currentEquipmentData.id);
+    })
+    .catch(err => {
+      console.error('Failed to submit log entry', err);
+      logEl.error.textContent = 'Could not submit entry. Please check your connection and try again.';
+    })
+    .finally(() => {
+      logEl.submitBtn.disabled = false;
+      logEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Entry';
+    });
 });
 
 </script>
