@@ -22,7 +22,8 @@
     --danger:#d92d20;
   }
   *{box-sizing:border-box}
-  body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text)}
+  html{overflow-x:hidden}
+  body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text);overflow-x:hidden}
 
   header{
     background:var(--brand);color:#fff;padding:16px 24px;
@@ -103,7 +104,7 @@
   .viewer-empty i{font-size:2rem}
 
   .pdf-toolbar{
-    display:flex;align-items:center;justify-content:center;gap:14px;
+    display:flex;align-items:center;justify-content:center;gap:10px 14px;flex-wrap:wrap;
     padding:10px;background:#f7f8fa;border:1px solid var(--border);border-radius:10px 10px 0 0;
   }
   .pdf-toolbar button{
@@ -147,6 +148,56 @@
 
   .not-found{text-align:center;padding:80px 20px;color:var(--muted)}
   .not-found i{font-size:3rem;color:var(--danger);margin-bottom:12px}
+
+  /* ---------- Safety Requirements ---------- */
+  #safetyBadge{
+    display:none;align-items:center;gap:6px;background:#fff3cd;color:#8a5c00;border:1px solid #f5d78e;
+    padding:6px 12px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;
+    white-space:nowrap;transition:background .15s ease;
+  }
+  #safetyBadge:hover{background:#ffe8a3}
+  #safetyBadge i{color:#dc6803}
+
+  #safetyOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #safetyOverlay.is-open{display:flex}
+  .safety-modal{
+    background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:85vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .safety-modal-head{
+    background:#dc6803;color:#fff;padding:18px 20px;display:flex;align-items:flex-start;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .safety-modal-head i.fa-triangle-exclamation{font-size:1.5rem;margin-top:2px}
+  .safety-modal-head h3{margin:0 0 3px;font-size:1.1rem}
+  .safety-modal-head p{margin:0;font-size:.82rem;opacity:.92;line-height:1.4}
+  .safety-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;
+  }
+  .safety-modal-close:hover{background:rgba(255,255,255,.35)}
+  .safety-modal-body{padding:18px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+  .safety-modal-body ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  .safety-modal-body li{
+    display:flex;align-items:flex-start;gap:10px;font-size:.92rem;line-height:1.45;
+    background:#fff8ec;border:1px solid #fbe6bd;border-radius:10px;padding:10px 12px;
+  }
+  .safety-modal-body li i{color:#dc6803;margin-top:3px;flex:0 0 auto}
+  .safety-modal-foot{padding:14px 20px;border-top:1px solid var(--border);flex:0 0 auto}
+  .safety-modal-foot button{
+    width:100%;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:12px;
+    font-family:inherit;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .safety-modal-foot button:hover{background:#005229}
+
+  @media (max-width:480px){
+    .safety-modal{max-height:90vh}
+    .safety-modal-head{padding:16px}
+    .safety-modal-body{padding:14px 16px}
+    .safety-modal-foot{padding:12px 16px}
+  }
 
   /* ---------- Comments & Maintenance Log ---------- */
   .log-form{display:flex;flex-direction:column;gap:14px;margin-bottom:18px;padding-bottom:20px;border-bottom:1px solid var(--border)}
@@ -252,6 +303,30 @@
   @media (max-width:520px){
     header{flex-wrap:wrap;gap:8px;padding:12px 16px}
     header h2{font-size:1rem}
+  }
+
+  @media (max-width:480px){
+    .container{padding:12px}
+    .card,.section{padding:14px;border-radius:12px}
+    .section h2{font-size:1rem}
+    .image-wrap{height:220px}
+    h1#name{font-size:1.25rem}
+    .grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+    .item{padding:8px 10px}
+    .doc{padding:10px 12px}
+    .pdf-toolbar button{padding:6px 8px;font-size:.8rem}
+    .pdf-toolbar .page-info{font-size:.8rem}
+    .search-bar{padding:6px 10px}
+    .search-bar input{min-width:90px}
+    .search-bar .match-nav button{padding:5px 8px}
+    .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:420px;height:420px}
+    #callFloatBtn{bottom:16px;left:16px}
+    #aiLauncher{bottom:16px;right:16px}
+  }
+
+  @media (max-width:360px){
+    .grid{grid-template-columns:1fr 1fr}
+    .badge{font-size:.72rem;padding:5px 10px}
   }
 
   /* ---------- Call Control Room (floating) ---------- */
@@ -405,9 +480,31 @@
 </head>
 <body>
 
+<div id="safetyOverlay">
+  <div class="safety-modal">
+    <div class="safety-modal-head">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        <h3>Safety Requirements</h3>
+        <p>Review before starting any maintenance work on this equipment.</p>
+      </div>
+      <button type="button" class="safety-modal-close" id="safetyCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="safety-modal-body">
+      <ul id="safetyList"></ul>
+    </div>
+    <div class="safety-modal-foot">
+      <button type="button" id="safetyProceedBtn"><i class="fa-solid fa-check"></i> I Understand — Proceed</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <h2><i class="fa-solid fa-industry"></i> GHACEM - Equipment Documentation Portal</h2>
-  <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
+    <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  </div>
 </header>
 
 <div class="container" id="container">
@@ -745,6 +842,62 @@ const el = {
   pdfScroll: document.getElementById('pdfScroll'),
   pdfPagesContainer: document.getElementById('pdfPagesContainer'),
 };
+
+// ---------- Safety Requirements ----------
+
+const DEFAULT_SAFETY_REQUIREMENTS = [
+  'Obtain a valid Permit to Work before starting any maintenance activity.',
+  'Isolate, lock out, and tag out (LOTO) all energy sources before work begins.',
+  'Wear the required PPE: safety helmet, safety boots, gloves, and dust mask/respirator.',
+  'Confirm all rotating and moving parts have come to a complete stop before approaching.',
+  'De-energize and discharge any stored energy — electrical, pneumatic, hydraulic, or mechanical.',
+  'Barricade the work area and display warning signage to prevent unauthorized access.',
+  'Ensure a fire extinguisher is accessible nearby before any hot work.',
+  'Confirm adequate lighting and ventilation in the work area.',
+  'Use the buddy system — have a second person present for high-risk tasks.',
+  'Report any unsafe condition to the Control Room immediately, before proceeding.'
+];
+
+const safetyEl = {
+  overlay: document.getElementById('safetyOverlay'),
+  list: document.getElementById('safetyList'),
+  closeX: document.getElementById('safetyCloseX'),
+  proceedBtn: document.getElementById('safetyProceedBtn'),
+  badge: document.getElementById('safetyBadge'),
+};
+
+let currentSafetyRequirements = DEFAULT_SAFETY_REQUIREMENTS;
+
+function openSafetyModal() {
+  safetyEl.list.innerHTML = currentSafetyRequirements
+    .map(item => `<li><i class="fa-solid fa-circle-check"></i><span>${escapeHtml(item)}</span></li>`)
+    .join('');
+  safetyEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSafetyModal() {
+  safetyEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+  safetyEl.badge.style.display = 'inline-flex';
+}
+
+// Runs every time an equipment page loads, per equipment: uses that
+// equipment's own safetyRequirements from equipment.json if present,
+// otherwise falls back to the general baseline list above.
+function showSafetyModal(equipment) {
+  const custom = Array.isArray(equipment.safetyRequirements) ? equipment.safetyRequirements.filter(Boolean) : [];
+  currentSafetyRequirements = custom.length ? custom : DEFAULT_SAFETY_REQUIREMENTS;
+  safetyEl.badge.style.display = 'none';
+  openSafetyModal();
+}
+
+safetyEl.closeX.addEventListener('click', closeSafetyModal);
+safetyEl.proceedBtn.addEventListener('click', closeSafetyModal);
+safetyEl.badge.addEventListener('click', openSafetyModal);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && safetyEl.overlay.classList.contains('is-open')) closeSafetyModal();
+});
 
 let currentDoc = null;
 let currentEquipmentData = null;
@@ -1257,6 +1410,7 @@ function renderEquipment(e) {
   el.installation.textContent = formatDate(e.installation);
 
   loadEquipmentLogs(e.id);
+  showSafetyModal(e);
 
   el.documents.innerHTML = '';
   const docs = Array.isArray(e.documents) ? e.documents : [];
