@@ -2306,6 +2306,8 @@ subscribeEl.form.addEventListener('submit', async (ev) => {
   subscribeEl.btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Subscribing…';
 
   try {
+    const uid = await authReady;
+
     // Avoid duplicate subscriptions for the same email on this equipment
     const existing = await db.collection('emailSubscribers')
       .where('equipmentId', '==', currentEquipmentData.id)
@@ -2317,6 +2319,7 @@ subscribeEl.form.addEventListener('submit', async (ev) => {
       await db.collection('emailSubscribers').add({
         equipmentId: currentEquipmentData.id,
         email,
+        authorUid: uid,
         subscribedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
