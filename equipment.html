@@ -327,6 +327,51 @@
     .subscriber-item{flex-direction:column;align-items:flex-start;gap:4px}
   }
 
+  /* ---------- Log form modal (declutters the section; opens on tap) ---------- */
+  .log-open-form-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
+    font-family:inherit;font-size:.94rem;font-weight:600;cursor:pointer;margin-bottom:16px;
+  }
+  .log-open-form-btn:hover{background:#005229}
+
+  #logFormOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #logFormOverlay.is-open{display:flex}
+  .log-form-modal{
+    background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .log-form-modal-head{
+    background:var(--brand);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .log-form-modal-head h3{margin:0 0 3px;font-size:1.1rem}
+  .log-form-modal-head p{margin:0;font-size:.82rem;opacity:.92;line-height:1.4}
+  .log-form-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  }
+  .log-form-modal-close:hover{background:rgba(255,255,255,.35)}
+  .log-form-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+  .log-form-modal-body .log-form{margin-bottom:0;padding-bottom:0;border-bottom:none}
+
+  @media (max-width:480px){
+    .log-form-modal{max-height:95vh}
+    .log-form-modal-head{padding:16px}
+    .log-form-modal-body{padding:16px}
+  }
+
+  /* ---------- Subscriber removal (admin) ---------- */
+  .subscriber-item .del-btn{
+    background:none;border:none;color:var(--danger);cursor:pointer;padding:6px 8px;
+    border-radius:6px;font-size:.85rem;flex:0 0 auto;
+  }
+  .subscriber-item .del-btn:hover{background:#fdecea}
+  .subscriber-item .del-btn:disabled{opacity:.5;cursor:not-allowed}
+
   .skeleton{animation:pulse 1.2s infinite ease-in-out;background:#e6e9ec;border-radius:6px;color:transparent!important}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
@@ -622,63 +667,9 @@
       Entries are visible to everyone, and can only be edited by the device that submitted them.
     </p>
 
-    <form id="logForm" class="log-form">
-      <input type="hidden" id="logEditId" value="">
-      <div class="log-form-row">
-        <div class="log-field">
-          <label for="logFullName">Full Name *</label>
-          <input type="text" id="logFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
-        </div>
-        <div class="log-field">
-          <label for="logDepartment">Department *</label>
-          <input type="text" id="logDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
-        </div>
-      </div>
-
-      <div class="log-form-row">
-        <div class="log-field">
-          <label for="logCategory">Entry Type *</label>
-          <select id="logCategory" required>
-            <option value="">Select a type…</option>
-            <option value="Lubrication">Lubrication</option>
-            <option value="PM">Preventive Maintenance (PM)</option>
-            <option value="CM">Corrective Maintenance (CM) — Issue Rectified</option>
-            <option value="Suggestion">Suggestion</option>
-            <option value="Observation">General Observation</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div class="log-field">
-          <label>Photos (optional, up to 2)</label>
-          <button type="button" id="logAttachBtn" class="log-attach-btn"><i class="fa-solid fa-camera"></i> Attach photo(s)</button>
-          <input type="file" id="logFileInput" accept="image/*" multiple style="display:none">
-        </div>
-      </div>
-
-      <div class="log-form-row" id="logLubeRow" style="display:none">
-        <div class="log-field">
-          <label for="logLubeType">Lubrication Type</label>
-          <input type="text" id="logLubeType" maxlength="100" placeholder="e.g. Shell Gadus S2 V220 2">
-        </div>
-        <div class="log-field">
-          <label for="logDosage">Dosage Rate</label>
-          <input type="text" id="logDosage" maxlength="100" placeholder="e.g. 15g per point, every 250 hrs">
-        </div>
-      </div>
-
-      <div class="log-field">
-        <label for="logComment">Comments / Observations *</label>
-        <textarea id="logComment" rows="3" required maxlength="2999" placeholder="Describe what was done, observed, rectified, or suggested…"></textarea>
-      </div>
-
-      <div id="logAttachPreview" class="log-attach-preview" style="display:none"></div>
-
-      <div class="log-form-actions">
-        <span id="logFormError" class="log-form-error"></span>
-        <button type="button" id="logCancelEditBtn" class="log-btn-secondary" style="display:none">Cancel edit</button>
-        <button type="submit" id="logSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Entry</button>
-      </div>
-    </form>
+    <button type="button" id="logOpenFormBtn" class="log-open-form-btn">
+      <i class="fa-solid fa-plus"></i> Log New Entry
+    </button>
 
     <button type="button" id="logHistoryToggle" class="log-history-toggle">
       <i class="fa-solid fa-clock-rotate-left"></i>
@@ -736,6 +727,77 @@
     </div>
   </div>
 
+</div>
+
+<div id="logFormOverlay">
+  <div class="log-form-modal">
+    <div class="log-form-modal-head">
+      <div>
+        <h3 id="logFormModalTitle"><i class="fa-solid fa-comment-medical"></i> Log New Entry</h3>
+        <p>Log lubrication details, PM/CM issues, suggestions, or observations for this equipment.</p>
+      </div>
+      <button type="button" class="log-form-modal-close" id="logFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="log-form-modal-body">
+      <form id="logForm" class="log-form">
+        <input type="hidden" id="logEditId" value="">
+        <div class="log-form-row">
+          <div class="log-field">
+            <label for="logFullName">Full Name *</label>
+            <input type="text" id="logFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
+          </div>
+          <div class="log-field">
+            <label for="logDepartment">Department *</label>
+            <input type="text" id="logDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
+          </div>
+        </div>
+
+        <div class="log-form-row">
+          <div class="log-field">
+            <label for="logCategory">Entry Type *</label>
+            <select id="logCategory" required>
+              <option value="">Select a type…</option>
+              <option value="Lubrication">Lubrication</option>
+              <option value="PM">Preventive Maintenance (PM)</option>
+              <option value="CM">Corrective Maintenance (CM) — Issue Rectified</option>
+              <option value="Suggestion">Suggestion</option>
+              <option value="Observation">General Observation</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="log-field">
+            <label>Photos (optional, up to 2)</label>
+            <button type="button" id="logAttachBtn" class="log-attach-btn"><i class="fa-solid fa-camera"></i> Attach photo(s)</button>
+            <input type="file" id="logFileInput" accept="image/*" multiple style="display:none">
+          </div>
+        </div>
+
+        <div class="log-form-row" id="logLubeRow" style="display:none">
+          <div class="log-field">
+            <label for="logLubeType">Lubrication Type</label>
+            <input type="text" id="logLubeType" maxlength="100" placeholder="e.g. Shell Gadus S2 V220 2">
+          </div>
+          <div class="log-field">
+            <label for="logDosage">Dosage Rate</label>
+            <input type="text" id="logDosage" maxlength="100" placeholder="e.g. 15g per point, every 250 hrs">
+          </div>
+        </div>
+
+        <div class="log-field">
+          <label for="logComment">Comments / Observations *</label>
+          <textarea id="logComment" rows="3" required maxlength="2999" placeholder="Describe what was done, observed, rectified, or suggested…"></textarea>
+        </div>
+
+        <div id="logAttachPreview" class="log-attach-preview" style="display:none"></div>
+
+        <div class="log-form-actions">
+          <span id="logFormError" class="log-form-error"></span>
+          <button type="button" id="logCancelEditBtn" class="log-btn-secondary" style="display:none">Cancel edit</button>
+          <button type="submit" id="logSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- Call Control Room -->
@@ -1901,6 +1963,10 @@ const logEl = {
   sortOrder: document.getElementById('logSortOrder'),
   searchInput: document.getElementById('logSearchInput'),
   entries: document.getElementById('logEntries'),
+  openFormBtn: document.getElementById('logOpenFormBtn'),
+  overlay: document.getElementById('logFormOverlay'),
+  modalTitle: document.getElementById('logFormModalTitle'),
+  closeX: document.getElementById('logFormCloseX'),
 };
 
 let allLogEntries = [];        // cache of {id, ...data} for the current equipment
@@ -2131,6 +2197,20 @@ logEl.historyToggle.addEventListener('click', () => {
 
 // ----- Edit mode -----
 
+function openLogFormModal(mode) {
+  logEl.modalTitle.innerHTML = mode === 'edit'
+    ? '<i class="fa-solid fa-pen"></i> Edit Entry'
+    : '<i class="fa-solid fa-comment-medical"></i> Log New Entry';
+  logEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  logEl.fullName.focus();
+}
+
+function closeLogFormModal() {
+  logEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
 function startEditLogEntry(entry) {
   logEl.editId.value = entry.id;
   logEl.fullName.value = entry.fullName || '';
@@ -2146,7 +2226,7 @@ function startEditLogEntry(entry) {
   logEl.cancelEditBtn.style.display = 'flex';
   logEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
   logEl.error.textContent = '';
-  logEl.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  openLogFormModal('edit');
 }
 
 function resetLogForm() {
@@ -2157,9 +2237,30 @@ function resetLogForm() {
   renderLogAttachPreview();
   logEl.cancelEditBtn.style.display = 'none';
   logEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Entry';
+  logEl.error.textContent = '';
 }
 
-logEl.cancelEditBtn.addEventListener('click', resetLogForm);
+logEl.openFormBtn.addEventListener('click', () => {
+  resetLogForm();
+  openLogFormModal('new');
+});
+
+logEl.closeX.addEventListener('click', () => {
+  resetLogForm();
+  closeLogFormModal();
+});
+
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && logEl.overlay.classList.contains('is-open')) {
+    resetLogForm();
+    closeLogFormModal();
+  }
+});
+
+logEl.cancelEditBtn.addEventListener('click', () => {
+  resetLogForm();
+  closeLogFormModal();
+});
 
 // ----- Submit (create or update) -----
 
@@ -2214,6 +2315,7 @@ logEl.form.addEventListener('submit', async (ev) => {
     }
 
     resetLogForm();
+    closeLogFormModal();
     loadEquipmentLogs(currentEquipmentData.id, true);
     if (logEl.historyPanel.style.display === 'none') logEl.historyToggle.click();
   } catch (err) {
@@ -2256,6 +2358,9 @@ function renderSubscribers() {
     <div class="subscriber-item">
       <span class="email"><i class="fa-solid fa-envelope"></i> ${escapeHtml(s.email || '')}</span>
       <span class="date">${formatSubscribeDate(s.subscribedAt)}</span>
+      <button type="button" class="del-btn" data-id="${s.id}" data-email="${escapeHtml(s.email || '')}" title="Remove subscriber">
+        <i class="fa-solid fa-trash"></i>
+      </button>
     </div>
   `).join('');
 }
@@ -2287,6 +2392,46 @@ subscribeEl.listToggle.addEventListener('click', () => {
   subscribeEl.listToggle.classList.toggle('is-open', !isOpen);
   subscribeEl.toggleLabel.textContent = isOpen ? 'View Subscribers' : 'Hide Subscribers';
   if (!isOpen && currentEquipmentData) loadSubscribers(currentEquipmentData.id);
+});
+
+// ---------- Admin: remove a subscriber ----------
+// NOTE: this is a lightweight UI gate, not real access control — the password
+// lives in this file's source, so anyone reading it (view-source / devtools)
+// can see it. It stops casual taps, not a determined bad actor. True per-user
+// admin auth would need a real login system + backend, which this static
+// site doesn't have.
+const ADMIN_PASSWORD = 'ghacem2026'; // change this to your own password
+let adminUnlocked = false;
+
+function requireAdminUnlock() {
+  if (adminUnlocked) return true;
+  const entered = window.prompt('Enter admin password to remove a subscriber:');
+  if (entered === null) return false; // cancelled
+  if (entered === ADMIN_PASSWORD) {
+    adminUnlocked = true;
+    return true;
+  }
+  alert('Incorrect password.');
+  return false;
+}
+
+subscribeEl.entries.addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('.del-btn');
+  if (!btn || !currentEquipmentData) return;
+  if (!requireAdminUnlock()) return;
+
+  const { id, email } = btn.dataset;
+  if (!confirm(`Remove ${email} from this equipment's subscriber list?`)) return;
+
+  btn.disabled = true;
+  try {
+    await db.collection('emailSubscribers').doc(id).delete();
+    loadSubscribers(currentEquipmentData.id, true);
+  } catch (err) {
+    console.error('Failed to remove subscriber', err);
+    alert('Could not remove subscriber right now. Please try again.');
+    btn.disabled = false;
+  }
 });
 
 subscribeEl.form.addEventListener('submit', async (ev) => {
