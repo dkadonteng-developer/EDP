@@ -209,7 +209,7 @@
   .log-field{display:flex;flex-direction:column;gap:6px}
   .log-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
   .log-field input,.log-field textarea,.log-field select{
-    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.9rem;outline:none;resize:vertical;background:#fff;
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:16px;outline:none;resize:vertical;background:#fff;
   }
   .log-field input:focus,.log-field textarea:focus,.log-field select:focus{border-color:var(--brand-light)}
   .log-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
@@ -249,7 +249,7 @@
   .log-history-panel{margin-top:16px}
   .log-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
   .log-controls select,.log-controls input{
-    border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:.85rem;background:#fff;outline:none;
+    border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:16px;background:#fff;outline:none;
   }
   .log-controls select:focus,.log-controls input:focus{border-color:var(--brand-light)}
   .log-controls input{flex:1;min-width:160px}
@@ -302,7 +302,7 @@
   .subscribe-form{display:flex;gap:10px;flex-wrap:wrap}
   .subscribe-form input{
     flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;
-    font-family:inherit;font-size:.9rem;outline:none;background:#fff;
+    font-family:inherit;font-size:16px;outline:none;background:#fff;
   }
   .subscribe-form input:focus{border-color:var(--brand-light)}
   .subscribe-form button{
@@ -362,6 +362,36 @@
     .log-form-modal{max-height:95vh}
     .log-form-modal-head{padding:16px}
     .log-form-modal-body{padding:16px}
+  }
+
+  /* ---------- Maintenance history modal ---------- */
+  #logHistoryOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #logHistoryOverlay.is-open{display:flex}
+  .log-history-modal{
+    background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:88vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .log-history-modal-head{
+    background:var(--brand);color:#fff;padding:16px 20px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .log-history-modal-head h3{margin:0;font-size:1.05rem}
+  .log-history-modal-close{
+    background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  }
+  .log-history-modal-close:hover{background:rgba(255,255,255,.35)}
+  .log-history-modal-body{padding:18px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+  @media (max-width:480px){
+    .log-history-modal{max-height:95vh;border-radius:14px}
+    .log-history-modal-head{padding:14px 16px}
+    .log-history-modal-body{padding:14px 16px}
+    .log-controls{gap:8px}
+    .log-controls select,.log-controls input{width:100%}
   }
 
   /* ---------- Subscriber removal (admin) ---------- */
@@ -677,29 +707,6 @@
       <span id="logCountBadge" class="log-count-badge" style="display:none"></span>
     </button>
 
-    <div id="logHistoryPanel" class="log-history-panel" style="display:none">
-      <div class="log-controls">
-        <select id="logFilterCategory">
-          <option value="">All types</option>
-          <option value="Lubrication">Lubrication</option>
-          <option value="PM">Preventive Maintenance (PM)</option>
-          <option value="CM">Corrective Maintenance (CM)</option>
-          <option value="Suggestion">Suggestion</option>
-          <option value="Observation">General Observation</option>
-          <option value="Other">Other</option>
-        </select>
-        <select id="logSortOrder">
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-        </select>
-        <input type="text" id="logSearchInput" placeholder="Search name, department, notes…">
-      </div>
-
-      <div id="logEntries" class="log-entries">
-        <p class="log-empty">Loading entries…</p>
-      </div>
-    </div>
-
     <div class="log-subscribe">
       <div class="log-subscribe-head">
         <i class="fa-solid fa-bell"></i>
@@ -796,6 +803,37 @@
           <button type="submit" id="logSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Entry</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<div id="logHistoryOverlay">
+  <div class="log-history-modal">
+    <div class="log-history-modal-head">
+      <h3><i class="fa-solid fa-clock-rotate-left"></i> Maintenance History</h3>
+      <button type="button" class="log-history-modal-close" id="logHistoryCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="log-history-modal-body">
+      <div class="log-controls">
+        <select id="logFilterCategory">
+          <option value="">All types</option>
+          <option value="Lubrication">Lubrication</option>
+          <option value="PM">Preventive Maintenance (PM)</option>
+          <option value="CM">Corrective Maintenance (CM)</option>
+          <option value="Suggestion">Suggestion</option>
+          <option value="Observation">General Observation</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="logSortOrder">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+        <input type="text" id="logSearchInput" placeholder="Search name, department, notes…">
+      </div>
+
+      <div id="logEntries" class="log-entries">
+        <p class="log-empty">Loading entries…</p>
+      </div>
     </div>
   </div>
 </div>
@@ -1958,7 +1996,8 @@ const logEl = {
   historyToggle: document.getElementById('logHistoryToggle'),
   toggleLabel: document.getElementById('logToggleLabel'),
   countBadge: document.getElementById('logCountBadge'),
-  historyPanel: document.getElementById('logHistoryPanel'),
+  historyOverlay: document.getElementById('logHistoryOverlay'),
+  historyCloseX: document.getElementById('logHistoryCloseX'),
   filterCategory: document.getElementById('logFilterCategory'),
   sortOrder: document.getElementById('logSortOrder'),
   searchInput: document.getElementById('logSearchInput'),
@@ -2185,14 +2224,23 @@ logEl.filterCategory.addEventListener('change', applyLogControlsAndRender);
 logEl.sortOrder.addEventListener('change', applyLogControlsAndRender);
 logEl.searchInput.addEventListener('input', applyLogControlsAndRender);
 
-// ----- History collapsed by default, revealed on tap -----
+// ----- History now opens as a modal, not an inline expander -----
 
-logEl.historyToggle.addEventListener('click', () => {
-  const isOpen = logEl.historyPanel.style.display !== 'none';
-  logEl.historyPanel.style.display = isOpen ? 'none' : 'block';
-  logEl.historyToggle.classList.toggle('is-open', !isOpen);
-  logEl.toggleLabel.textContent = isOpen ? 'View History' : 'Hide History';
-  if (!isOpen && currentEquipmentData) loadEquipmentLogs(currentEquipmentData.id);
+function openHistoryModal() {
+  logEl.historyOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  if (currentEquipmentData) loadEquipmentLogs(currentEquipmentData.id);
+}
+
+function closeHistoryModal() {
+  logEl.historyOverlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+logEl.historyToggle.addEventListener('click', openHistoryModal);
+logEl.historyCloseX.addEventListener('click', closeHistoryModal);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && logEl.historyOverlay.classList.contains('is-open')) closeHistoryModal();
 });
 
 // ----- Edit mode -----
@@ -2226,6 +2274,7 @@ function startEditLogEntry(entry) {
   logEl.cancelEditBtn.style.display = 'flex';
   logEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
   logEl.error.textContent = '';
+  closeHistoryModal();
   openLogFormModal('edit');
 }
 
@@ -2246,20 +2295,25 @@ logEl.openFormBtn.addEventListener('click', () => {
 });
 
 logEl.closeX.addEventListener('click', () => {
+  const wasEditing = !!logEl.editId.value;
   resetLogForm();
   closeLogFormModal();
+  if (wasEditing) openHistoryModal();
 });
 
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && logEl.overlay.classList.contains('is-open')) {
+    const wasEditing = !!logEl.editId.value;
     resetLogForm();
     closeLogFormModal();
+    if (wasEditing) openHistoryModal();
   }
 });
 
 logEl.cancelEditBtn.addEventListener('click', () => {
   resetLogForm();
   closeLogFormModal();
+  openHistoryModal();
 });
 
 // ----- Submit (create or update) -----
@@ -2317,7 +2371,7 @@ logEl.form.addEventListener('submit', async (ev) => {
     resetLogForm();
     closeLogFormModal();
     loadEquipmentLogs(currentEquipmentData.id, true);
-    if (logEl.historyPanel.style.display === 'none') logEl.historyToggle.click();
+    openHistoryModal();
   } catch (err) {
     console.error('Failed to save log entry', err);
     logEl.error.textContent = 'Could not save this entry. Please check your connection and try again.';
@@ -2400,7 +2454,7 @@ subscribeEl.listToggle.addEventListener('click', () => {
 // can see it. It stops casual taps, not a determined bad actor. True per-user
 // admin auth would need a real login system + backend, which this static
 // site doesn't have.
-const ADMIN_PASSWORD = 'ghacem2026'; // change this to your own password
+const ADMIN_PASSWORD = 'ghacem-admin-2026'; // change this to your own password
 let adminUnlocked = false;
 
 function requireAdminUnlock() {
