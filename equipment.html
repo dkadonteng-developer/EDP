@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <style>
   :root{
     --brand:#006937;
@@ -148,22 +149,55 @@
   .not-found i{font-size:3rem;color:var(--danger);margin-bottom:12px}
 
   /* ---------- Comments & Maintenance Log ---------- */
-  .log-form{display:flex;flex-direction:column;gap:14px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .log-form{display:flex;flex-direction:column;gap:14px;margin-bottom:18px;padding-bottom:20px;border-bottom:1px solid var(--border)}
   .log-form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .log-field{display:flex;flex-direction:column;gap:6px}
   .log-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
-  .log-field input,.log-field textarea{
-    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.9rem;outline:none;resize:vertical;
+  .log-field input,.log-field textarea,.log-field select{
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.9rem;outline:none;resize:vertical;background:#fff;
   }
-  .log-field input:focus,.log-field textarea:focus{border-color:var(--brand-light)}
+  .log-field input:focus,.log-field textarea:focus,.log-field select:focus{border-color:var(--brand-light)}
   .log-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
-  .log-form-error{color:var(--danger);font-size:.82rem}
+  .log-form-error{color:var(--danger);font-size:.82rem;flex:1}
   .log-form-actions button{
     background:var(--brand);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-size:.88rem;
     font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s ease;
   }
   .log-form-actions button:hover{background:#005229}
   .log-form-actions button:disabled{opacity:.6;cursor:not-allowed}
+  .log-btn-secondary{background:#fff!important;color:var(--muted)!important;border:1px solid var(--border)!important}
+  .log-btn-secondary:hover{color:var(--danger)!important;border-color:var(--danger)!important}
+
+  .log-attach-btn{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:.85rem;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;justify-content:center;
+  }
+  .log-attach-btn:hover{color:var(--brand);border-color:var(--brand-light)}
+  .log-attach-preview{display:flex;gap:8px;flex-wrap:wrap}
+  .log-attach-thumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+  .log-attach-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .log-attach-thumb button{
+    position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+    background:rgba(0,0,0,.65);color:#fff;border:none;font-size:.6rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+
+  .log-history-toggle{
+    background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-family:inherit;font-size:.9rem;
+    font-weight:500;color:var(--brand);cursor:pointer;display:flex;align-items:center;gap:10px;width:100%;justify-content:center;
+    transition:background .15s ease;
+  }
+  .log-history-toggle:hover{background:#f0faf4}
+  .log-history-toggle.is-open i.fa-clock-rotate-left{transform:rotate(-45deg)}
+  .log-count-badge{background:var(--brand);color:#fff;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:12px}
+
+  .log-history-panel{margin-top:16px}
+  .log-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .log-controls select,.log-controls input{
+    border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:.85rem;background:#fff;outline:none;
+  }
+  .log-controls select:focus,.log-controls input:focus{border-color:var(--brand-light)}
+  .log-controls input{flex:1;min-width:160px}
 
   .log-entries{display:flex;flex-direction:column;gap:12px}
   .log-empty{color:var(--muted);font-size:.88rem;text-align:center;padding:14px 0}
@@ -171,16 +205,39 @@
   .log-entry-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px}
   .log-entry-who{font-weight:600;font-size:.9rem}
   .log-entry-who .dept{font-weight:400;color:var(--muted)}
+  .log-entry-date-wrap{display:flex;align-items:center;gap:10px}
   .log-entry-date{font-size:.78rem;color:var(--muted);white-space:nowrap}
+  .log-entry-edit-btn{
+    background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.74rem;
+    padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  }
+  .log-entry-edit-btn:hover{color:var(--brand);border-color:var(--brand-light)}
   .log-entry-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .log-entry-tag{
     background:#e8f6ee;color:var(--brand);font-size:.76rem;font-weight:500;padding:3px 10px;border-radius:20px;
     display:inline-flex;align-items:center;gap:5px;
   }
+  .log-entry-tag.category{background:var(--brand);color:#fff}
   .log-entry-comment{font-size:.9rem;line-height:1.5;white-space:pre-wrap}
+  .log-entry-edited{font-size:.72rem;color:var(--muted);font-style:italic;margin-top:6px}
+  .log-entry-images{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .log-entry-images img{
+    width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;
+  }
+
+  .log-lightbox{
+    position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .log-lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .log-lightbox-close{
+    position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);
+    border:none;color:#fff;font-size:1.1rem;cursor:pointer;
+  }
 
   @media (max-width:600px){
     .log-form-row{grid-template-columns:1fr}
+    .log-controls{flex-direction:column}
+    .log-controls select,.log-controls input{width:100%}
   }
 
   .skeleton{animation:pulse 1.2s infinite ease-in-out;background:#e6e9ec;border-radius:6px;color:transparent!important}
@@ -430,11 +487,12 @@
   <div class="section">
     <h2><i class="fa-solid fa-comments"></i> Comments & Maintenance Log</h2>
     <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
-      Log observations, lubrication details, dosage rates, or any other maintenance notes for this equipment.
-      Entries are visible to everyone here and cannot be edited or deleted once submitted.
+      Log lubrication details, PM/CM issues rectified, suggestions, observations, or any other maintenance history for this equipment.
+      Entries are visible to everyone, and can only be edited by the device that submitted them.
     </p>
 
     <form id="logForm" class="log-form">
+      <input type="hidden" id="logEditId" value="">
       <div class="log-form-row">
         <div class="log-field">
           <label for="logFullName">Full Name *</label>
@@ -448,28 +506,76 @@
 
       <div class="log-form-row">
         <div class="log-field">
-          <label for="logLubeType">Lubrication Type (if applicable)</label>
+          <label for="logCategory">Entry Type *</label>
+          <select id="logCategory" required>
+            <option value="">Select a type…</option>
+            <option value="Lubrication">Lubrication</option>
+            <option value="PM">Preventive Maintenance (PM)</option>
+            <option value="CM">Corrective Maintenance (CM) — Issue Rectified</option>
+            <option value="Suggestion">Suggestion</option>
+            <option value="Observation">General Observation</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="log-field">
+          <label>Photos (optional, up to 2)</label>
+          <button type="button" id="logAttachBtn" class="log-attach-btn"><i class="fa-solid fa-camera"></i> Attach photo(s)</button>
+          <input type="file" id="logFileInput" accept="image/*" multiple style="display:none">
+        </div>
+      </div>
+
+      <div class="log-form-row" id="logLubeRow" style="display:none">
+        <div class="log-field">
+          <label for="logLubeType">Lubrication Type</label>
           <input type="text" id="logLubeType" maxlength="100" placeholder="e.g. Shell Gadus S2 V220 2">
         </div>
         <div class="log-field">
-          <label for="logDosage">Dosage Rate (if applicable)</label>
+          <label for="logDosage">Dosage Rate</label>
           <input type="text" id="logDosage" maxlength="100" placeholder="e.g. 15g per point, every 250 hrs">
         </div>
       </div>
 
       <div class="log-field">
         <label for="logComment">Comments / Observations *</label>
-        <textarea id="logComment" rows="3" required maxlength="2999" placeholder="Describe what was done, observed, or any other relevant maintenance history…"></textarea>
+        <textarea id="logComment" rows="3" required maxlength="2999" placeholder="Describe what was done, observed, rectified, or suggested…"></textarea>
       </div>
+
+      <div id="logAttachPreview" class="log-attach-preview" style="display:none"></div>
 
       <div class="log-form-actions">
         <span id="logFormError" class="log-form-error"></span>
+        <button type="button" id="logCancelEditBtn" class="log-btn-secondary" style="display:none">Cancel edit</button>
         <button type="submit" id="logSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Entry</button>
       </div>
     </form>
 
-    <div id="logEntries" class="log-entries">
-      <p class="log-empty" id="logEmptyState">Loading entries…</p>
+    <button type="button" id="logHistoryToggle" class="log-history-toggle">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span id="logToggleLabel">View History</span>
+      <span id="logCountBadge" class="log-count-badge" style="display:none"></span>
+    </button>
+
+    <div id="logHistoryPanel" class="log-history-panel" style="display:none">
+      <div class="log-controls">
+        <select id="logFilterCategory">
+          <option value="">All types</option>
+          <option value="Lubrication">Lubrication</option>
+          <option value="PM">Preventive Maintenance (PM)</option>
+          <option value="CM">Corrective Maintenance (CM)</option>
+          <option value="Suggestion">Suggestion</option>
+          <option value="Observation">General Observation</option>
+          <option value="Other">Other</option>
+        </select>
+        <select id="logSortOrder">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+        </select>
+        <input type="text" id="logSearchInput" placeholder="Search name, department, notes…">
+      </div>
+
+      <div id="logEntries" class="log-entries">
+        <p class="log-empty">Loading entries…</p>
+      </div>
     </div>
   </div>
 
@@ -557,6 +663,23 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+
+// Anonymous sign-in gives this browser a stable identity (persisted by
+// Firebase across reloads) so it can later be recognised as the author of
+// entries it creates, without any login screen for the user.
+let currentAuthUid = null;
+const authReady = new Promise((resolve) => {
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      currentAuthUid = user.uid;
+      resolve(user.uid);
+    }
+  });
+  auth.signInAnonymously().catch((err) => {
+    console.error('Anonymous sign-in failed', err);
+  });
+});
 
 const icons = {
   'Operation Manual': 'fa-book',
@@ -1525,17 +1648,44 @@ ai.input.addEventListener('input', () => {
 
 // ---------- Comments & Maintenance Log ----------
 
+const CATEGORY_META = {
+  Lubrication: { label: 'Lubrication', icon: 'fa-oil-can' },
+  PM:          { label: 'Preventive Maintenance (PM)', icon: 'fa-clipboard-check' },
+  CM:          { label: 'Corrective Maintenance (CM)', icon: 'fa-screwdriver-wrench' },
+  Suggestion:  { label: 'Suggestion', icon: 'fa-lightbulb' },
+  Observation: { label: 'General Observation', icon: 'fa-eye' },
+  Other:       { label: 'Other', icon: 'fa-circle-info' }
+};
+
 const logEl = {
   form: document.getElementById('logForm'),
+  editId: document.getElementById('logEditId'),
   fullName: document.getElementById('logFullName'),
   department: document.getElementById('logDepartment'),
+  category: document.getElementById('logCategory'),
+  lubeRow: document.getElementById('logLubeRow'),
   lubeType: document.getElementById('logLubeType'),
   dosage: document.getElementById('logDosage'),
   comment: document.getElementById('logComment'),
   error: document.getElementById('logFormError'),
   submitBtn: document.getElementById('logSubmitBtn'),
+  cancelEditBtn: document.getElementById('logCancelEditBtn'),
+  attachBtn: document.getElementById('logAttachBtn'),
+  fileInput: document.getElementById('logFileInput'),
+  attachPreview: document.getElementById('logAttachPreview'),
+  historyToggle: document.getElementById('logHistoryToggle'),
+  toggleLabel: document.getElementById('logToggleLabel'),
+  countBadge: document.getElementById('logCountBadge'),
+  historyPanel: document.getElementById('logHistoryPanel'),
+  filterCategory: document.getElementById('logFilterCategory'),
+  sortOrder: document.getElementById('logSortOrder'),
+  searchInput: document.getElementById('logSearchInput'),
   entries: document.getElementById('logEntries'),
 };
+
+let allLogEntries = [];        // cache of {id, ...data} for the current equipment
+let pendingLogImages = [];     // data URLs staged for the next submit/update
+let historyLoadedFor = null;   // equipmentId already fetched, to avoid refetching on every toggle
 
 function formatLogDate(ts) {
   if (!ts || typeof ts.toDate !== 'function') return 'Just now';
@@ -1544,22 +1694,127 @@ function formatLogDate(ts) {
   });
 }
 
-function renderLogEntries(snapshot) {
-  const rows = [];
-  snapshot.forEach(doc => rows.push(doc.data()));
+// ----- Category-dependent lubrication fields -----
 
-  // Sorted client-side (newest first) rather than via a Firestore orderBy,
-  // so this works without needing a composite index set up in the console.
+logEl.category.addEventListener('change', () => {
+  logEl.lubeRow.style.display = logEl.category.value === 'Lubrication' ? 'grid' : 'none';
+});
+
+// ----- Image attachments (compressed, stored inline in Firestore) -----
+
+const MAX_LOG_IMAGES = 2;
+const MAX_LOG_IMAGE_DIMENSION = 800;
+const LOG_IMAGE_QUALITY = 0.6;
+
+function resizeLogImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read image file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not decode image'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > MAX_LOG_IMAGE_DIMENSION || height > MAX_LOG_IMAGE_DIMENSION) {
+          const ratio = Math.min(MAX_LOG_IMAGE_DIMENSION / width, MAX_LOG_IMAGE_DIMENSION / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', LOG_IMAGE_QUALITY));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderLogAttachPreview() {
+  logEl.attachPreview.innerHTML = '';
+  logEl.attachPreview.style.display = pendingLogImages.length ? 'flex' : 'none';
+
+  pendingLogImages.forEach((dataUrl, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'log-attach-thumb';
+    thumb.innerHTML = `<img src="${dataUrl}"><button type="button" title="Remove"><i class="fa-solid fa-xmark"></i></button>`;
+    thumb.querySelector('button').addEventListener('click', () => {
+      pendingLogImages.splice(idx, 1);
+      renderLogAttachPreview();
+    });
+    logEl.attachPreview.appendChild(thumb);
+  });
+}
+
+logEl.attachBtn.addEventListener('click', () => logEl.fileInput.click());
+
+logEl.fileInput.addEventListener('change', async () => {
+  const files = Array.from(logEl.fileInput.files || []).slice(0, MAX_LOG_IMAGES - pendingLogImages.length);
+  for (const file of files) {
+    try {
+      const dataUrl = await resizeLogImage(file);
+      pendingLogImages.push(dataUrl);
+    } catch (err) {
+      console.error('Failed to process image', err);
+    }
+  }
+  logEl.fileInput.value = '';
+  renderLogAttachPreview();
+});
+
+// ----- Lightbox for viewing attached photos full-size -----
+
+function openLogLightbox(src) {
+  const overlay = document.createElement('div');
+  overlay.className = 'log-lightbox';
+  overlay.innerHTML = `<button type="button" class="log-lightbox-close"><i class="fa-solid fa-xmark"></i></button><img src="${src}">`;
+  overlay.addEventListener('click', (ev) => { if (ev.target === overlay) overlay.remove(); });
+  overlay.querySelector('.log-lightbox-close').addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
+
+// ----- Rendering the (filtered/sorted) entry list -----
+
+function applyLogControlsAndRender() {
+  const category = logEl.filterCategory.value;
+  const order = logEl.sortOrder.value;
+  const search = logEl.searchInput.value.trim().toLowerCase();
+
+  let rows = allLogEntries.slice();
+
+  if (category) rows = rows.filter(r => r.category === category);
+  if (search) {
+    rows = rows.filter(r =>
+      (r.fullName || '').toLowerCase().includes(search) ||
+      (r.department || '').toLowerCase().includes(search) ||
+      (r.comment || '').toLowerCase().includes(search) ||
+      (r.lubricationType || '').toLowerCase().includes(search)
+    );
+  }
+
   rows.sort((a, b) => {
     const ta = a.timestamp && typeof a.timestamp.toMillis === 'function' ? a.timestamp.toMillis() : 0;
     const tb = b.timestamp && typeof b.timestamp.toMillis === 'function' ? b.timestamp.toMillis() : 0;
-    return tb - ta;
+    return order === 'oldest' ? ta - tb : tb - ta;
   });
 
+  renderLogEntries(rows);
+}
+
+function renderLogEntries(rows) {
   logEl.entries.innerHTML = '';
 
-  if (rows.length === 0) {
+  logEl.countBadge.textContent = allLogEntries.length;
+  logEl.countBadge.style.display = allLogEntries.length ? 'inline-block' : 'none';
+
+  if (allLogEntries.length === 0) {
     logEl.entries.innerHTML = '<p class="log-empty">No entries logged yet. Be the first to add a maintenance note.</p>';
+    return;
+  }
+  if (rows.length === 0) {
+    logEl.entries.innerHTML = '<p class="log-empty">No entries match your filter/search.</p>';
     return;
   }
 
@@ -1567,35 +1822,112 @@ function renderLogEntries(snapshot) {
     const div = document.createElement('div');
     div.className = 'log-entry';
 
+    const cat = CATEGORY_META[r.category] || null;
     const tags = [];
-    if (r.lubricationType) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-oil-can"></i> ${escapeHtml(r.lubricationType)}</span>`);
+    if (cat) tags.push(`<span class="log-entry-tag category"><i class="fa-solid ${cat.icon}"></i> ${escapeHtml(cat.label)}</span>`);
+    if (r.lubricationType) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-flask"></i> ${escapeHtml(r.lubricationType)}</span>`);
     if (r.dosageRate) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-gauge"></i> ${escapeHtml(r.dosageRate)}</span>`);
+
+    const canEdit = currentAuthUid && r.authorUid === currentAuthUid;
+    const images = Array.isArray(r.images) ? r.images : [];
 
     div.innerHTML = `
       <div class="log-entry-head">
         <span class="log-entry-who">${escapeHtml(r.fullName || 'Unknown')} <span class="dept">— ${escapeHtml(r.department || 'Unknown dept.')}</span></span>
-        <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
+        <div class="log-entry-date-wrap">
+          <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
+          ${canEdit ? `<button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
+        </div>
       </div>
       ${tags.length ? `<div class="log-entry-tags">${tags.join('')}</div>` : ''}
       <div class="log-entry-comment">${escapeHtml(r.comment || '')}</div>
+      ${images.length ? `<div class="log-entry-images">${images.map(src => `<img src="${src}">`).join('')}</div>` : ''}
+      ${r.editedAt ? '<div class="log-entry-edited">(edited)</div>' : ''}
     `;
+
+    if (images.length) {
+      div.querySelectorAll('.log-entry-images img').forEach((img, idx) => {
+        img.addEventListener('click', () => openLogLightbox(images[idx]));
+      });
+    }
+
+    const editBtn = div.querySelector('.log-entry-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', () => startEditLogEntry(r));
+
     logEl.entries.appendChild(div);
   });
 }
 
-function loadEquipmentLogs(equipmentId) {
+function loadEquipmentLogs(equipmentId, forceReload) {
+  if (historyLoadedFor === equipmentId && !forceReload) {
+    applyLogControlsAndRender();
+    return;
+  }
   logEl.entries.innerHTML = '<p class="log-empty">Loading entries…</p>';
   db.collection('equipmentLogs')
     .where('equipmentId', '==', equipmentId)
     .get()
-    .then(renderLogEntries)
+    .then(snapshot => {
+      allLogEntries = [];
+      snapshot.forEach(doc => allLogEntries.push({ id: doc.id, ...doc.data() }));
+      historyLoadedFor = equipmentId;
+      applyLogControlsAndRender();
+    })
     .catch(err => {
       console.error('Failed to load log entries', err);
       logEl.entries.innerHTML = '<p class="log-empty">Could not load entries right now. Please try refreshing the page.</p>';
     });
 }
 
-logEl.form.addEventListener('submit', (ev) => {
+logEl.filterCategory.addEventListener('change', applyLogControlsAndRender);
+logEl.sortOrder.addEventListener('change', applyLogControlsAndRender);
+logEl.searchInput.addEventListener('input', applyLogControlsAndRender);
+
+// ----- History collapsed by default, revealed on tap -----
+
+logEl.historyToggle.addEventListener('click', () => {
+  const isOpen = logEl.historyPanel.style.display !== 'none';
+  logEl.historyPanel.style.display = isOpen ? 'none' : 'block';
+  logEl.historyToggle.classList.toggle('is-open', !isOpen);
+  logEl.toggleLabel.textContent = isOpen ? 'View History' : 'Hide History';
+  if (!isOpen && currentEquipmentData) loadEquipmentLogs(currentEquipmentData.id);
+});
+
+// ----- Edit mode -----
+
+function startEditLogEntry(entry) {
+  logEl.editId.value = entry.id;
+  logEl.fullName.value = entry.fullName || '';
+  logEl.department.value = entry.department || '';
+  logEl.category.value = entry.category || '';
+  logEl.lubeRow.style.display = entry.category === 'Lubrication' ? 'grid' : 'none';
+  logEl.lubeType.value = entry.lubricationType || '';
+  logEl.dosage.value = entry.dosageRate || '';
+  logEl.comment.value = entry.comment || '';
+  pendingLogImages = Array.isArray(entry.images) ? entry.images.slice() : [];
+  renderLogAttachPreview();
+
+  logEl.cancelEditBtn.style.display = 'flex';
+  logEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+  logEl.error.textContent = '';
+  logEl.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetLogForm() {
+  logEl.form.reset();
+  logEl.editId.value = '';
+  logEl.lubeRow.style.display = 'none';
+  pendingLogImages = [];
+  renderLogAttachPreview();
+  logEl.cancelEditBtn.style.display = 'none';
+  logEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Entry';
+}
+
+logEl.cancelEditBtn.addEventListener('click', resetLogForm);
+
+// ----- Submit (create or update) -----
+
+logEl.form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   logEl.error.textContent = '';
 
@@ -1603,42 +1935,62 @@ logEl.form.addEventListener('submit', (ev) => {
 
   const fullName = logEl.fullName.value.trim();
   const department = logEl.department.value.trim();
+  const category = logEl.category.value;
   const lubricationType = logEl.lubeType.value.trim();
   const dosageRate = logEl.dosage.value.trim();
   const comment = logEl.comment.value.trim();
+  const editId = logEl.editId.value;
 
-  if (!fullName || !department || !comment) {
-    logEl.error.textContent = 'Full name, department, and comments are required.';
+  if (!fullName || !department || !category || !comment) {
+    logEl.error.textContent = 'Full name, department, entry type, and comments are required.';
     return;
   }
 
   logEl.submitBtn.disabled = true;
-  logEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+  logEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (editId ? 'Saving…' : 'Submitting…');
 
-  const entry = {
-    equipmentId: currentEquipmentData.id,
-    fullName,
-    department,
-    comment,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  if (lubricationType) entry.lubricationType = lubricationType;
-  if (dosageRate) entry.dosageRate = dosageRate;
+  try {
+    const uid = await authReady;
 
-  db.collection('equipmentLogs').add(entry)
-    .then(() => {
-      logEl.form.reset();
-      loadEquipmentLogs(currentEquipmentData.id);
-    })
-    .catch(err => {
-      console.error('Failed to submit log entry', err);
-      logEl.error.textContent = 'Could not submit entry. Please check your connection and try again.';
-    })
-    .finally(() => {
-      logEl.submitBtn.disabled = false;
-      logEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Entry';
-    });
+    const entry = {
+      equipmentId: currentEquipmentData.id,
+      fullName,
+      department,
+      category,
+      comment,
+      authorUid: uid,
+      images: pendingLogImages.slice(0, MAX_LOG_IMAGES)
+    };
+    if (category === 'Lubrication') {
+      if (lubricationType) entry.lubricationType = lubricationType;
+      if (dosageRate) entry.dosageRate = dosageRate;
+    }
+
+    if (editId) {
+      entry.editedAt = firebase.firestore.FieldValue.serverTimestamp();
+      // timestamp is left untouched on edits so the entry keeps its original position in "newest first" ordering
+      await db.collection('equipmentLogs').doc(editId).update(entry);
+    } else {
+      entry.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('equipmentLogs').add(entry);
+    }
+
+    resetLogForm();
+    loadEquipmentLogs(currentEquipmentData.id, true);
+    if (logEl.historyPanel.style.display === 'none') logEl.historyToggle.click();
+  } catch (err) {
+    console.error('Failed to save log entry', err);
+    logEl.error.textContent = 'Could not save this entry. Please check your connection and try again.';
+  } finally {
+    logEl.submitBtn.disabled = false;
+    if (!logEl.editId.value) logEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Entry';
+    else logEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+  }
 });
+
+// Anonymous auth can resolve slightly after the first entry render — once
+// it does, re-render so "Edit" buttons appear on this device's own entries.
+authReady.then(() => { if (allLogEntries.length) applyLogControlsAndRender(); });
 
 </script>
 </body>
