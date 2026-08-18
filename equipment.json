@@ -10,6 +10,7 @@
     "installation": "2018-01-15",
     "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 1 & 2.",
     "image": "assets/equipment/rt.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-01/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/rt-01/Maintenance Manual.pdf" },
@@ -30,6 +31,7 @@
     "installation": "2018-01-15",
     "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 3 & 4.",
     "image": "assets/equipment/rt2.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-02/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/rt-02/Maintenance Manual.pdf" },
@@ -50,6 +52,7 @@
     "installation": "2018-01-15",
     "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 5 & 6.",
     "image": "assets/equipment/rt4.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-04/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/rt-04/Maintenance Manual.pdf" },
@@ -70,6 +73,7 @@
     "installation": "2018-01-15",
     "description": "Automatic rotary cement packing machine used for packing cement bags in Loading Line 7 & 8.",
     "image": "assets/equipment/rt6.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/rt-06/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/rt-06/Maintenance Manual.pdf" },
@@ -90,6 +94,7 @@
     "installation": "2019-05-22",
     "description": "Bucket elevator supplying cement to Rotor Packers 1 and 2.",
     "image": "assets/equipment/be1.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/be1/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/be1/Maintenance Manual.pdf" },
@@ -110,6 +115,7 @@
     "installation": "2019-05-22",
     "description": "Bucket elevator supplying cement to Rotor Packer 4.",
     "image": "assets/equipment/be4.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/be4/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/be4/Maintenance Manual.pdf" },
@@ -130,6 +136,7 @@
     "installation": "2019-05-22",
     "description": "Bucket elevator supplying cement to Rotor Packer 6.",
     "image": "assets/equipment/be6.jpg",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/be6/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/be6/Maintenance Manual.pdf" },
@@ -150,6 +157,7 @@
     "installation": "2020-02-10",
     "description": "Vibrating screen used before Rotor Packers 1 and 2 for seiving cement.",
     "image": "assets/equipment/vs1.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/vs1/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/vs1/Maintenance Manual.pdf" },
@@ -170,6 +178,7 @@
     "installation": "2020-02-10",
     "description": "Vibrating screen used before Rotor Packer 4 for seiving cement.",
     "image": "assets/equipment/vs2.JPG",
+    "safetyRequirements": [],
     "documents": [
       { "name": "Operation Manual", "file": "docs/vs2/Operation Manual.pdf" },
       { "name": "Maintenance Manual", "file": "docs/vs2/Maintenance Manual.pdf" },
