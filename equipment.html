@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --brand:#006937;
@@ -292,6 +293,38 @@
     .log-form-row{grid-template-columns:1fr}
     .log-controls{flex-direction:column}
     .log-controls select,.log-controls input{width:100%}
+  }
+
+  /* ---------- Subscribe to comment notifications ---------- */
+  .log-subscribe{margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+  .log-subscribe-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;color:var(--brand);font-weight:500;font-size:.9rem}
+  .log-subscribe-head i{font-size:1rem}
+  .subscribe-form{display:flex;gap:10px;flex-wrap:wrap}
+  .subscribe-form input{
+    flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;
+    font-family:inherit;font-size:.9rem;outline:none;background:#fff;
+  }
+  .subscribe-form input:focus{border-color:var(--brand-light)}
+  .subscribe-form button{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-family:inherit;font-size:.88rem;
+    font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s ease;white-space:nowrap;
+  }
+  .subscribe-form button:hover{background:#005229}
+  .subscribe-form button:disabled{opacity:.6;cursor:not-allowed}
+  .subscribe-success{color:var(--brand);font-size:.82rem;display:block;margin-top:8px}
+  .subscriber-entries{display:flex;flex-direction:column;gap:8px}
+  .subscriber-item{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:#f7f8fa;font-size:.85rem;
+  }
+  .subscriber-item .email{display:flex;align-items:center;gap:8px;word-break:break-all}
+  .subscriber-item .email i{color:var(--brand)}
+  .subscriber-item .date{color:var(--muted);font-size:.76rem;white-space:nowrap}
+
+  @media (max-width:600px){
+    .subscribe-form{flex-direction:column}
+    .subscribe-form button{width:100%;justify-content:center}
+    .subscriber-item{flex-direction:column;align-items:flex-start;gap:4px}
   }
 
   .skeleton{animation:pulse 1.2s infinite ease-in-out;background:#e6e9ec;border-radius:6px;color:transparent!important}
@@ -675,6 +708,32 @@
         <p class="log-empty">Loading entries…</p>
       </div>
     </div>
+
+    <div class="log-subscribe">
+      <div class="log-subscribe-head">
+        <i class="fa-solid fa-bell"></i>
+        <span>Get an email when a new entry is logged on this equipment</span>
+      </div>
+      <form id="subscribeForm" class="subscribe-form">
+        <input type="email" id="subscribeEmail" required placeholder="you@company.com" maxlength="200">
+        <button type="submit" id="subscribeBtn"><i class="fa-solid fa-envelope"></i> Subscribe</button>
+      </form>
+      <span id="subscribeError" class="log-form-error"></span>
+      <span id="subscribeSuccess" class="subscribe-success" style="display:none">
+        <i class="fa-solid fa-circle-check"></i> Subscribed — you'll get an email when new entries are logged here.
+      </span>
+
+      <button type="button" id="subscriberListToggle" class="log-history-toggle" style="margin-top:14px">
+        <i class="fa-solid fa-users"></i>
+        <span id="subscriberToggleLabel">View Subscribers</span>
+        <span id="subscriberCountBadge" class="log-count-badge" style="display:none"></span>
+      </button>
+      <div id="subscriberListPanel" class="log-history-panel" style="display:none">
+        <div id="subscriberEntries" class="subscriber-entries">
+          <p class="log-empty">Loading subscribers…</p>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -778,6 +837,11 @@ const authReady = new Promise((resolve) => {
     console.error('Anonymous sign-in failed', err);
   });
 });
+
+// ---------- EmailJS (comment notification emails) ----------
+const EMAILJS_SERVICE_ID = 'service_07ex199';
+const EMAILJS_TEMPLATE_ID = 'template_1jf2k2r';
+emailjs.init({ publicKey: '-1qmTfV9pX6ycWzse' });
 
 const icons = {
   'Operation Manual': 'fa-book',
@@ -1411,6 +1475,7 @@ function renderEquipment(e) {
   el.installation.textContent = formatDate(e.installation);
 
   loadEquipmentLogs(e.id);
+  loadSubscribers(e.id);
   showSafetyModal(e);
 
   el.documents.innerHTML = '';
@@ -1842,6 +1907,22 @@ let allLogEntries = [];        // cache of {id, ...data} for the current equipme
 let pendingLogImages = [];     // data URLs staged for the next submit/update
 let historyLoadedFor = null;   // equipmentId already fetched, to avoid refetching on every toggle
 
+const subscribeEl = {
+  form: document.getElementById('subscribeForm'),
+  email: document.getElementById('subscribeEmail'),
+  btn: document.getElementById('subscribeBtn'),
+  error: document.getElementById('subscribeError'),
+  success: document.getElementById('subscribeSuccess'),
+  listToggle: document.getElementById('subscriberListToggle'),
+  toggleLabel: document.getElementById('subscriberToggleLabel'),
+  countBadge: document.getElementById('subscriberCountBadge'),
+  listPanel: document.getElementById('subscriberListPanel'),
+  entries: document.getElementById('subscriberEntries'),
+};
+
+let allSubscribers = [];        // cache of {id, ...data} for the current equipment
+let subscribersLoadedFor = null;
+
 function formatLogDate(ts) {
   if (!ts || typeof ts.toDate !== 'function') return 'Just now';
   return ts.toDate().toLocaleString('en-GB', {
@@ -2128,6 +2209,8 @@ logEl.form.addEventListener('submit', async (ev) => {
     } else {
       entry.timestamp = firebase.firestore.FieldValue.serverTimestamp();
       await db.collection('equipmentLogs').add(entry);
+      // Only notify subscribers for brand-new entries, not edits
+      notifySubscribers(currentEquipmentData, entry);
     }
 
     resetLogForm();
@@ -2146,6 +2229,153 @@ logEl.form.addEventListener('submit', async (ev) => {
 // Anonymous auth can resolve slightly after the first entry render — once
 // it does, re-render so "Edit" buttons appear on this device's own entries.
 authReady.then(() => { if (allLogEntries.length) applyLogControlsAndRender(); });
+
+// ---------- Subscribe to comment notifications ----------
+
+function formatSubscribeDate(ts) {
+  if (!ts || typeof ts.toDate !== 'function') return '';
+  return ts.toDate().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function renderSubscribers() {
+  subscribeEl.countBadge.style.display = allSubscribers.length ? 'inline-block' : 'none';
+  subscribeEl.countBadge.textContent = allSubscribers.length;
+
+  if (!allSubscribers.length) {
+    subscribeEl.entries.innerHTML = '<p class="log-empty">No one has subscribed to this equipment yet.</p>';
+    return;
+  }
+
+  const sorted = allSubscribers.slice().sort((a, b) => {
+    const ta = a.subscribedAt && a.subscribedAt.toMillis ? a.subscribedAt.toMillis() : 0;
+    const tb = b.subscribedAt && b.subscribedAt.toMillis ? b.subscribedAt.toMillis() : 0;
+    return tb - ta;
+  });
+
+  subscribeEl.entries.innerHTML = sorted.map(s => `
+    <div class="subscriber-item">
+      <span class="email"><i class="fa-solid fa-envelope"></i> ${escapeHtml(s.email || '')}</span>
+      <span class="date">${formatSubscribeDate(s.subscribedAt)}</span>
+    </div>
+  `).join('');
+}
+
+function loadSubscribers(equipmentId, forceReload) {
+  if (subscribersLoadedFor === equipmentId && !forceReload) {
+    renderSubscribers();
+    return;
+  }
+  subscribeEl.entries.innerHTML = '<p class="log-empty">Loading subscribers…</p>';
+  db.collection('emailSubscribers')
+    .where('equipmentId', '==', equipmentId)
+    .get()
+    .then(snapshot => {
+      allSubscribers = [];
+      snapshot.forEach(doc => allSubscribers.push({ id: doc.id, ...doc.data() }));
+      subscribersLoadedFor = equipmentId;
+      renderSubscribers();
+    })
+    .catch(err => {
+      console.error('Failed to load subscribers', err);
+      subscribeEl.entries.innerHTML = '<p class="log-empty">Could not load subscribers right now.</p>';
+    });
+}
+
+subscribeEl.listToggle.addEventListener('click', () => {
+  const isOpen = subscribeEl.listPanel.style.display !== 'none';
+  subscribeEl.listPanel.style.display = isOpen ? 'none' : 'block';
+  subscribeEl.listToggle.classList.toggle('is-open', !isOpen);
+  subscribeEl.toggleLabel.textContent = isOpen ? 'View Subscribers' : 'Hide Subscribers';
+  if (!isOpen && currentEquipmentData) loadSubscribers(currentEquipmentData.id);
+});
+
+subscribeEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  subscribeEl.error.textContent = '';
+  subscribeEl.success.style.display = 'none';
+
+  if (!currentEquipmentData) return;
+
+  const email = subscribeEl.email.value.trim();
+  if (!email) {
+    subscribeEl.error.textContent = 'Please enter an email address.';
+    return;
+  }
+
+  subscribeEl.btn.disabled = true;
+  subscribeEl.btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Subscribing…';
+
+  try {
+    // Avoid duplicate subscriptions for the same email on this equipment
+    const existing = await db.collection('emailSubscribers')
+      .where('equipmentId', '==', currentEquipmentData.id)
+      .where('email', '==', email)
+      .limit(1)
+      .get();
+
+    if (existing.empty) {
+      await db.collection('emailSubscribers').add({
+        equipmentId: currentEquipmentData.id,
+        email,
+        subscribedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    subscribeEl.form.reset();
+    subscribeEl.success.style.display = 'block';
+    loadSubscribers(currentEquipmentData.id, true);
+    if (subscribeEl.listPanel.style.display === 'none') subscribeEl.listToggle.click();
+  } catch (err) {
+    console.error('Failed to subscribe', err);
+    subscribeEl.error.textContent = 'Could not subscribe right now. Please check your connection and try again.';
+  } finally {
+    subscribeEl.btn.disabled = false;
+    subscribeEl.btn.innerHTML = '<i class="fa-solid fa-envelope"></i> Subscribe';
+  }
+});
+
+// ---------- Notify subscribers by email on new entries ----------
+
+async function notifySubscribers(equipment, entry) {
+  try {
+    const snapshot = await db.collection('emailSubscribers')
+      .where('equipmentId', '==', equipment.id)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const entryLink = `${location.origin}${location.pathname}?id=${encodeURIComponent(equipment.id)}`;
+    const submittedAt = new Date().toLocaleString();
+    const categoryLabel = (CATEGORY_META[entry.category] && CATEGORY_META[entry.category].label) || entry.category || '';
+
+    const sends = [];
+    snapshot.forEach(doc => {
+      const { email } = doc.data();
+      if (!email) return;
+      sends.push(
+        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+          to_email: email,
+          name: entry.fullName || 'A team member',
+          full_name: entry.fullName || '',
+          department: entry.department || '',
+          equipment_name: equipment.name || '',
+          equipment_id: equipment.id || '',
+          category: categoryLabel,
+          comment: entry.comment || '',
+          lubrication_type: entry.lubricationType || '—',
+          dosage_rate: entry.dosageRate || '—',
+          submitted_at: submittedAt,
+          time: submittedAt,
+          entry_link: entryLink
+        }).catch(err => console.error('EmailJS send failed for', email, err))
+      );
+    });
+
+    await Promise.all(sends);
+  } catch (err) {
+    console.error('Failed to notify subscribers', err);
+  }
+}
 
 </script>
 </body>
