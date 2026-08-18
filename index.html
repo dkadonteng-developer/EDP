@@ -105,53 +105,233 @@ opacity:.9;
 
 }
 
-/* STATS */
+/* CONTROLS: search, sort, filter */
 
-.stats{
+.controls{
 
 max-width:1200px;
 
-margin:auto;
+margin:40px auto 0;
 
-display:grid;
+padding:0 20px;
 
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+display:flex;
 
-gap:25px;
+flex-wrap:wrap;
 
-padding:20px;
+gap:16px;
+
+align-items:center;
+
+justify-content:space-between;
 
 }
 
-.stat{
+.controls-left{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:12px;
+
+flex:1;
+
+min-width:260px;
+
+}
+
+.search-box{
+
+position:relative;
+
+flex:1;
+
+min-width:220px;
+
+max-width:360px;
+
+}
+
+.search-box i{
+
+position:absolute;
+
+left:16px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+color:#999;
+
+}
+
+.search-box input{
+
+width:100%;
+
+padding:12px 14px 12px 42px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:14px;
+
+outline:none;
 
 background:white;
 
-padding:30px;
+transition:.2s;
 
-border-radius:15px;
+}
+
+.search-box input:focus{
+
+border-color:#006937;
+
+box-shadow:0 0 0 3px rgba(0,105,55,.12);
+
+}
+
+.sort-box select{
+
+padding:12px 16px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:14px;
+
+background:white;
+
+color:#333;
+
+outline:none;
+
+cursor:pointer;
+
+}
+
+.sort-box select:focus{
+
+border-color:#006937;
+
+}
+
+.filter-chips{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:10px;
+
+}
+
+.filter-chip{
+
+padding:10px 18px;
+
+border-radius:30px;
+
+border:1px solid #ddd;
+
+background:white;
+
+color:#555;
+
+font-family:inherit;
+
+font-size:13px;
+
+font-weight:500;
+
+cursor:pointer;
+
+transition:.2s;
+
+white-space:nowrap;
+
+}
+
+.filter-chip:hover{
+
+border-color:#006937;
+
+color:#006937;
+
+}
+
+.filter-chip.active{
+
+background:#006937;
+
+border-color:#006937;
+
+color:white;
+
+}
+
+.results-count{
+
+max-width:1200px;
+
+margin:18px auto 0;
+
+padding:0 20px;
+
+color:#777;
+
+font-size:14px;
+
+}
+
+.no-results{
+
+grid-column:1/-1;
 
 text-align:center;
 
-box-shadow:0 10px 20px rgba(0,0,0,.08);
+padding:60px 20px;
+
+color:#888;
 
 }
 
-.stat i{
-
-font-size:35px;
-
-color:#006937;
-
-margin-bottom:15px;
-
-}
-
-.stat h2{
+.no-results i{
 
 font-size:40px;
 
-color:#006937;
+color:#ccc;
+
+margin-bottom:14px;
+
+display:block;
+
+}
+
+@media(max-width:600px){
+
+.controls{
+
+flex-direction:column;
+
+align-items:stretch;
+
+}
+
+.search-box,.sort-box select{
+
+max-width:none;
+
+}
 
 }
 
@@ -344,49 +524,53 @@ font-size:18px;
 
 </section>
 
-<section class="stats">
+<div class="controls">
 
-<div class="stat">
+<div class="controls-left">
 
-<i class="fa-solid fa-industry"></i>
+<div class="search-box">
 
-<h2>9</h2>
+<i class="fa-solid fa-magnifying-glass"></i>
 
-<p>Total Equipment</p>
-
-</div>
-
-<div class="stat">
-
-<i class="fa-solid fa-file-pdf"></i>
-
-<h2>36</h2>
-
-<p>Documents</p>
+<input type="text" id="searchInput" placeholder="Search by name, ID, or manufacturer…">
 
 </div>
 
-<div class="stat">
+<div class="sort-box">
 
-<i class="fa-solid fa-building"></i>
+<select id="sortSelect">
 
-<h2>3</h2>
+<option value="name-asc">Sort: Name (A–Z)</option>
 
-<p>Departments</p>
+<option value="name-desc">Sort: Name (Z–A)</option>
 
-</div>
+<option value="id-asc">Sort: ID (A–Z)</option>
 
-<div class="stat">
+<option value="id-desc">Sort: ID (Z–A)</option>
 
-<i class="fa-solid fa-qrcode"></i>
-
-<h2>10</h2>
-
-<p>QR Codes</p>
+</select>
 
 </div>
 
-</section>
+</div>
+
+<div class="filter-chips" id="filterChips">
+
+<button class="filter-chip active" data-filter="all">All</button>
+
+<button class="filter-chip" data-filter="packing-plant">Packing Plant</button>
+
+<button class="filter-chip" data-filter="milling">Milling</button>
+
+<button class="filter-chip" data-filter="material-transport">Material Transport</button>
+
+<button class="filter-chip" data-filter="others">Others</button>
+
+</div>
+
+</div>
+
+<p class="results-count" id="resultsCount"></p>
 
 <div class="container">
 
@@ -396,7 +580,7 @@ Equipment List
 
 </h2>
 
-<div class="cards">
+<div class="cards" id="cardsGrid">
 
 <div class="card">
 
@@ -667,6 +851,99 @@ GHACEM LTD © 2026
 Engineering Documentation Portal
 
 </footer>
+
+<script>
+(function () {
+  const cardsGrid = document.getElementById('cardsGrid');
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const filterChips = document.querySelectorAll('.filter-chip');
+  const resultsCount = document.getElementById('resultsCount');
+
+  const DEPARTMENT_MAP = {
+    'packing plant': 'packing-plant',
+    'milling': 'milling',
+    'material transport': 'material-transport'
+  };
+
+  // Build a lightweight model of each card up front: text to search,
+  // department bucket (derived from the existing "Location" line),
+  // and sort keys — so filtering/sorting never has to touch the DOM twice.
+  const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el) => {
+    const name = (el.querySelector('h3')?.textContent || '').trim();
+    const paragraphs = Array.from(el.querySelectorAll('.card-content > p')).map(p => p.textContent.trim());
+    const idText = (paragraphs.find(p => p.toLowerCase().startsWith('id:')) || '').replace(/id:/i, '').trim();
+    const manufacturerText = (paragraphs.find(p => p.toLowerCase().startsWith('manufacturer:')) || '').replace(/manufacturer:/i, '').trim();
+    const locationText = (paragraphs.find(p => p.toLowerCase().startsWith('location:')) || '').replace(/location:/i, '').trim();
+
+    const locationKey = locationText.toLowerCase();
+    const department = DEPARTMENT_MAP[locationKey] || 'others';
+
+    return {
+      el,
+      name,
+      id: idText,
+      searchText: `${name} ${idText} ${manufacturerText}`.toLowerCase(),
+      department
+    };
+  });
+
+  let currentFilter = 'all';
+
+  function applyFiltersAndSort() {
+    const query = searchInput.value.trim().toLowerCase();
+
+    const visible = cards.filter(c =>
+      (currentFilter === 'all' || c.department === currentFilter) &&
+      (!query || c.searchText.includes(query))
+    );
+
+    const [key, dir] = sortSelect.value.split('-');
+    visible.sort((a, b) => {
+      const av = (key === 'id' ? a.id : a.name).toLowerCase();
+      const bv = (key === 'id' ? b.id : b.name).toLowerCase();
+      const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+      return dir === 'desc' ? -cmp : cmp;
+    });
+
+    // Hide everything, then re-append the visible set in sorted order —
+    // CSS grid re-flows automatically, no layout math needed.
+    cards.forEach(c => { c.el.style.display = 'none'; });
+    const existingEmptyState = cardsGrid.querySelector('.no-results');
+    if (existingEmptyState) existingEmptyState.remove();
+
+    if (visible.length === 0) {
+      cardsGrid.insertAdjacentHTML('beforeend', `
+        <div class="no-results">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <p>No equipment matches your search/filter.</p>
+        </div>
+      `);
+    } else {
+      visible.forEach(c => {
+        c.el.style.display = '';
+        cardsGrid.appendChild(c.el);
+      });
+    }
+
+    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} equipment`;
+  }
+
+  searchInput.addEventListener('input', applyFiltersAndSort);
+  sortSelect.addEventListener('change', applyFiltersAndSort);
+
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      applyFiltersAndSort();
+    });
+  });
+
+  applyFiltersAndSort();
+})();
+</script>
 
 </body>
 
