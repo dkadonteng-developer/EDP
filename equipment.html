@@ -26,13 +26,16 @@
   body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text);overflow-x:hidden}
 
   header{
-    background:var(--brand);color:#fff;padding:16px 24px;
-    display:flex;align-items:center;justify-content:space-between;
+    background:var(--brand);color:#fff;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
     position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
-  header h2{margin:0;font-size:1.1rem;font-weight:600}
-  header a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;display:flex;align-items:center;gap:6px}
-  header a:hover{opacity:1;text-decoration:underline}
+  header a.header-back{
+    display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
+    font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
+    padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
+  }
+  header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
 
   .container{max-width:1200px;margin:auto;padding:20px}
 
@@ -301,8 +304,9 @@
   }
 
   @media (max-width:520px){
-    header{flex-wrap:wrap;gap:8px;padding:12px 16px}
-    header h2{font-size:1rem}
+    header{padding:12px 16px}
+    header a.header-back{font-size:.85rem;padding:8px 13px}
+    #safetyBadge{font-size:.76rem;padding:6px 10px}
   }
 
   @media (max-width:480px){
@@ -500,11 +504,8 @@
 </div>
 
 <header>
-  <h2><i class="fa-solid fa-industry"></i> GHACEM - Equipment Documentation Portal</h2>
-  <div style="display:flex;align-items:center;gap:12px">
-    <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
-    <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
-  </div>
+  <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
 </header>
 
 <div class="container" id="container">
