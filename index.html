@@ -68,6 +68,25 @@ object-fit:cover;
 font-size:22px;
 }
 
+.nav-link{
+display:flex;
+align-items:center;
+gap:8px;
+color:white;
+text-decoration:none;
+font-size:14px;
+font-weight:600;
+background:rgba(255,255,255,.14);
+padding:10px 18px;
+border-radius:20px;
+transition:background .15s ease;
+white-space:nowrap;
+}
+
+.nav-link:hover{
+background:rgba(255,255,255,.26);
+}
+
 /* HERO */
 
 .hero{
@@ -498,6 +517,22 @@ font-size:18px;
 
 }
 
+.nav-link{
+
+font-size:0;
+
+padding:10px 12px;
+
+gap:0;
+
+}
+
+.nav-link i{
+
+font-size:16px;
+
+}
+
 }
 
 </style>
@@ -518,6 +553,8 @@ font-size:18px;
 </div>
 
 <div>
+
+<a href="inventory.html" class="nav-link" title="Spare Parts Inventory" aria-label="Spare Parts Inventory"><i class="fa-solid fa-boxes-stacked"></i> Spare Parts Inventory</a>
 
 </div>
 
