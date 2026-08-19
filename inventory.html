@@ -84,6 +84,20 @@
   }
   .add-part-btn:hover{background:#005229}
 
+  .admin-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .viewer-badge{
+    display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.82rem;font-weight:500;
+    background:#eef0f2;padding:9px 14px;border-radius:20px;white-space:nowrap;
+  }
+  .admin-toggle-btn{
+    display:flex;align-items:center;gap:8px;background:#fff;color:var(--brand);border:1px solid var(--brand);
+    border-radius:30px;padding:11px 18px;font-family:inherit;font-size:.86rem;font-weight:600;
+    cursor:pointer;white-space:nowrap;transition:.2s;
+  }
+  .admin-toggle-btn:hover{background:#eef4f1}
+  .admin-toggle-btn.is-unlocked{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .admin-toggle-btn.is-unlocked:hover{background:#005229}
+
   .results-count{color:var(--muted);font-size:.88rem;margin:14px 0 18px}
   .results-count .low-flag{color:var(--amber);font-weight:600}
   .results-count .out-flag{color:var(--danger);font-weight:600}
@@ -213,7 +227,8 @@
     .controls{flex-direction:column;align-items:stretch}
     .search-box{max-width:none}
     .controls select{width:100%}
-    .add-part-btn{justify-content:center}
+    .admin-controls{flex-direction:column;align-items:stretch}
+    .add-part-btn,.admin-toggle-btn,.viewer-badge{justify-content:center}
   }
 </style>
 </head>
@@ -267,7 +282,11 @@
         <option value="stock-desc">Sort: Stock (High–Low)</option>
       </select>
     </div>
-    <button type="button" id="addPartBtn" class="add-part-btn"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+    <div class="admin-controls" id="adminControls">
+      <span id="viewerBadge" class="viewer-badge"><i class="fa-solid fa-eye"></i> Viewing only</span>
+      <button type="button" id="addPartBtn" class="add-part-btn" style="display:none"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+      <button type="button" id="adminToggleBtn" class="admin-toggle-btn"><i class="fa-solid fa-lock"></i> Admin Login</button>
+    </div>
   </div>
 
   <p class="results-count" id="resultsCount"></p>
@@ -408,11 +427,21 @@ let adminUnlocked = false;
 
 function requireAdminUnlock() {
   if (adminUnlocked) return true;
-  const entered = window.prompt('Enter admin password to manage spare parts:');
+  const entered = window.prompt('Enter admin code to manage spare parts:');
   if (entered === null) return false;
-  if (entered === ADMIN_PASSWORD) { adminUnlocked = true; return true; }
-  alert('Incorrect password.');
+  if (entered === ADMIN_PASSWORD) { adminUnlocked = true; setAdminUI(true); return true; }
+  alert('Incorrect admin code.');
   return false;
+}
+
+function setAdminUI(unlocked) {
+  document.getElementById('viewerBadge').style.display = unlocked ? 'none' : 'flex';
+  document.getElementById('addPartBtn').style.display = unlocked ? 'flex' : 'none';
+  document.getElementById('adminToggleBtn').innerHTML = unlocked
+    ? '<i class="fa-solid fa-unlock"></i> Admin Mode'
+    : '<i class="fa-solid fa-lock"></i> Admin Login';
+  document.getElementById('adminToggleBtn').classList.toggle('is-unlocked', unlocked);
+  renderParts(); // re-render so edit/delete icons on cards show or hide
 }
 
 // ---------- Equipment context (?equipment=rt-01 pre-filters + shows banner) ----------
@@ -541,8 +570,10 @@ function renderParts() {
               <span class="part-category"><i class="fa-solid fa-tag"></i>${escapeHtml(p.category)}</span>
             </div>
             <div class="part-actions">
-              <button type="button" class="edit-part" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
-              <button type="button" class="del-part" data-id="${p.id}" data-name="${escapeHtml(p.partName)}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              ${adminUnlocked ? `
+                <button type="button" class="edit-part" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" class="del-part" data-id="${p.id}" data-name="${escapeHtml(p.partName)}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              ` : ''}
             </div>
           </div>
 
@@ -635,6 +666,17 @@ function closePartForm() {
 el.addPartBtn.addEventListener('click', () => {
   if (!requireAdminUnlock()) return;
   openPartForm('new');
+});
+
+document.getElementById('adminToggleBtn').addEventListener('click', () => {
+  if (adminUnlocked) {
+    if (confirm('Log out of admin mode? You will need the admin code again to make changes.')) {
+      adminUnlocked = false;
+      setAdminUI(false);
+    }
+    return;
+  }
+  requireAdminUnlock();
 });
 
 formEl.closeX.addEventListener('click', closePartForm);
