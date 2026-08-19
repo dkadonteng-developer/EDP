@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spare Parts Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#006937">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GHACEM EDP">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
+<style>
+  :root{
+    --brand:#006937;
+    --brand-light:#00a651;
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --text:#1f2a24;
+    --muted:#6b7280;
+    --border:#e6e9ec;
+    --danger:#d92d20;
+    --amber:#b45309;
+    --amber-bg:#fef3e0;
+    --blue:#0b5fae;
+    --blue-bg:#e8f1fb;
+  }
+  *{box-sizing:border-box}
+  html{overflow-x:hidden}
+  body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text);overflow-x:hidden}
+
+  header{
+    background:var(--brand);color:#fff;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  }
+  header a.header-back{
+    display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
+    font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
+    padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
+  }
+  header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
+  header h1{font-size:1.05rem;font-weight:600;margin:0;text-align:center;flex:1}
+  header .header-spacer{width:110px;flex:0 0 auto}
+
+  .container{max-width:1200px;margin:auto;padding:24px 20px 60px}
+
+  .intro{color:var(--muted);font-size:.92rem;line-height:1.5;margin:0 0 20px;max-width:760px}
+
+  .equip-banner{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:var(--blue-bg);color:var(--blue);border:1px solid #cfe2f5;border-radius:10px;
+    padding:12px 16px;margin-bottom:20px;font-size:.88rem;
+  }
+  .equip-banner strong{font-weight:600}
+  .equip-banner a{color:var(--blue);font-weight:600;text-decoration:none}
+  .equip-banner a:hover{text-decoration:underline}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:10px}
+  .controls-left{display:flex;flex-wrap:wrap;gap:12px;flex:1;min-width:260px}
+  .search-box{position:relative;flex:1;min-width:0;max-width:360px}
+  .search-box i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#999}
+  .search-box input{
+    width:100%;padding:12px 14px 12px 42px;border:1px solid var(--border);border-radius:30px;
+    font-family:inherit;font-size:16px;outline:none;background:#fff;transition:.2s;
+  }
+  .search-box input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,105,55,.12)}
+  .controls select{
+    padding:12px 16px;border:1px solid var(--border);border-radius:30px;font-family:inherit;
+    font-size:16px;background:#fff;color:#333;outline:none;cursor:pointer;
+  }
+  .add-part-btn{
+    display:flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:none;
+    border-radius:30px;padding:12px 20px;font-family:inherit;font-size:.9rem;font-weight:600;
+    cursor:pointer;white-space:nowrap;
+  }
+  .add-part-btn:hover{background:#005229}
+
+  .results-count{color:var(--muted);font-size:.88rem;margin:14px 0 18px}
+  .results-count .low-flag{color:var(--amber);font-weight:600}
+  .results-count .out-flag{color:var(--danger);font-weight:600}
+
+  /* grid */
+  .parts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+  .part-card{
+    background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--border);
+    box-shadow:0 6px 16px rgba(0,0,0,.05);display:flex;flex-direction:column;gap:10px;
+  }
+  .part-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .part-model{
+    display:inline-block;background:#eef4f1;color:var(--brand);font-weight:700;font-size:.78rem;
+    letter-spacing:.3px;padding:4px 10px;border-radius:6px;font-family:'Courier New',monospace;
+  }
+  .part-actions{display:flex;gap:4px;flex:0 0 auto}
+  .part-actions button{
+    background:none;border:none;color:var(--muted);cursor:pointer;padding:5px 7px;border-radius:6px;font-size:.85rem;
+  }
+  .part-actions button:hover{background:#f1f3f5;color:var(--text)}
+  .part-actions button.del-part:hover{background:#fdecea;color:var(--danger)}
+
+  .part-name{font-size:1rem;font-weight:600;margin:0}
+  .part-category{color:var(--muted);font-size:.8rem}
+  .part-category i{margin-right:4px}
+
+  .stock-status{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;
+    font-size:.78rem;font-weight:600;width:fit-content;
+  }
+  .stock-status.status-out{background:#fdecea;color:var(--danger)}
+  .stock-status.status-low{background:var(--amber-bg);color:var(--amber)}
+  .stock-status.status-ok{background:#e8f6ee;color:var(--brand)}
+  .stock-status.status-full{background:var(--blue-bg);color:var(--blue)}
+
+  .stock-bar-wrap{margin-top:2px}
+  .stock-numbers{display:flex;justify-content:space-between;font-size:.76rem;color:var(--muted);margin-bottom:5px}
+  .stock-numbers b{color:var(--text);font-size:.85rem}
+  .stock-bar{position:relative;height:8px;border-radius:6px;background:#eef0f2;overflow:hidden}
+  .stock-bar-fill{height:100%;border-radius:6px;transition:width .2s ease}
+  .stock-bar-fill.status-out{background:var(--danger)}
+  .stock-bar-fill.status-low{background:#f0a93b}
+  .stock-bar-fill.status-ok{background:var(--brand-light)}
+  .stock-bar-fill.status-full{background:var(--blue)}
+  .stock-bar-min-mark{position:absolute;top:0;bottom:0;width:2px;background:rgba(0,0,0,.28)}
+
+  .part-meta{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);margin-top:2px}
+  .part-meta i{width:14px;color:var(--brand);margin-right:4px}
+
+  .part-equip-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .part-equip-tag{
+    background:#f1f3f5;color:#555;font-size:.72rem;padding:3px 9px;border-radius:12px;text-decoration:none;
+  }
+  .part-equip-tag:hover{background:#e4e7ea}
+
+  .no-results{grid-column:1/-1;text-align:center;padding:60px 20px;color:#888}
+  .no-results i{font-size:40px;color:#ccc;margin-bottom:14px;display:block}
+
+  .seed-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:#fff8e6;border:1px solid #f2dfa3;color:#8a6d1f;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:.86rem;
+  }
+  .seed-bar button{
+    background:var(--brand);color:#fff;border:none;border-radius:20px;padding:9px 16px;
+    font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .seed-bar button:hover{background:#005229}
+
+  /* modal (part add/edit form) */
+  #partFormOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #partFormOverlay.is-open{display:flex}
+  .part-form-modal{
+    background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .part-form-modal-head{
+    background:var(--brand);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .part-form-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .part-form-modal-head p{margin:0;font-size:.8rem;opacity:.92}
+  .part-form-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  }
+  .part-form-modal-close:hover{background:rgba(255,255,255,.35)}
+  .part-form-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+  .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .pf-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  .pf-field{display:flex;flex-direction:column;gap:6px}
+  .pf-field.full{grid-column:1/-1}
+  .pf-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
+  .pf-field input,.pf-field select,.pf-field textarea{
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;
+    font-size:16px;outline:none;resize:vertical;background:#fff;
+  }
+  .pf-field input:focus,.pf-field select:focus,.pf-field textarea:focus{border-color:var(--brand-light)}
+  .pf-equip-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:4px}
+  .pf-equip-checks label{
+    display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);font-weight:400;
+    border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;
+  }
+  .pf-equip-checks input{width:auto}
+
+  .pf-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .pf-error{color:var(--danger);font-size:.82rem;flex:1}
+  .pf-btn-secondary{
+    background:#fff;border:1px solid var(--border);color:var(--muted);border-radius:8px;
+    padding:11px 18px;font-family:inherit;font-size:.88rem;cursor:pointer;
+  }
+  .pf-btn-secondary:hover{background:#f7f8fa}
+  #partSubmitBtn{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
+    font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  #partSubmitBtn:hover{background:#005229}
+  #partSubmitBtn:disabled{opacity:.6;cursor:not-allowed}
+
+  @media(max-width:680px){
+    header h1{display:none}
+    .header-spacer{display:none}
+    .pf-row,.pf-row-3{grid-template-columns:1fr}
+    .controls{flex-direction:column;align-items:stretch}
+    .search-box{max-width:none}
+    .controls select{width:100%}
+    .add-part-btn{justify-content:center}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" id="headerBackLink" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <h1><i class="fa-solid fa-boxes-stacked"></i> Spare Parts Inventory</h1>
+  <div class="header-spacer"></div>
+</header>
+
+<div class="container">
+
+  <p class="intro">
+    Search spare parts by model number or name, filter by category or stock status, and check current, minimum,
+    and maximum stock levels held in stores. Stock counts update live as store admins adjust them.
+  </p>
+
+  <div class="equip-banner" id="equipBanner" style="display:none">
+    <span>Showing parts compatible with <strong id="equipBannerName"></strong></span>
+    <a href="inventory.html" id="equipBannerClear">Clear filter <i class="fa-solid fa-xmark"></i></a>
+  </div>
+
+  <div class="seed-bar" id="seedBar" style="display:none">
+    <span><i class="fa-solid fa-circle-info"></i> No spare parts yet — load demo inventory to get started.</span>
+    <button type="button" id="seedDemoBtn"><i class="fa-solid fa-database"></i> Load Demo Data</button>
+  </div>
+
+  <div class="controls">
+    <div class="controls-left">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search by model number, name, or bin…">
+      </div>
+      <select id="categoryFilter">
+        <option value="all">All categories</option>
+      </select>
+      <select id="statusFilter">
+        <option value="all">All stock levels</option>
+        <option value="out">Out of stock</option>
+        <option value="low">Low stock</option>
+        <option value="ok">In stock</option>
+        <option value="full">Well stocked</option>
+      </select>
+      <select id="sortSelect">
+        <option value="name-asc">Sort: Name (A–Z)</option>
+        <option value="name-desc">Sort: Name (Z–A)</option>
+        <option value="model-asc">Sort: Model No. (A–Z)</option>
+        <option value="model-desc">Sort: Model No. (Z–A)</option>
+        <option value="stock-asc">Sort: Stock (Low–High)</option>
+        <option value="stock-desc">Sort: Stock (High–Low)</option>
+      </select>
+    </div>
+    <button type="button" id="addPartBtn" class="add-part-btn"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+  </div>
+
+  <p class="results-count" id="resultsCount"></p>
+
+  <div class="parts-grid" id="partsGrid">
+    <div class="no-results"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading inventory…</p></div>
+  </div>
+
+</div>
+
+<div id="partFormOverlay">
+  <div class="part-form-modal">
+    <div class="part-form-modal-head">
+      <div>
+        <h3 id="partFormTitle"><i class="fa-solid fa-plus"></i> Add Spare Part</h3>
+        <p>Model number, stock levels, and where it's held in stores.</p>
+      </div>
+      <button type="button" class="part-form-modal-close" id="partFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="part-form-modal-body">
+      <form id="partForm">
+        <input type="hidden" id="partEditId" value="">
+
+        <div class="pf-row">
+          <div class="pf-field">
+            <label for="partModelNumber">Model Number *</label>
+            <input type="text" id="partModelNumber" required maxlength="100" placeholder="e.g. 6205-2RS">
+          </div>
+          <div class="pf-field">
+            <label for="partName">Part Name *</label>
+            <input type="text" id="partName" required maxlength="150" placeholder="e.g. Deep Groove Ball Bearing">
+          </div>
+        </div>
+
+        <div class="pf-row">
+          <div class="pf-field">
+            <label for="partCategory">Category *</label>
+            <select id="partCategory" required>
+              <option value="Bearings">Bearings</option>
+              <option value="Belts & Chains">Belts & Chains</option>
+              <option value="Seals & Gaskets">Seals & Gaskets</option>
+              <option value="Lubricants">Lubricants</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Fasteners">Fasteners</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="pf-field">
+            <label for="partUnit">Unit *</label>
+            <input type="text" id="partUnit" required maxlength="20" placeholder="e.g. pcs, kg, L">
+          </div>
+        </div>
+
+        <div class="pf-row-3">
+          <div class="pf-field">
+            <label for="partMinQty">Min Qty *</label>
+            <input type="number" id="partMinQty" required min="0" step="1" placeholder="0">
+          </div>
+          <div class="pf-field">
+            <label for="partMaxQty">Max Qty *</label>
+            <input type="number" id="partMaxQty" required min="0" step="1" placeholder="0">
+          </div>
+          <div class="pf-field">
+            <label for="partCurrentQty">Current Qty *</label>
+            <input type="number" id="partCurrentQty" required min="0" step="1" placeholder="0">
+          </div>
+        </div>
+
+        <div class="pf-field full" style="margin-bottom:14px">
+          <label for="partBin">Bin / Store Location</label>
+          <input type="text" id="partBin" maxlength="100" placeholder="e.g. Store A - Rack 2">
+        </div>
+
+        <div class="pf-field full" style="margin-bottom:14px">
+          <label>Compatible Equipment</label>
+          <div class="pf-equip-checks" id="partEquipChecks"></div>
+        </div>
+
+        <div class="pf-field full" style="margin-bottom:6px">
+          <label for="partNotes">Notes (optional)</label>
+          <textarea id="partNotes" rows="2" maxlength="500" placeholder="Supplier, part alternates, reorder lead time…"></textarea>
+        </div>
+
+        <div class="pf-actions">
+          <span id="partFormError" class="pf-error"></span>
+          <button type="button" id="partCancelBtn" class="pf-btn-secondary">Cancel</button>
+          <button type="submit" id="partSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Part</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Firebase (shared with equipment.html) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const authReady = new Promise((resolve) => {
+  auth.onAuthStateChanged((user) => { if (user) resolve(user.uid); });
+});
+auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed', err));
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// ---------- Known equipment (for compatibility tags + admin checkboxes) ----------
+// Keep this in sync with the cards on index.html.
+const EQUIPMENT_LIST = [
+  { id: 'rt-01', name: 'Rotor Packer 1' },
+  { id: 'rt-02', name: 'Rotor Packer 2' },
+  { id: 'rt-04', name: 'Rotor Packer 4' },
+  { id: 'rt-06', name: 'Rotor Packer 6' },
+  { id: 'be1',   name: 'Bucket Elevator (Packer 1 & 2)' },
+  { id: 'be4',   name: 'Bucket Elevator (Packer 4)' },
+  { id: 'be6',   name: 'Bucket Elevator (Packer 6)' },
+  { id: 'vs1',   name: 'Vibrating Screen (Packer 1 & 2)' },
+  { id: 'vs2',   name: 'Vibrating Screen (Packer 4)' },
+];
+const EQUIPMENT_NAME_BY_ID = Object.fromEntries(EQUIPMENT_LIST.map(e => [e.id, e.name]));
+
+// ---------- Admin gate (shared password with equipment.html's subscriber removal) ----------
+const ADMIN_PASSWORD = 'ghacem-admin-2026'; // keep this in sync with equipment.html
+let adminUnlocked = false;
+
+function requireAdminUnlock() {
+  if (adminUnlocked) return true;
+  const entered = window.prompt('Enter admin password to manage spare parts:');
+  if (entered === null) return false;
+  if (entered === ADMIN_PASSWORD) { adminUnlocked = true; return true; }
+  alert('Incorrect password.');
+  return false;
+}
+
+// ---------- Equipment context (?equipment=rt-01 pre-filters + shows banner) ----------
+const equipmentFilterId = new URLSearchParams(location.search).get('equipment');
+const equipBanner = document.getElementById('equipBanner');
+if (equipmentFilterId) {
+  const name = EQUIPMENT_NAME_BY_ID[equipmentFilterId] || equipmentFilterId;
+  document.getElementById('equipBannerName').textContent = name;
+  equipBanner.style.display = 'flex';
+
+  const backLink = document.getElementById('headerBackLink');
+  backLink.href = `equipment.html?id=${encodeURIComponent(equipmentFilterId)}`;
+  backLink.innerHTML = `<i class="fa-solid fa-arrow-left"></i> ${escapeHtml(name)}`;
+}
+
+// ---------- Element refs ----------
+const el = {
+  grid: document.getElementById('partsGrid'),
+  search: document.getElementById('searchInput'),
+  categoryFilter: document.getElementById('categoryFilter'),
+  statusFilter: document.getElementById('statusFilter'),
+  sort: document.getElementById('sortSelect'),
+  resultsCount: document.getElementById('resultsCount'),
+  seedBar: document.getElementById('seedBar'),
+  seedBtn: document.getElementById('seedDemoBtn'),
+  addPartBtn: document.getElementById('addPartBtn'),
+};
+
+const formEl = {
+  overlay: document.getElementById('partFormOverlay'),
+  title: document.getElementById('partFormTitle'),
+  closeX: document.getElementById('partFormCloseX'),
+  form: document.getElementById('partForm'),
+  editId: document.getElementById('partEditId'),
+  modelNumber: document.getElementById('partModelNumber'),
+  name: document.getElementById('partName'),
+  category: document.getElementById('partCategory'),
+  unit: document.getElementById('partUnit'),
+  minQty: document.getElementById('partMinQty'),
+  maxQty: document.getElementById('partMaxQty'),
+  currentQty: document.getElementById('partCurrentQty'),
+  bin: document.getElementById('partBin'),
+  equipChecks: document.getElementById('partEquipChecks'),
+  notes: document.getElementById('partNotes'),
+  error: document.getElementById('partFormError'),
+  submitBtn: document.getElementById('partSubmitBtn'),
+  cancelBtn: document.getElementById('partCancelBtn'),
+};
+
+// Build equipment checkboxes once
+formEl.equipChecks.innerHTML = EQUIPMENT_LIST.map(e => `
+  <label><input type="checkbox" value="${e.id}"> ${escapeHtml(e.name)}</label>
+`).join('');
+
+let allParts = [];
+
+// ---------- Stock status ----------
+function getStockStatus(p) {
+  if (p.currentQty <= 0) return 'out';
+  if (p.currentQty <= p.minQty) return 'low';
+  if (p.currentQty >= p.maxQty) return 'full';
+  return 'ok';
+}
+const STATUS_LABEL = { out: 'Out of Stock', low: 'Low Stock', ok: 'In Stock', full: 'Well Stocked' };
+const STATUS_ICON = { out: 'fa-circle-xmark', low: 'fa-triangle-exclamation', ok: 'fa-circle-check', full: 'fa-layer-group' };
+
+// ---------- Rendering ----------
+function populateCategoryFilter() {
+  const current = el.categoryFilter.value;
+  const cats = Array.from(new Set(allParts.map(p => p.category).filter(Boolean))).sort();
+  el.categoryFilter.innerHTML = '<option value="all">All categories</option>' +
+    cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  if (cats.includes(current)) el.categoryFilter.value = current;
+}
+
+function renderParts() {
+  const query = el.search.value.trim().toLowerCase();
+  const category = el.categoryFilter.value;
+  const status = el.statusFilter.value;
+
+  let visible = allParts.filter(p => {
+    if (equipmentFilterId && !(p.compatibleEquipment || []).includes(equipmentFilterId)) return false;
+    if (category !== 'all' && p.category !== category) return false;
+    const st = getStockStatus(p);
+    if (status !== 'all' && st !== status) return false;
+    if (query) {
+      const haystack = `${p.modelNumber} ${p.partName} ${p.binLocation || ''}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    return true;
+  });
+
+  const [key, dir] = el.sort.value.split('-');
+  visible.sort((a, b) => {
+    let av, bv;
+    if (key === 'model') { av = a.modelNumber.toLowerCase(); bv = b.modelNumber.toLowerCase(); }
+    else if (key === 'stock') { av = a.currentQty; bv = b.currentQty; }
+    else { av = a.partName.toLowerCase(); bv = b.partName.toLowerCase(); }
+    if (typeof av === 'number') return dir === 'desc' ? bv - av : av - bv;
+    const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+    return dir === 'desc' ? -cmp : cmp;
+  });
+
+  if (!visible.length) {
+    el.grid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-box-open"></i>
+        <p>No spare parts match your search/filter.</p>
+      </div>`;
+  } else {
+    el.grid.innerHTML = visible.map(p => {
+      const st = getStockStatus(p);
+      const range = Math.max(p.maxQty, 1);
+      const fillPct = Math.min(100, Math.round((p.currentQty / range) * 100));
+      const minPct = Math.min(100, Math.round((p.minQty / range) * 100));
+      const equipTags = (p.compatibleEquipment || [])
+        .map(id => `<a class="part-equip-tag" href="equipment.html?id=${encodeURIComponent(id)}">${escapeHtml(EQUIPMENT_NAME_BY_ID[id] || id)}</a>`)
+        .join('');
+
+      return `
+        <div class="part-card">
+          <div class="part-card-top">
+            <div>
+              <span class="part-model">${escapeHtml(p.modelNumber)}</span>
+              <h3 class="part-name">${escapeHtml(p.partName)}</h3>
+              <span class="part-category"><i class="fa-solid fa-tag"></i>${escapeHtml(p.category)}</span>
+            </div>
+            <div class="part-actions">
+              <button type="button" class="edit-part" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="del-part" data-id="${p.id}" data-name="${escapeHtml(p.partName)}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+
+          <span class="stock-status status-${st}"><i class="fa-solid ${STATUS_ICON[st]}"></i> ${STATUS_LABEL[st]}</span>
+
+          <div class="stock-bar-wrap">
+            <div class="stock-numbers">
+              <span>Current: <b>${p.currentQty}</b> ${escapeHtml(p.unit || '')}</span>
+              <span>Min ${p.minQty} · Max ${p.maxQty}</span>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill status-${st}" style="width:${fillPct}%"></div>
+              <div class="stock-bar-min-mark" style="left:${minPct}%"></div>
+            </div>
+          </div>
+
+          <div class="part-meta">
+            ${p.binLocation ? `<span><i class="fa-solid fa-location-dot"></i>${escapeHtml(p.binLocation)}</span>` : ''}
+            ${p.notes ? `<span><i class="fa-solid fa-note-sticky"></i>${escapeHtml(p.notes)}</span>` : ''}
+          </div>
+
+          ${equipTags ? `<div class="part-equip-tags">${equipTags}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  const outCount = allParts.filter(p => getStockStatus(p) === 'out').length;
+  const lowCount = allParts.filter(p => getStockStatus(p) === 'low').length;
+  el.resultsCount.innerHTML = `Showing ${visible.length} of ${allParts.length} parts` +
+    (outCount ? ` &middot; <span class="out-flag">${outCount} out of stock</span>` : '') +
+    (lowCount ? ` &middot; <span class="low-flag">${lowCount} low</span>` : '');
+}
+
+// ---------- Live Firestore listener ----------
+db.collection('spareParts').onSnapshot((snapshot) => {
+  allParts = [];
+  snapshot.forEach(doc => allParts.push({ id: doc.id, ...doc.data() }));
+  el.seedBar.style.display = allParts.length === 0 ? 'flex' : 'none';
+  populateCategoryFilter();
+  renderParts();
+}, (err) => {
+  console.error('Failed to load spare parts', err);
+  el.grid.innerHTML = `<div class="no-results"><i class="fa-solid fa-triangle-exclamation"></i><p>Could not load inventory right now.</p></div>`;
+});
+
+el.search.addEventListener('input', renderParts);
+el.categoryFilter.addEventListener('change', renderParts);
+el.statusFilter.addEventListener('change', renderParts);
+el.sort.addEventListener('change', renderParts);
+
+// ---------- Add / Edit part modal ----------
+function openPartForm(mode, part) {
+  formEl.title.innerHTML = mode === 'edit'
+    ? '<i class="fa-solid fa-pen"></i> Edit Spare Part'
+    : '<i class="fa-solid fa-plus"></i> Add Spare Part';
+  formEl.error.textContent = '';
+
+  if (mode === 'edit' && part) {
+    formEl.editId.value = part.id;
+    formEl.modelNumber.value = part.modelNumber || '';
+    formEl.name.value = part.partName || '';
+    formEl.category.value = part.category || 'Other';
+    formEl.unit.value = part.unit || '';
+    formEl.minQty.value = part.minQty ?? '';
+    formEl.maxQty.value = part.maxQty ?? '';
+    formEl.currentQty.value = part.currentQty ?? '';
+    formEl.bin.value = part.binLocation || '';
+    formEl.notes.value = part.notes || '';
+    const compat = new Set(part.compatibleEquipment || []);
+    formEl.equipChecks.querySelectorAll('input').forEach(cb => { cb.checked = compat.has(cb.value); });
+    formEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+  } else {
+    formEl.form.reset();
+    formEl.editId.value = '';
+    formEl.equipChecks.querySelectorAll('input').forEach(cb => { cb.checked = false; });
+    formEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Part';
+  }
+
+  formEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  formEl.modelNumber.focus();
+}
+
+function closePartForm() {
+  formEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+el.addPartBtn.addEventListener('click', () => {
+  if (!requireAdminUnlock()) return;
+  openPartForm('new');
+});
+
+formEl.closeX.addEventListener('click', closePartForm);
+formEl.cancelBtn.addEventListener('click', closePartForm);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && formEl.overlay.classList.contains('is-open')) closePartForm();
+});
+
+el.grid.addEventListener('click', (ev) => {
+  const editBtn = ev.target.closest('.edit-part');
+  const delBtn = ev.target.closest('.del-part');
+
+  if (editBtn) {
+    if (!requireAdminUnlock()) return;
+    const part = allParts.find(p => p.id === editBtn.dataset.id);
+    if (part) openPartForm('edit', part);
+  }
+
+  if (delBtn) {
+    if (!requireAdminUnlock()) return;
+    if (!confirm(`Delete "${delBtn.dataset.name}" from inventory? This can't be undone.`)) return;
+    db.collection('spareParts').doc(delBtn.dataset.id).delete()
+      .catch(err => { console.error('Failed to delete part', err); alert('Could not delete this part. Please try again.'); });
+  }
+});
+
+formEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  formEl.error.textContent = '';
+
+  const minQty = Number(formEl.minQty.value);
+  const maxQty = Number(formEl.maxQty.value);
+  const currentQty = Number(formEl.currentQty.value);
+
+  if (maxQty < minQty) {
+    formEl.error.textContent = 'Max quantity must be greater than or equal to min quantity.';
+    return;
+  }
+
+  const compatibleEquipment = Array.from(formEl.equipChecks.querySelectorAll('input:checked')).map(cb => cb.value);
+
+  const data = {
+    modelNumber: formEl.modelNumber.value.trim(),
+    partName: formEl.name.value.trim(),
+    category: formEl.category.value,
+    unit: formEl.unit.value.trim(),
+    minQty, maxQty, currentQty,
+    binLocation: formEl.bin.value.trim(),
+    notes: formEl.notes.value.trim(),
+    compatibleEquipment,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  formEl.submitBtn.disabled = true;
+  formEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+  try {
+    await authReady;
+    const editId = formEl.editId.value;
+    if (editId) {
+      await db.collection('spareParts').doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('spareParts').add(data);
+    }
+    closePartForm();
+  } catch (err) {
+    console.error('Failed to save part', err);
+    formEl.error.textContent = 'Could not save this part right now. Please try again.';
+  } finally {
+    formEl.submitBtn.disabled = false;
+    formEl.submitBtn.innerHTML = editIdWasSet() ? '<i class="fa-solid fa-floppy-disk"></i> Save Changes' : '<i class="fa-solid fa-floppy-disk"></i> Save Part';
+  }
+
+  function editIdWasSet() { return !!formEl.editId.value; }
+});
+
+// ---------- Demo data seed (admin-gated, one-time) ----------
+el.seedBtn.addEventListener('click', async () => {
+  if (!requireAdminUnlock()) return;
+  if (!confirm('Load demo spare parts inventory? Only do this once.')) return;
+
+  el.seedBtn.disabled = true;
+  el.seedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading…';
+
+  const demoParts = [
+    { modelNumber: '6205-2RS', partName: 'Deep Groove Ball Bearing', category: 'Bearings', unit: 'pcs', minQty: 5, maxQty: 20, currentQty: 3, binLocation: 'Store A - Rack 2', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06'] },
+    { modelNumber: 'SKF-22213', partName: 'Spherical Roller Bearing 22213', category: 'Bearings', unit: 'pcs', minQty: 2, maxQty: 8, currentQty: 0, binLocation: 'Store A - Rack 2', notes: 'Lead time ~3 weeks from supplier', compatibleEquipment: ['be1','be4','be6'] },
+    { modelNumber: 'V-BELT-A47', partName: 'V-Belt A47', category: 'Belts & Chains', unit: 'pcs', minQty: 4, maxQty: 12, currentQty: 9, binLocation: 'Store B - Shelf 5', notes: '', compatibleEquipment: ['rt-01','rt-02'] },
+    { modelNumber: 'CHAIN-08B', partName: 'Roller Chain 08B (per ft)', category: 'Belts & Chains', unit: 'ft', minQty: 20, maxQty: 60, currentQty: 45, binLocation: 'Store B - Shelf 6', notes: '', compatibleEquipment: ['be1','be4','be6'] },
+    { modelNumber: 'OIL-SEAL-45x65x8', partName: 'Oil Seal 45x65x8mm', category: 'Seals & Gaskets', unit: 'pcs', minQty: 6, maxQty: 20, currentQty: 14, binLocation: 'Store A - Rack 4', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06'] },
+    { modelNumber: 'GASKET-VS-DECK', partName: 'Vibrating Screen Deck Gasket', category: 'Seals & Gaskets', unit: 'pcs', minQty: 3, maxQty: 10, currentQty: 2, binLocation: 'Store A - Rack 5', notes: '', compatibleEquipment: ['vs1','vs2'] },
+    { modelNumber: 'SHELL-GADUS-S2V220-2', partName: 'Shell Gadus S2 V220 2 Grease (18kg pail)', category: 'Lubricants', unit: 'pail', minQty: 2, maxQty: 6, currentQty: 5, binLocation: 'Store C - Lube Room', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06','be1','be4','be6'] },
+    { modelNumber: 'HYD-OIL-AW46', partName: 'Hydraulic Oil AW46 (208L drum)', category: 'Lubricants', unit: 'drum', minQty: 1, maxQty: 4, currentQty: 1, binLocation: 'Store C - Lube Room', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06'] },
+    { modelNumber: 'LC1D25', partName: 'Schneider Contactor LC1D25', category: 'Electrical', unit: 'pcs', minQty: 2, maxQty: 6, currentQty: 4, binLocation: 'Store D - Electrical Cabinet', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06','be1','be4','be6','vs1','vs2'] },
+    { modelNumber: 'PROX-M18', partName: 'Inductive Proximity Sensor M18', category: 'Electrical', unit: 'pcs', minQty: 4, maxQty: 12, currentQty: 10, binLocation: 'Store D - Electrical Cabinet', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06'] },
+    { modelNumber: 'BOLT-M16x50-8.8', partName: 'Hex Bolt M16x50 Grade 8.8', category: 'Fasteners', unit: 'pcs', minQty: 50, maxQty: 200, currentQty: 120, binLocation: 'Store B - Bin 12', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06','be1','be4','be6','vs1','vs2'] },
+    { modelNumber: 'SPRING-VS-COIL', partName: 'Vibrating Screen Coil Spring', category: 'Other', unit: 'pcs', minQty: 4, maxQty: 16, currentQty: 16, binLocation: 'Store A - Rack 7', notes: '', compatibleEquipment: ['vs1','vs2'] },
+    { modelNumber: 'PACKER-SPOUT-VALVE', partName: 'Rotor Packer Filling Spout Valve', category: 'Other', unit: 'pcs', minQty: 2, maxQty: 8, currentQty: 6, binLocation: 'Store A - Rack 8', notes: '', compatibleEquipment: ['rt-01','rt-02','rt-04','rt-06'] },
+    { modelNumber: 'BUCKET-BE-STD', partName: 'Elevator Bucket (Standard, Steel)', category: 'Other', unit: 'pcs', minQty: 10, maxQty: 40, currentQty: 8, binLocation: 'Store B - Shelf 9', notes: '', compatibleEquipment: ['be1','be4','be6'] },
+  ];
+
+  try {
+    await authReady;
+    const batch = db.batch();
+    demoParts.forEach(p => {
+      const ref = db.collection('spareParts').doc();
+      batch.set(ref, { ...p, createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    });
+    await batch.commit();
+  } catch (err) {
+    console.error('Failed to seed demo data', err);
+    alert('Could not load demo data right now. Please try again.');
+    el.seedBtn.disabled = false;
+    el.seedBtn.innerHTML = '<i class="fa-solid fa-database"></i> Load Demo Data';
+  }
+});
+</script>
+
+</body>
+</html>
