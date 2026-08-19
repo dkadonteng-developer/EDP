@@ -29,8 +29,16 @@
   header{
     background:var(--brand);color:#fff;padding:14px 24px;
     display:flex;align-items:center;justify-content:space-between;gap:12px;
+    flex-wrap:wrap;row-gap:8px;
     position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
+  .header-right{display:flex;align-items:center;gap:10px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+  header a.header-spares{
+    display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;
+    background:rgba(255,255,255,.14);padding:8px 14px;border-radius:20px;
+    font-size:.8rem;font-weight:600;white-space:nowrap;transition:background .15s ease;
+  }
+  header a.header-spares:hover{background:rgba(255,255,255,.26)}
   header a.header-back{
     display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
     font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
@@ -411,6 +419,11 @@
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:500px;height:500px}
   }
 
+  @media (max-width:680px){
+    header a.header-spares span{display:none}
+    header a.header-spares{padding:8px 10px}
+  }
+
   @media (max-width:520px){
     header{padding:12px 16px}
     header a.header-back{font-size:.85rem;padding:8px 13px}
@@ -432,7 +445,7 @@
     .search-bar input{min-width:90px}
     .search-bar .match-nav button{padding:5px 8px}
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:420px;height:420px}
-    #callFloatBtn{bottom:16px;left:16px}
+    #callFloatBtn{bottom:84px;right:16px}
     #aiLauncher{bottom:16px;right:16px}
   }
 
@@ -443,7 +456,7 @@
 
   /* ---------- Call Control Room (floating) ---------- */
   #callFloatBtn{
-    position:fixed;bottom:24px;left:24px;z-index:500;
+    position:fixed;bottom:96px;right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:#d92d20;color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -613,7 +626,12 @@
 
 <header>
   <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
-  <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
+  <div class="header-right">
+    <a href="inventory.html" id="sparesLink" class="header-spares" title="Check spare parts inventory">
+      <i class="fa-solid fa-boxes-stacked"></i> <span>Spare Parts</span>
+    </a>
+    <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
+  </div>
 </header>
 
 <div class="container" id="container">
@@ -1551,6 +1569,7 @@ el.searchClear.addEventListener('click', () => {
 function renderEquipment(e) {
   clearSkeletons();
   currentEquipmentData = e;
+  document.getElementById('sparesLink').href = `inventory.html?equipment=${encodeURIComponent(e.id)}`;
 
   el.equipmentImage.onerror = () => {
     el.equipmentImage.style.display = 'none';
