@@ -1751,6 +1751,18 @@ function appendMessage(role, text, images) {
   return bubble;
 }
 
+// Updates an existing bubble's text in place (used while streaming in
+// auto-continued responses) and can flip it from the "thinking" style to
+// a normal assistant bubble the first time real text arrives.
+function updateMessageText(bubble, text, role) {
+  if (role && !bubble.classList.contains(role)) {
+    bubble.className = `ai-msg ${role}`;
+  }
+  const textSpan = bubble.querySelector('span');
+  if (textSpan) textSpan.innerHTML = formatAiText(text);
+  ai.messages.scrollTop = ai.messages.scrollHeight;
+}
+
 // ---------- Image attachments ----------
 
 const MAX_ATTACHMENTS = 3;
@@ -1869,13 +1881,14 @@ Description: ${equipment.description}`.trim();
 EQUIPMENT DETAILS:
 ${meta}
 
-REFERENCE MATERIAL (extracted from this equipment's own manuals — treat as your primary source of truth):
+REFERENCE MATERIAL (extracted from this equipment's own manuals — available if the question calls for it):
 ${docsContext || '(No manual text could be extracted for this equipment.)'}
 
 Instructions:
-- Prioritize the reference material above when it's relevant to the question.
-- You may also draw on your general mechanical/electrical/industrial-maintenance knowledge to fill gaps the manual doesn't cover — but say so explicitly when you're doing that (e.g. "The manual doesn't cover this, but generally...").
-- Be concise and practical: give clear, actionable troubleshooting steps.
+- Only pull from the reference material when the question is specifically about this equipment's documented specs, part numbers, settings, or procedures — or when the technician explicitly asks you to check the manual/documentation.
+- For general troubleshooting, conceptual, or best-practice questions that don't hinge on this equipment's specific documentation, answer directly from your own mechanical/electrical/industrial-maintenance knowledge. Don't force in manual references, don't caveat every answer with "the manual doesn't cover this," and don't mention the manual at all unless you're actually drawing from it or the technician asked about it.
+- When you do use the reference material, it's fine to note it naturally (e.g. "Per the manual…") so the technician knows where the info came from — but don't over-cite.
+- Be concise and practical: give clear, actionable troubleshooting steps. Concise means no padding or repetition — it does not mean cutting an answer short. Give complete steps and finish your thought; don't truncate a procedure partway through.
 - Flag safety-relevant steps (lockout/tagout, electrical hazards, moving parts) explicitly.
 - If you're not confident in an answer, say so rather than guessing.`;
 }
@@ -1911,6 +1924,8 @@ async function sendAiMessage() {
   aiConversation.push({ role: 'user', parts: userParts });
 
   const thinkingBubble = appendMessage('thinking', 'Thinking…');
+  let fullReplyText = '';
+  let gotAnyReply = false;
 
   try {
     if (!aiDocsContextCache[currentEquipmentData.id] && !aiIsExtracting) {
@@ -1923,50 +1938,80 @@ async function sendAiMessage() {
     const docsContext = aiDocsContextCache[currentEquipmentData.id] || '';
     const systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
     const model = getStoredModel();
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
+    // Gemini caps a single reply at maxOutputTokens; a long procedure can
+    // still hit that ceiling. Rather than surfacing a cut-off answer and
+    // making the technician type "continue", detect finishReason:"MAX_TOKENS"
+    // and automatically keep requesting the next chunk (on a local copy of
+    // the conversation, not the persisted one) until the reply is complete.
+    let requestContents = aiConversation.slice();
+    let continuations = 0;
+    const MAX_AUTO_CONTINUES = 5;
+
+    while (true) {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-goog-api-key': apiKey
         },
         body: JSON.stringify({
-          contents: aiConversation,
+          contents: requestContents,
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { maxOutputTokens: 1200 }
+          generationConfig: { maxOutputTokens: 8192 }
         })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const msg = (data && data.error && data.error.message) || `HTTP ${response.status}`;
+        throw new Error(msg);
       }
-    );
 
-    const data = await response.json();
+      const candidate = (data.candidates || [])[0];
+      const chunkText = candidate && candidate.content && candidate.content.parts
+        ? candidate.content.parts.map(p => p.text || '').join('\n')
+        : '';
+      fullReplyText += chunkText;
+      gotAnyReply = true;
 
-    if (!response.ok) {
-      const msg = (data && data.error && data.error.message) || `HTTP ${response.status}`;
-      throw new Error(msg);
+      updateMessageText(thinkingBubble, fullReplyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)', 'assistant');
+
+      const finishReason = candidate && candidate.finishReason;
+      if (finishReason === 'MAX_TOKENS' && continuations < MAX_AUTO_CONTINUES) {
+        continuations++;
+        setAiStatus('Continuing response…');
+        requestContents = requestContents.concat([
+          { role: 'model', parts: [{ text: chunkText }] },
+          { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat anything already said, and do not add a preamble.' }] }
+        ]);
+        continue;
+      }
+      break;
     }
 
-    const candidate = (data.candidates || [])[0];
-    const replyText = candidate && candidate.content && candidate.content.parts
-      ? candidate.content.parts.map(p => p.text || '').join('\n').trim()
-      : '';
-    const finalReplyText = replyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)';
-
-    thinkingBubble.remove();
-    appendMessage('assistant', finalReplyText);
+    setAiStatus('');
+    const finalReplyText = fullReplyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)';
     aiConversation.push({ role: 'model', parts: [{ text: finalReplyText }] });
 
   } catch (err) {
     console.error('AI request failed', err);
-    thinkingBubble.remove();
     let friendly = err.message || 'Something went wrong contacting the API.';
     if (/Failed to fetch|CORS/i.test(friendly)) {
       friendly = 'Request blocked. Double-check your API key is valid and freshly generated.';
     } else if (/quota|rate/i.test(friendly)) {
       friendly = `Free-tier rate limit hit: ${friendly}`;
     }
-    appendMessage('error', `⚠ ${friendly}`);
+    if (gotAnyReply) {
+      // Keep the partial answer already shown (from earlier successful
+      // chunks) instead of discarding it — just note the continuation failed.
+      aiConversation.push({ role: 'model', parts: [{ text: fullReplyText }] });
+      appendMessage('error', `⚠ Response was cut short — ${friendly}`);
+    } else {
+      thinkingBubble.remove();
+      appendMessage('error', `⚠ ${friendly}`);
+    }
   } finally {
     aiIsSending = false;
     ai.sendBtn.disabled = false;
