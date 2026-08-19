@@ -1876,13 +1876,22 @@ Status: ${equipment.status}
 Installed: ${equipment.installation}
 Description: ${equipment.description}`.trim();
 
+  // docsContext === null means the manual hasn't been read yet for this
+  // conversation — reading it (parsing every page of the PDF) is only worth
+  // doing when the question actually needs it, so it's not done by default.
+  const manualSection = docsContext === null
+    ? `REFERENCE MATERIAL: Not loaded yet for this conversation.
+If — and only if — you need this equipment's own manual/documentation (exact specs, part numbers, torque/dosage values, wiring, or a documented procedure) to answer accurately, reply with exactly this and nothing else: MANUAL_NEEDED
+The app will then read the manual and re-ask you with it available, so don't explain or add anything else to that reply. Don't request it for general troubleshooting, conceptual, or best-practice questions you can already answer well — just answer those directly.`
+    : `REFERENCE MATERIAL (extracted from this equipment's own manuals — available if the question calls for it):
+${docsContext || '(No manual text could be extracted for this equipment.)'}`;
+
   return `You are a troubleshooting assistant embedded in an industrial equipment documentation portal for GHACEM (a cement manufacturer). You are helping a technician or engineer troubleshoot the specific piece of equipment described below.
 
 EQUIPMENT DETAILS:
 ${meta}
 
-REFERENCE MATERIAL (extracted from this equipment's own manuals — available if the question calls for it):
-${docsContext || '(No manual text could be extracted for this equipment.)'}
+${manualSection}
 
 Instructions:
 - Only pull from the reference material when the question is specifically about this equipment's documented specs, part numbers, settings, or procedures — or when the technician explicitly asks you to check the manual/documentation.
@@ -1891,6 +1900,63 @@ Instructions:
 - Be concise and practical: give clear, actionable troubleshooting steps. Concise means no padding or repetition — it does not mean cutting an answer short. Give complete steps and finish your thought; don't truncate a procedure partway through.
 - Flag safety-relevant steps (lockout/tagout, electrical hazards, moving parts) explicitly.
 - If you're not confident in an answer, say so rather than guessing.`;
+}
+
+// Quick local heuristic so obviously manual-dependent questions ("what's
+// the torque spec", "check the manual for...") can load the manual in the
+// same round trip, rather than always needing the MANUAL_NEEDED handshake.
+function messageLikelyNeedsManual(text) {
+  return /\b(manual|documentation|datasheet|data sheet|spec(?:ification)?s?|torque|part\s*number|wiring|schematic|clearance|tolerance|capacity|rating|pressure setting|dosage|lubrication (?:type|spec)|maintenance interval)\b/i.test(text || '');
+}
+
+// Runs one Gemini exchange, auto-continuing (without user intervention) if
+// the reply gets cut off by the token cap. onChunk(accumulatedText) fires
+// after every chunk so the caller can stream progress into a bubble.
+async function callGemini(apiKey, model, contents, systemPrompt, onChunk) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  let fullText = '';
+  let working = contents.slice();
+  let continuations = 0;
+  const MAX_AUTO_CONTINUES = 5;
+
+  while (true) {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        contents: working,
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { maxOutputTokens: 8192 }
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const msg = (data && data.error && data.error.message) || `HTTP ${response.status}`;
+      throw new Error(msg);
+    }
+
+    const candidate = (data.candidates || [])[0];
+    const chunkText = candidate && candidate.content && candidate.content.parts
+      ? candidate.content.parts.map(p => p.text || '').join('\n')
+      : '';
+    fullText += chunkText;
+    if (onChunk) onChunk(fullText, chunkText);
+
+    const finishReason = candidate && candidate.finishReason;
+    if (finishReason === 'MAX_TOKENS' && continuations < MAX_AUTO_CONTINUES) {
+      continuations++;
+      setAiStatus('Continuing response…');
+      working = working.concat([
+        { role: 'model', parts: [{ text: chunkText }] },
+        { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat anything already said, and do not add a preamble.' }] }
+      ]);
+      continue;
+    }
+    break;
+  }
+
+  return fullText;
 }
 
 async function sendAiMessage() {
@@ -1928,71 +1994,58 @@ async function sendAiMessage() {
   let gotAnyReply = false;
 
   try {
-    if (!aiDocsContextCache[currentEquipmentData.id] && !aiIsExtracting) {
-      aiIsExtracting = true;
-      await getEquipmentDocsContext(currentEquipmentData);
-      aiIsExtracting = false;
-    }
-    setAiStatus('');
-
-    const docsContext = aiDocsContextCache[currentEquipmentData.id] || '';
-    const systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
+    const eqId = currentEquipmentData.id;
     const model = getStoredModel();
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-    // Gemini caps a single reply at maxOutputTokens; a long procedure can
-    // still hit that ceiling. Rather than surfacing a cut-off answer and
-    // making the technician type "continue", detect finishReason:"MAX_TOKENS"
-    // and automatically keep requesting the next chunk (on a local copy of
-    // the conversation, not the persisted one) until the reply is complete.
-    let requestContents = aiConversation.slice();
-    let continuations = 0;
-    const MAX_AUTO_CONTINUES = 5;
+    // The manual is only ever read (PDF text extraction) when it's actually
+    // needed — not automatically at the start of a chat. It's considered
+    // "needed" if: this question obviously calls for equipment-specific docs
+    // (keyword check), or the model itself asks for it via the MANUAL_NEEDED
+    // handshake below, or it was already read earlier in this conversation
+    // (cached, so reused rather than re-read).
+    let docsContext = Object.prototype.hasOwnProperty.call(aiDocsContextCache, eqId)
+      ? aiDocsContextCache[eqId]
+      : null;
 
-    while (true) {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
-        body: JSON.stringify({
-          contents: requestContents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { maxOutputTokens: 8192 }
-        })
+    if (docsContext === null && messageLikelyNeedsManual(text) && !aiIsExtracting) {
+      aiIsExtracting = true;
+      setAiStatus('Reading equipment manual…');
+      docsContext = await getEquipmentDocsContext(currentEquipmentData);
+      aiIsExtracting = false;
+      setAiStatus('');
+    }
+
+    let systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
+
+    const firstPassText = await callGemini(apiKey, model, aiConversation, systemPrompt, (accumulated) => {
+      updateMessageText(thinkingBubble, accumulated || 'Thinking…', 'assistant');
+    });
+
+    // The model asked to see the manual after all — read it now and re-ask
+    // with it available. The handshake text itself is never shown as an answer.
+    const askedForManual = docsContext === null && /^MANUAL_NEEDED[.!]?$/i.test(firstPassText.trim());
+
+    if (askedForManual) {
+      updateMessageText(thinkingBubble, 'Checking the manual…', 'thinking');
+      aiIsExtracting = true;
+      setAiStatus('Reading equipment manual…');
+      docsContext = await getEquipmentDocsContext(currentEquipmentData);
+      aiIsExtracting = false;
+      setAiStatus('');
+
+      systemPrompt = buildSystemPrompt(currentEquipmentData, docsContext);
+      fullReplyText = await callGemini(apiKey, model, aiConversation, systemPrompt, (accumulated) => {
+        gotAnyReply = true;
+        updateMessageText(thinkingBubble, accumulated || 'Thinking…', 'assistant');
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        const msg = (data && data.error && data.error.message) || `HTTP ${response.status}`;
-        throw new Error(msg);
-      }
-
-      const candidate = (data.candidates || [])[0];
-      const chunkText = candidate && candidate.content && candidate.content.parts
-        ? candidate.content.parts.map(p => p.text || '').join('\n')
-        : '';
-      fullReplyText += chunkText;
+    } else {
+      fullReplyText = firstPassText;
       gotAnyReply = true;
-
-      updateMessageText(thinkingBubble, fullReplyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)', 'assistant');
-
-      const finishReason = candidate && candidate.finishReason;
-      if (finishReason === 'MAX_TOKENS' && continuations < MAX_AUTO_CONTINUES) {
-        continuations++;
-        setAiStatus('Continuing response…');
-        requestContents = requestContents.concat([
-          { role: 'model', parts: [{ text: chunkText }] },
-          { role: 'user', parts: [{ text: 'Continue exactly where you left off. Do not repeat anything already said, and do not add a preamble.' }] }
-        ]);
-        continue;
-      }
-      break;
     }
 
     setAiStatus('');
     const finalReplyText = fullReplyText || '(No response text returned — the model may have blocked this request or hit a quota limit. Check the browser console for details.)';
+    updateMessageText(thinkingBubble, finalReplyText, 'assistant');
     aiConversation.push({ role: 'model', parts: [{ text: finalReplyText }] });
 
   } catch (err) {
