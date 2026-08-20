@@ -11,6 +11,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --brand:#006937;
@@ -275,6 +278,33 @@
     padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
   }
   .log-entry-edit-btn:hover{color:var(--brand);border-color:var(--brand-light)}
+  .log-entry-delete-btn{
+    background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.74rem;
+    padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  }
+  .log-entry-delete-btn:hover{color:var(--danger);border-color:#f5c2c0;background:#fdecea}
+
+  .log-export-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);
+  }
+  .log-export-count{font-size:.8rem;color:var(--muted)}
+  .log-export-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .log-export-btn{
+    display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);
+    color:var(--text);border-radius:20px;padding:8px 14px;font-family:inherit;font-size:.8rem;font-weight:500;
+    cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .log-export-btn:hover{border-color:var(--brand-light);color:var(--brand)}
+  .log-export-btn:disabled{opacity:.5;cursor:not-allowed}
+  #logExportPdfBtn i{color:#d92d20}
+  #logExportExcelBtn i{color:#1d6f42}
+
+  @media (max-width:480px){
+    .log-export-bar{flex-direction:column;align-items:stretch}
+    .log-export-btns{justify-content:stretch}
+    .log-export-btn{flex:1;justify-content:center}
+  }
   .log-entry-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .log-entry-tag{
     background:#e8f6ee;color:var(--brand);font-size:.76rem;font-weight:500;padding:3px 10px;border-radius:20px;
@@ -847,6 +877,14 @@
           <option value="oldest">Oldest first</option>
         </select>
         <input type="text" id="logSearchInput" placeholder="Search name, department, notes…">
+      </div>
+
+      <div class="log-export-bar">
+        <span id="logExportCount" class="log-export-count"></span>
+        <div class="log-export-btns">
+          <button type="button" id="logExportPdfBtn" class="log-export-btn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+          <button type="button" id="logExportExcelBtn" class="log-export-btn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+        </div>
       </div>
 
       <div id="logEntries" class="log-entries">
@@ -2126,6 +2164,7 @@ const logEl = {
 };
 
 let allLogEntries = [];        // cache of {id, ...data} for the current equipment
+let currentVisibleLogRows = []; // filtered/sorted rows currently shown — what exports operate on
 let pendingLogImages = [];     // data URLs staged for the next submit/update
 let historyLoadedFor = null;   // equipmentId already fetched, to avoid refetching on every toggle
 
@@ -2258,6 +2297,8 @@ function applyLogControlsAndRender() {
     return order === 'oldest' ? ta - tb : tb - ta;
   });
 
+  currentVisibleLogRows = rows;
+  updateLogExportCount();
   renderLogEntries(rows);
 }
 
@@ -2286,7 +2327,7 @@ function renderLogEntries(rows) {
     if (r.lubricationType) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-flask"></i> ${escapeHtml(r.lubricationType)}</span>`);
     if (r.dosageRate) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-gauge"></i> ${escapeHtml(r.dosageRate)}</span>`);
 
-    const canEdit = currentAuthUid && r.authorUid === currentAuthUid;
+    const isOwnEntry = currentAuthUid && r.authorUid === currentAuthUid;
     const images = Array.isArray(r.images) ? r.images : [];
 
     div.innerHTML = `
@@ -2294,7 +2335,8 @@ function renderLogEntries(rows) {
         <span class="log-entry-who">${escapeHtml(r.fullName || 'Unknown')} <span class="dept">— ${escapeHtml(r.department || 'Unknown dept.')}</span></span>
         <div class="log-entry-date-wrap">
           <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
-          ${canEdit ? `<button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>` : ''}
+          <button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
+          <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete (admin only)"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
       ${tags.length ? `<div class="log-entry-tags">${tags.join('')}</div>` : ''}
@@ -2310,11 +2352,116 @@ function renderLogEntries(rows) {
     }
 
     const editBtn = div.querySelector('.log-entry-edit-btn');
-    if (editBtn) editBtn.addEventListener('click', () => startEditLogEntry(r));
+    editBtn.addEventListener('click', () => {
+      // Technicians can freely edit their own entries; editing someone
+      // else's requires the admin code (same gate used across the app).
+      if (!isOwnEntry && !requireAdminUnlock()) return;
+      startEditLogEntry(r);
+    });
+
+    const deleteBtn = div.querySelector('.log-entry-delete-btn');
+    deleteBtn.addEventListener('click', async () => {
+      if (!requireAdminUnlock()) return;
+      if (!confirm('Delete this maintenance log entry? This cannot be undone.')) return;
+      deleteBtn.disabled = true;
+      try {
+        await db.collection('equipmentLogs').doc(r.id).delete();
+        loadEquipmentLogs(currentEquipmentData.id, true);
+      } catch (err) {
+        console.error('Failed to delete log entry', err);
+        alert('Could not delete this entry. Please try again.');
+        deleteBtn.disabled = false;
+      }
+    });
 
     logEl.entries.appendChild(div);
   });
 }
+
+// ---------- Export maintenance log (PDF / Excel) ----------
+// Both exports operate on currentVisibleLogRows — i.e. whatever the current
+// filter/search/sort in the history panel is showing, not necessarily every
+// entry ever logged. That way "export" matches what the technician is
+// actually looking at.
+
+function updateLogExportCount() {
+  const el2 = document.getElementById('logExportCount');
+  if (!el2) return;
+  const n = currentVisibleLogRows.length;
+  el2.textContent = n === 0 ? 'Nothing to export yet' : `${n} entr${n === 1 ? 'y' : 'ies'} ready to export`;
+}
+
+function exportRowsToTableData(rows) {
+  const header = ['Date', 'Logged By', 'Department', 'Type', 'Lubrication Type', 'Dosage Rate', 'Comment', 'Edited?'];
+  const body = rows.map(r => [
+    formatLogDate(r.timestamp),
+    r.fullName || '',
+    r.department || '',
+    (CATEGORY_META[r.category] && CATEGORY_META[r.category].label) || r.category || '',
+    r.lubricationType || '',
+    r.dosageRate || '',
+    r.comment || '',
+    r.editedAt ? 'Yes' : ''
+  ]);
+  return { header, body };
+}
+
+function exportLogFilename(ext) {
+  const eqId = (currentEquipmentData && currentEquipmentData.id) || 'equipment';
+  const stamp = new Date().toISOString().slice(0, 10);
+  return `${eqId}-maintenance-log-${stamp}.${ext}`;
+}
+
+document.getElementById('logExportExcelBtn').addEventListener('click', () => {
+  if (!currentVisibleLogRows.length) { alert('There are no entries to export with the current filter/search.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Export library failed to load. Check your connection and try again.'); return; }
+
+  const { header, body } = exportRowsToTableData(currentVisibleLogRows);
+  const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+  ws['!cols'] = [
+    { wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 26 }, { wch: 20 }, { wch: 18 }, { wch: 50 }, { wch: 9 }
+  ];
+  const wb = XLSX.utils.book_new();
+  const sheetName = ((currentEquipmentData && currentEquipmentData.name) || 'Log').slice(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, exportLogFilename('xlsx'));
+});
+
+document.getElementById('logExportPdfBtn').addEventListener('click', () => {
+  if (!currentVisibleLogRows.length) { alert('There are no entries to export with the current filter/search.'); return; }
+  if (typeof window.jspdf === 'undefined') { alert('Export library failed to load. Check your connection and try again.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const { header, body } = exportRowsToTableData(currentVisibleLogRows);
+
+  const eqName = (currentEquipmentData && currentEquipmentData.name) || 'Equipment';
+  const eqId = (currentEquipmentData && currentEquipmentData.id) || '';
+
+  doc.setFontSize(14);
+  doc.setTextColor(0, 105, 55);
+  doc.text(`Maintenance & Comments Log — ${eqName} (${eqId})`, 40, 40);
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Exported ${new Date().toLocaleString()} • ${body.length} entr${body.length === 1 ? 'y' : 'ies'}`, 40, 56);
+
+  doc.autoTable({
+    head: [header],
+    body,
+    startY: 70,
+    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [247, 248, 250] },
+    columnStyles: {
+      0: { cellWidth: 75 }, 1: { cellWidth: 80 }, 2: { cellWidth: 80 }, 3: { cellWidth: 95 },
+      4: { cellWidth: 80 }, 5: { cellWidth: 70 }, 6: { cellWidth: 'auto' }, 7: { cellWidth: 40 }
+    },
+    margin: { left: 40, right: 40 }
+  });
+
+  doc.save(exportLogFilename('pdf'));
+});
+
 
 function loadEquipmentLogs(equipmentId, forceReload) {
   if (historyLoadedFor === equipmentId && !forceReload) {
