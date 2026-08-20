@@ -36,12 +36,6 @@
     position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
   .header-right{display:flex;align-items:center;gap:10px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
-  header a.header-spares{
-    display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;
-    background:rgba(255,255,255,.14);padding:8px 14px;border-radius:20px;
-    font-size:.8rem;font-weight:600;white-space:nowrap;transition:background .15s ease;
-  }
-  header a.header-spares:hover{background:rgba(255,255,255,.26)}
   header a.header-back{
     display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
     font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
@@ -285,10 +279,10 @@
   .log-entry-delete-btn:hover{color:var(--danger);border-color:#f5c2c0;background:#fdecea}
 
   .log-export-bar{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;
     margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);
   }
-  .log-export-count{font-size:.8rem;color:var(--muted)}
+  .log-export-count{font-size:.8rem;color:var(--muted);margin-right:auto}
   .log-export-btns{display:flex;gap:8px;flex-wrap:wrap}
   .log-export-btn{
     display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);
@@ -300,10 +294,24 @@
   #logExportPdfBtn i{color:#d92d20}
   #logExportExcelBtn i{color:#1d6f42}
 
+  .viewer-badge{
+    display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8rem;font-weight:500;
+    background:#eef0f2;padding:8px 13px;border-radius:20px;white-space:nowrap;margin-right:auto;
+  }
+  .admin-toggle-btn{
+    display:flex;align-items:center;gap:8px;background:#fff;color:var(--brand);border:1px solid var(--brand);
+    border-radius:20px;padding:8px 16px;font-family:inherit;font-size:.8rem;font-weight:600;
+    cursor:pointer;transition:.2s;white-space:nowrap;
+  }
+  .admin-toggle-btn:hover{background:#eef4f1}
+  .admin-toggle-btn.is-unlocked{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .admin-toggle-btn.is-unlocked:hover{background:#005229}
+
   @media (max-width:480px){
     .log-export-bar{flex-direction:column;align-items:stretch}
     .log-export-btns{justify-content:stretch}
     .log-export-btn{flex:1;justify-content:center}
+    .admin-toggle-btn,.viewer-badge{justify-content:center;margin-right:0}
   }
   .log-entry-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
   .log-entry-tag{
@@ -449,11 +457,6 @@
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:500px;height:500px}
   }
 
-  @media (max-width:680px){
-    header a.header-spares span{display:none}
-    header a.header-spares{padding:8px 10px}
-  }
-
   @media (max-width:520px){
     header{padding:12px 16px}
     header a.header-back{font-size:.85rem;padding:8px 13px}
@@ -477,6 +480,7 @@
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:420px;height:420px}
     #callFloatBtn{bottom:84px;right:16px}
     #aiLauncher{bottom:16px;right:16px}
+    #inventoryFloatBtn{bottom:152px;right:16px}
   }
 
   @media (max-width:360px){
@@ -499,6 +503,23 @@
   @media (max-width:600px){
     #callFloatBtn span{display:none}
     #callFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%}
+  }
+
+  /* ---------- Spare Parts Inventory (floating) ---------- */
+  #inventoryFloatBtn{
+    position:fixed;bottom:166px;right:24px;z-index:500;
+    display:flex;align-items:center;gap:10px;
+    background:var(--brand);color:#fff;text-decoration:none!important;
+    padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+    transition:transform .15s ease, background .15s ease;
+  }
+  #inventoryFloatBtn:hover{background:#005229;transform:scale(1.05);text-decoration:none!important}
+  #inventoryFloatBtn i{font-size:1.1rem}
+
+  @media (max-width:600px){
+    #inventoryFloatBtn span{display:none}
+    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:168px}
   }
 
   /* ---------- AI Troubleshooting Assistant ---------- */
@@ -657,9 +678,6 @@
 <header>
   <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
   <div class="header-right">
-    <a href="inventory.html" id="sparesLink" class="header-spares" title="Check spare parts inventory">
-      <i class="fa-solid fa-boxes-stacked"></i> <span>Spare Parts</span>
-    </a>
     <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
   </div>
 </header>
@@ -880,11 +898,13 @@
       </div>
 
       <div class="log-export-bar">
-        <span id="logExportCount" class="log-export-count"></span>
-        <div class="log-export-btns">
+        <span id="logViewerBadge" class="viewer-badge"><i class="fa-solid fa-eye"></i> Viewing only</span>
+        <span id="logExportCount" class="log-export-count" style="display:none"></span>
+        <div class="log-export-btns" id="logExportBtns" style="display:none">
           <button type="button" id="logExportPdfBtn" class="log-export-btn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
           <button type="button" id="logExportExcelBtn" class="log-export-btn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         </div>
+        <button type="button" id="logAdminToggleBtn" class="admin-toggle-btn"><i class="fa-solid fa-lock"></i> Admin Login</button>
       </div>
 
       <div id="logEntries" class="log-entries">
@@ -893,6 +913,12 @@
     </div>
   </div>
 </div>
+
+<!-- Spare Parts Inventory -->
+<a href="inventory.html" id="inventoryFloatBtn" title="Check spare parts inventory">
+  <i class="fa-solid fa-warehouse"></i>
+  <span>Spare Parts</span>
+</a>
 
 <!-- Call Control Room -->
 <a href="tel:+233208200724" id="callFloatBtn" title="Call Control Room">
@@ -1607,7 +1633,7 @@ el.searchClear.addEventListener('click', () => {
 function renderEquipment(e) {
   clearSkeletons();
   currentEquipmentData = e;
-  document.getElementById('sparesLink').href = `inventory.html?equipment=${encodeURIComponent(e.id)}`;
+  document.getElementById('inventoryFloatBtn').href = `inventory.html?equipment=${encodeURIComponent(e.id)}`;
 
   el.equipmentImage.onerror = () => {
     el.equipmentImage.style.display = 'none';
@@ -2327,7 +2353,6 @@ function renderLogEntries(rows) {
     if (r.lubricationType) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-flask"></i> ${escapeHtml(r.lubricationType)}</span>`);
     if (r.dosageRate) tags.push(`<span class="log-entry-tag"><i class="fa-solid fa-gauge"></i> ${escapeHtml(r.dosageRate)}</span>`);
 
-    const isOwnEntry = currentAuthUid && r.authorUid === currentAuthUid;
     const images = Array.isArray(r.images) ? r.images : [];
 
     div.innerHTML = `
@@ -2335,8 +2360,10 @@ function renderLogEntries(rows) {
         <span class="log-entry-who">${escapeHtml(r.fullName || 'Unknown')} <span class="dept">— ${escapeHtml(r.department || 'Unknown dept.')}</span></span>
         <div class="log-entry-date-wrap">
           <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
-          <button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
-          <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete (admin only)"><i class="fa-solid fa-trash"></i></button>
+          ${adminUnlocked ? `
+            <button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
+            <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          ` : ''}
         </div>
       </div>
       ${tags.length ? `<div class="log-entry-tags">${tags.join('')}</div>` : ''}
@@ -2352,16 +2379,10 @@ function renderLogEntries(rows) {
     }
 
     const editBtn = div.querySelector('.log-entry-edit-btn');
-    editBtn.addEventListener('click', () => {
-      // Technicians can freely edit their own entries; editing someone
-      // else's requires the admin code (same gate used across the app).
-      if (!isOwnEntry && !requireAdminUnlock()) return;
-      startEditLogEntry(r);
-    });
+    if (editBtn) editBtn.addEventListener('click', () => startEditLogEntry(r));
 
     const deleteBtn = div.querySelector('.log-entry-delete-btn');
-    deleteBtn.addEventListener('click', async () => {
-      if (!requireAdminUnlock()) return;
+    if (deleteBtn) deleteBtn.addEventListener('click', async () => {
       if (!confirm('Delete this maintenance log entry? This cannot be undone.')) return;
       deleteBtn.disabled = true;
       try {
@@ -2490,9 +2511,33 @@ logEl.searchInput.addEventListener('input', applyLogControlsAndRender);
 
 // ----- History now opens as a modal, not an inline expander -----
 
+function setLogAdminUI(unlocked) {
+  document.getElementById('logViewerBadge').style.display = unlocked ? 'none' : 'flex';
+  document.getElementById('logExportCount').style.display = unlocked ? 'inline' : 'none';
+  document.getElementById('logExportBtns').style.display = unlocked ? 'flex' : 'none';
+  const toggleBtn = document.getElementById('logAdminToggleBtn');
+  toggleBtn.innerHTML = unlocked
+    ? '<i class="fa-solid fa-unlock"></i> Admin Mode'
+    : '<i class="fa-solid fa-lock"></i> Admin Login';
+  toggleBtn.classList.toggle('is-unlocked', unlocked);
+  applyLogControlsAndRender(); // re-render so entries show/hide edit & delete
+}
+
+document.getElementById('logAdminToggleBtn').addEventListener('click', () => {
+  if (adminUnlocked) {
+    if (confirm('Log out of admin mode? You will need the admin code again to make changes.')) {
+      adminUnlocked = false;
+      setLogAdminUI(false);
+    }
+    return;
+  }
+  if (requireAdminUnlock()) setLogAdminUI(true);
+});
+
 function openHistoryModal() {
   logEl.historyOverlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
+  setLogAdminUI(adminUnlocked); // reflect admin state if already unlocked elsewhere on the page
   if (currentEquipmentData) loadEquipmentLogs(currentEquipmentData.id);
 }
 
@@ -2723,13 +2768,13 @@ let adminUnlocked = false;
 
 function requireAdminUnlock() {
   if (adminUnlocked) return true;
-  const entered = window.prompt('Enter admin password to remove a subscriber:');
+  const entered = window.prompt('Enter admin code:');
   if (entered === null) return false; // cancelled
   if (entered === ADMIN_PASSWORD) {
     adminUnlocked = true;
     return true;
   }
-  alert('Incorrect password.');
+  alert('Incorrect admin code.');
   return false;
 }
 
