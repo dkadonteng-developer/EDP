@@ -51,6 +51,174 @@
   .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
   .section h2 i{color:var(--brand)}
 
+  /* ---------- Major Maintenance Safety Checklist (prominent banner) ---------- */
+  .safety-checklist-section{
+    background:#fff5f4;border:1px solid #f3c6c1;
+  }
+  .safety-checklist-banner{display:flex;align-items:flex-start;gap:16px}
+  .safety-checklist-banner-icon{
+    flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:var(--danger);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  }
+  .safety-checklist-banner-text h2{margin:0 0 6px;font-size:1.15rem;color:#7a1c14}
+  .safety-checklist-banner-text p{margin:0;font-size:.88rem;color:#7a1c14;line-height:1.5}
+  .safety-checklist-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+  .safety-checklist-btn-primary{
+    display:flex;align-items:center;gap:9px;background:var(--danger);color:#fff;border:none;
+    border-radius:10px;padding:13px 22px;font-family:inherit;font-size:.95rem;font-weight:700;
+    cursor:pointer;transition:.15s;
+  }
+  .safety-checklist-btn-primary:hover{background:#b8241a}
+  .safety-checklist-signoff-count{font-size:.82rem;color:#7a1c14}
+
+  /* ---------- Safety checklist sign-off modal ---------- */
+  #checklistOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #checklistOverlay.is-open{display:flex}
+  .checklist-modal{
+    background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .checklist-modal-head{
+    background:var(--danger);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:12px;flex:0 0 auto;
+  }
+  .checklist-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .checklist-modal-head p{margin:0;font-size:.82rem;opacity:.92}
+  .checklist-modal-head-actions{display:flex;gap:8px;flex:0 0 auto}
+  .checklist-admin-btn,.checklist-modal-close{
+    background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:30px;height:30px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  }
+  .checklist-admin-btn:hover,.checklist-modal-close:hover{background:rgba(255,255,255,.35)}
+  .checklist-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+  .checklist-unreviewed-warning{
+    display:flex;align-items:flex-start;gap:10px;background:#fff3cd;color:#7a5c00;border:1px solid #f5d78e;
+    border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.5;margin-bottom:16px;
+  }
+  .checklist-unreviewed-warning i{margin-top:2px;flex:0 0 auto;color:#dc6803}
+
+  .checklist-empty-state{text-align:center;padding:30px 10px;color:var(--muted)}
+  .checklist-empty-state i{font-size:1.8rem;margin-bottom:10px;display:block}
+
+  .cf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .cf-row:has(.cf-field:only-child){grid-template-columns:1fr}
+  .cf-field{display:flex;flex-direction:column;gap:6px}
+  .cf-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
+  .cf-field input{
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;
+    font-size:16px;outline:none;background:#fff;
+  }
+  .cf-field input:focus{border-color:var(--brand-light)}
+  .cf-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+  .cf-error{color:var(--danger);font-size:.82rem;flex:1}
+
+  .checklist-items-list{display:flex;flex-direction:column;gap:10px;margin:6px 0 16px}
+  .checklist-item-row{
+    display:flex;align-items:flex-start;gap:12px;border:1px solid var(--border);border-radius:10px;
+    padding:12px 14px;background:#f7f8fa;
+  }
+  .checklist-item-row input[type="checkbox"]{width:20px;height:20px;flex:0 0 auto;margin-top:2px;accent-color:var(--brand)}
+  .checklist-item-row .item-text{font-size:.9rem;line-height:1.5}
+  .checklist-item-row .critical-tag{
+    display:inline-block;background:var(--danger);color:#fff;font-size:.68rem;font-weight:700;
+    padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;
+  }
+  .checklist-item-row.is-critical{border-color:#f3c6c1;background:#fff8f7}
+
+  #checklistSubmitBtn{
+    background:var(--danger);color:#fff;border:none;border-radius:8px;padding:12px 22px;
+    font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:9px;
+  }
+  #checklistSubmitBtn:hover{background:#b8241a}
+  #checklistSubmitBtn:disabled{opacity:.45;cursor:not-allowed}
+
+  .checklist-success{text-align:center;padding:20px 10px}
+  .checklist-success i{font-size:2rem;color:var(--brand);display:block;margin-bottom:10px}
+  .checklist-success p{color:var(--text);margin-bottom:16px}
+  .checklist-success button{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
+    font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  }
+  .checklist-success button:hover{background:#005229}
+  .checklist-link-btn{
+    background:none;border:none;color:var(--brand);font-family:inherit;font-size:.85rem;font-weight:600;
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:underline;margin-top:10px;
+  }
+
+  .checklist-signoff-record{
+    border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#f7f8fa;font-size:.85rem;margin-bottom:10px;
+  }
+  .checklist-signoff-record .rec-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-weight:600;margin-bottom:4px}
+  .checklist-signoff-record .rec-meta{color:var(--muted);font-size:.78rem}
+
+  /* ---------- Safety checklist admin-edit modal ---------- */
+  #checklistEditOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1100;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #checklistEditOverlay.is-open{display:flex}
+  .checklist-edit-modal{
+    background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden;
+  }
+  .checklist-edit-modal-head{
+    background:var(--brand);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .checklist-edit-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .checklist-edit-modal-head p{margin:0;font-size:.8rem;opacity:.92}
+  .checklist-edit-modal-close{
+    background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;
+    cursor:pointer;flex:0 0 auto;
+  }
+  .checklist-edit-modal-close:hover{background:rgba(255,255,255,.35)}
+  .checklist-edit-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+  .checklist-reviewed-row{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    background:#eef4f1;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.86rem;
+  }
+  .checklist-reviewed-row label{display:flex;align-items:center;gap:8px}
+  .checklist-reviewed-row input{width:18px;height:18px;accent-color:var(--brand)}
+
+  .checklist-edit-items{display:flex;flex-direction:column;gap:10px}
+  .checklist-edit-item-row{
+    display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+  }
+  .checklist-edit-item-row textarea{
+    flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;
+    font-size:14px;resize:vertical;min-height:44px;outline:none;
+  }
+  .checklist-edit-item-row textarea:focus{border-color:var(--brand-light)}
+  .checklist-edit-item-controls{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto}
+  .checklist-edit-item-controls label{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.68rem;color:var(--muted);white-space:nowrap}
+  .checklist-edit-item-controls input[type="checkbox"]{width:16px;height:16px;accent-color:var(--danger)}
+  .checklist-remove-item-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px}
+  .checklist-remove-item-btn:hover{color:var(--danger)}
+
+  .checklist-add-item-btn{
+    margin-top:12px;background:#fff;border:1px dashed var(--border);color:var(--brand);border-radius:8px;
+    padding:10px;width:100%;font-family:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  }
+  .checklist-add-item-btn:hover{border-color:var(--brand-light);background:#eef4f1}
+
+  #checklistEditSaveBtn{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
+    font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  #checklistEditSaveBtn:hover{background:#005229}
+  #checklistEditSaveBtn:disabled{opacity:.6;cursor:not-allowed}
+
+  @media (max-width:480px){
+    .checklist-modal,.checklist-edit-modal{max-height:95vh}
+    .checklist-modal-body,.checklist-edit-modal-body{padding:16px}
+    .cf-row{grid-template-columns:1fr}
+  }
+
   .image-wrap{position:relative;border-radius:10px;overflow:hidden;background:#e2e5e9;height:380px}
   .image-wrap img{width:100%;height:100%;object-fit:cover;display:block}
   .image-wrap .no-image{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;color:var(--muted);gap:8px}
@@ -440,7 +608,157 @@
     .log-controls select,.log-controls input{width:100%}
   }
 
-  /* ---------- Subscriber removal (admin) ---------- */
+  /* ---------- Major Maintenance Safety Checklist ---------- */
+  .maint-banner{
+    max-width:1000px;margin:20px auto 0;padding:18px 22px;
+    background:#fdecea;border:1px solid #f0b3ae;border-radius:14px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .maint-banner-icon{
+    width:46px;height:46px;border-radius:50%;background:var(--danger);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex:0 0 auto;
+  }
+  .maint-banner-text{flex:1;min-width:220px}
+  .maint-banner-text h3{margin:0 0 3px;font-size:1rem;color:#8a1f18}
+  .maint-banner-text p{margin:0;font-size:.84rem;color:#8a1f18;line-height:1.4}
+  .maint-banner-meta{font-size:.76rem;color:#a34840;margin-top:4px}
+  .maint-banner-btn{
+    background:var(--danger);color:#fff;border:none;border-radius:22px;padding:12px 20px;
+    font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;white-space:nowrap;
+    display:flex;align-items:center;gap:8px;flex:0 0 auto;
+  }
+  .maint-banner-btn:hover{background:#8a251d}
+
+  #maintChecklistOverlay,#checklistEditorOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #maintChecklistOverlay.is-open,#checklistEditorOverlay.is-open{display:flex}
+  .maint-modal{
+    background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .maint-modal-head{
+    background:var(--danger);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
+  }
+  .maint-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .maint-modal-head p{margin:0;font-size:.8rem;opacity:.92;line-height:1.4}
+  .maint-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+  }
+  .maint-modal-close:hover{background:rgba(255,255,255,.35)}
+  .maint-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+
+  .maint-progress{
+    display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:.82rem;color:var(--muted);
+  }
+  .maint-progress-bar{flex:1;height:8px;border-radius:5px;background:#eef0f2;overflow:hidden}
+  .maint-progress-fill{height:100%;background:var(--brand);transition:width .2s ease}
+
+  .maint-admin-row{display:flex;justify-content:flex-end;margin-bottom:12px}
+  .maint-edit-link{
+    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
+    padding:6px 12px;font-family:inherit;font-size:.76rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .maint-edit-link:hover{color:var(--brand);border-color:var(--brand-light)}
+
+  .maint-category{margin-bottom:18px}
+  .maint-category-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:8px}
+  .maint-item{
+    display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;
+    background:#f7f8fa;margin-bottom:6px;
+  }
+  .maint-item.critical{background:#fdecea}
+  .maint-item input[type="checkbox"]{width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:var(--brand)}
+  .maint-item-text{font-size:.88rem;line-height:1.45;color:var(--text)}
+  .maint-item.critical .maint-item-text{font-weight:600;color:#8a1f18}
+  .maint-item-critical-flag{color:var(--danger);font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+
+  .maint-empty{
+    text-align:center;padding:30px 20px;color:var(--muted);font-size:.88rem;
+    background:#f7f8fa;border-radius:10px;
+  }
+
+  .maint-signoff-form{border-top:1px solid var(--border);margin-top:18px;padding-top:18px}
+  .maint-signoff-form h4{margin:0 0 12px;font-size:.9rem}
+  .maint-signoff-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .maint-field{display:flex;flex-direction:column;gap:6px}
+  .maint-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
+  .maint-field input,.maint-field textarea{
+    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;
+    font-size:16px;outline:none;resize:vertical;background:#fff;
+  }
+  .maint-field input:focus,.maint-field textarea:focus{border-color:var(--brand-light)}
+  .maint-signoff-btn{
+    width:100%;background:var(--danger);color:#fff;border:none;border-radius:10px;padding:13px;
+    font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:9px;
+  }
+  .maint-signoff-btn:hover{background:#8a251d}
+  .maint-signoff-btn:disabled{background:#c9c9c9;cursor:not-allowed}
+  .maint-signoff-error{color:var(--danger);font-size:.82rem;margin-top:8px}
+  .maint-signoff-success{
+    background:#e8f6ee;border:1px solid #b9e3c9;color:var(--brand);border-radius:10px;
+    padding:14px 16px;font-size:.86rem;line-height:1.5;margin-top:12px;display:none;
+  }
+
+  .maint-history-toggle{
+    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
+    padding:8px 14px;font-family:inherit;font-size:.8rem;cursor:pointer;margin-top:16px;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .maint-history-toggle:hover{color:var(--brand);border-color:var(--brand-light)}
+  .maint-history-panel{margin-top:12px}
+  .maint-signoff-record{
+    border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#f7f8fa;font-size:.82rem;
+  }
+  .maint-signoff-record .who{font-weight:600}
+  .maint-signoff-record .when{color:var(--muted);font-size:.76rem}
+  .maint-signoff-record .work{margin-top:4px;color:var(--text)}
+
+  /* ---------- Checklist editor (admin) ---------- */
+  .editor-item-row{
+    display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:8px;
+    padding:10px;margin-bottom:8px;background:#f7f8fa;
+  }
+  .editor-item-row textarea{
+    flex:1;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:inherit;
+    font-size:16px;resize:vertical;min-height:40px;
+  }
+  .editor-item-controls{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;width:150px}
+  .editor-item-controls select{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-family:inherit;font-size:13px}
+  .editor-item-controls label{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--danger);font-weight:600}
+  .editor-remove-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;flex:0 0 auto;
+  }
+  .editor-remove-btn:hover{background:#fdecea;color:var(--danger)}
+  .editor-add-btn{
+    background:none;border:1px dashed var(--border);color:var(--brand);border-radius:8px;
+    padding:10px;width:100%;font-family:inherit;font-size:.86rem;cursor:pointer;margin-bottom:14px;
+  }
+  .editor-add-btn:hover{border-color:var(--brand-light);background:#eef4f1}
+  .editor-default-btn{
+    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
+    padding:8px 14px;font-family:inherit;font-size:.78rem;cursor:pointer;margin-bottom:14px;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .editor-default-btn:hover{color:var(--brand);border-color:var(--brand-light)}
+  .editor-save-btn{
+    width:100%;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
+    font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;
+  }
+  .editor-save-btn:hover{background:#005229}
+
+  @media (max-width:600px){
+    .maint-banner{padding:16px}
+    .maint-signoff-row{grid-template-columns:1fr}
+    .editor-item-row{flex-direction:column}
+    .editor-item-controls{width:100%;flex-direction:row;flex-wrap:wrap}
+  }
+
+
   .subscriber-item .del-btn{
     background:none;border:none;color:var(--danger);cursor:pointer;padding:6px 8px;
     border-radius:6px;font-size:.85rem;flex:0 0 auto;
@@ -675,12 +993,117 @@
   </div>
 </div>
 
+<div id="checklistOverlay">
+  <div class="checklist-modal">
+    <div class="checklist-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-clipboard-check"></i> Major Maintenance Safety Checklist</h3>
+        <p id="checklistEquipName">Equipment</p>
+      </div>
+      <div class="checklist-modal-head-actions">
+        <button type="button" id="checklistEditBtn" class="checklist-admin-btn" title="Edit checklist (admin)"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="checklist-modal-close" id="checklistCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="checklist-modal-body">
+
+      <div id="checklistUnreviewedWarning" class="checklist-unreviewed-warning" style="display:none">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>This checklist is a <b>starting draft</b> and has not yet been reviewed or approved by the safety/engineering team. Do not treat it as a complete or verified isolation procedure until an admin marks it reviewed.</span>
+      </div>
+
+      <div id="checklistEmptyState" class="checklist-empty-state" style="display:none">
+        <i class="fa-solid fa-circle-info"></i>
+        <p>No safety checklist has been set up for this equipment yet. An admin needs to add one before technicians can sign off.</p>
+      </div>
+
+      <form id="checklistForm">
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="checklistJob">Job / Task Description *</label>
+            <input type="text" id="checklistJob" required maxlength="200" placeholder="e.g. Replacing fluid coupling after jam clearance">
+          </div>
+        </div>
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="checklistFullName">Full Name *</label>
+            <input type="text" id="checklistFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
+          </div>
+          <div class="cf-field">
+            <label for="checklistDepartment">Department *</label>
+            <input type="text" id="checklistDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
+          </div>
+        </div>
+
+        <div id="checklistItemsList" class="checklist-items-list"></div>
+
+        <div class="cf-actions">
+          <span id="checklistFormError" class="cf-error"></span>
+          <button type="submit" id="checklistSubmitBtn" disabled><i class="fa-solid fa-signature"></i> Complete &amp; Sign Off</button>
+        </div>
+      </form>
+
+      <div id="checklistSuccess" class="checklist-success" style="display:none">
+        <i class="fa-solid fa-circle-check"></i>
+        <p>Sign-off recorded. Keep a copy for your permit-to-work documentation.</p>
+        <button type="button" id="checklistDownloadPdfBtn"><i class="fa-solid fa-file-pdf"></i> Download Sign-off Record (PDF)</button>
+        <button type="button" id="checklistNewSignoffBtn" class="checklist-link-btn">Start another sign-off</button>
+      </div>
+
+      <button type="button" id="checklistHistoryToggle" class="log-history-toggle" style="margin-top:16px">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span id="checklistHistoryLabel">View Past Sign-Offs</span>
+        <span id="checklistHistoryCount" class="log-count-badge" style="display:none"></span>
+      </button>
+      <div id="checklistHistoryPanel" class="log-history-panel" style="display:none">
+        <div id="checklistHistoryEntries"><p class="log-empty">Loading past sign-offs…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="checklistEditOverlay">
+  <div class="checklist-edit-modal">
+    <div class="checklist-edit-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-pen"></i> Edit Safety Checklist</h3>
+        <p>Write or adjust the exact isolation/verification steps technicians must confirm before major work on this equipment.</p>
+      </div>
+      <button type="button" class="checklist-edit-modal-close" id="checklistEditCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="checklist-edit-modal-body">
+      <div class="checklist-reviewed-row">
+        <label><input type="checkbox" id="checklistReviewedCheckbox"> Reviewed and approved by safety/engineering team</label>
+        <button type="button" id="checklistLoadStarterBtn" class="checklist-link-btn"><i class="fa-solid fa-database"></i> Load starter checklist for this equipment type</button>
+      </div>
+      <div id="checklistEditItems" class="checklist-edit-items"></div>
+      <button type="button" id="checklistAddItemBtn" class="checklist-add-item-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+      <div class="cf-actions" style="margin-top:16px">
+        <span id="checklistEditError" class="cf-error"></span>
+        <button type="button" id="checklistEditSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header>
   <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
   <div class="header-right">
     <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
   </div>
 </header>
+
+<div class="maint-banner">
+  <div class="maint-banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+  <div class="maint-banner-text">
+    <h3>Major Maintenance Safety Checklist</h3>
+    <p>Complete and sign this checklist before starting any major or dangerous maintenance work on this equipment — jam clearance, gearbox/coupling work, guard removal, or anything involving stored energy.</p>
+    <div class="maint-banner-meta" id="maintBannerMeta"></div>
+  </div>
+  <button type="button" id="maintBannerBtn" class="maint-banner-btn">
+    <i class="fa-solid fa-clipboard-check"></i> Start Checklist
+  </button>
+</div>
 
 <div class="container" id="container">
 
@@ -704,6 +1127,22 @@
         <div class="item"><b>Serial</b><span id="serial"></span></div>
         <div class="item"><b>Installation</b><span id="installation"></span></div>
       </div>
+    </div>
+  </div>
+
+  <div class="section safety-checklist-section">
+    <div class="safety-checklist-banner">
+      <div class="safety-checklist-banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="safety-checklist-banner-text">
+        <h2>Major Maintenance Safety Checklist</h2>
+        <p>Required isolation, lockout, and verification steps to check off and sign before starting any major or high-risk maintenance work on this equipment — this is not optional pre-reading, it's a sign-off record.</p>
+      </div>
+    </div>
+    <div class="safety-checklist-actions">
+      <button type="button" id="openSafetyChecklistBtn" class="safety-checklist-btn-primary">
+        <i class="fa-solid fa-clipboard-check"></i> Open Safety Checklist
+      </button>
+      <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
     </div>
   </div>
 
@@ -910,6 +1349,81 @@
       <div id="logEntries" class="log-entries">
         <p class="log-empty">Loading entries…</p>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="maintChecklistOverlay">
+  <div class="maint-modal">
+    <div class="maint-modal-head">
+      <div>
+        <h3 id="maintModalTitle"><i class="fa-solid fa-triangle-exclamation"></i> Major Maintenance Safety Checklist</h3>
+        <p>Every item must be checked and signed off before starting major or dangerous maintenance work.</p>
+      </div>
+      <button type="button" class="maint-modal-close" id="maintCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="maint-modal-body">
+      <div class="maint-admin-row">
+        <button type="button" id="maintEditLink" class="maint-edit-link"><i class="fa-solid fa-pen"></i> Edit Checklist</button>
+      </div>
+
+      <div class="maint-progress">
+        <span id="maintProgressLabel">0 of 0 checked</span>
+        <div class="maint-progress-bar"><div class="maint-progress-fill" id="maintProgressFill" style="width:0%"></div></div>
+      </div>
+
+      <div id="maintItemsContainer"><p class="maint-empty">Loading checklist…</p></div>
+
+      <form id="maintSignoffForm" class="maint-signoff-form">
+        <h4><i class="fa-solid fa-signature"></i> Confirm &amp; Sign Off</h4>
+        <div class="maint-signoff-row">
+          <div class="maint-field">
+            <label for="maintFullName">Full Name *</label>
+            <input type="text" id="maintFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
+          </div>
+          <div class="maint-field">
+            <label for="maintDepartment">Department *</label>
+            <input type="text" id="maintDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
+          </div>
+        </div>
+        <div class="maint-field" style="margin-bottom:12px">
+          <label for="maintWorkDesc">Maintenance work about to be performed *</label>
+          <textarea id="maintWorkDesc" rows="2" required maxlength="500" placeholder="e.g. Clearing jam on elevator leg, replacing bucket chain…"></textarea>
+        </div>
+        <button type="submit" id="maintSignoffBtn" class="maint-signoff-btn" disabled>
+          <i class="fa-solid fa-lock"></i> Check all items to sign off
+        </button>
+        <div id="maintSignoffError" class="maint-signoff-error"></div>
+        <div id="maintSignoffSuccess" class="maint-signoff-success"></div>
+      </form>
+
+      <button type="button" id="maintHistoryToggle" class="maint-history-toggle">
+        <i class="fa-solid fa-clock-rotate-left"></i> View Past Sign-offs
+      </button>
+      <div id="maintHistoryPanel" class="maint-history-panel" style="display:none">
+        <p class="maint-empty" id="maintHistoryEmpty">Loading sign-off history…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="checklistEditorOverlay">
+  <div class="maint-modal">
+    <div class="maint-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-list-check"></i> Edit Safety Checklist</h3>
+        <p>Add, edit, or remove the items technicians must confirm for this equipment.</p>
+      </div>
+      <button type="button" class="maint-modal-close" id="editorCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="maint-modal-body">
+      <button type="button" id="editorLoadDefaultBtn" class="editor-default-btn">
+        <i class="fa-solid fa-download"></i> Load Default Checklist
+      </button>
+      <div id="editorItemsContainer"></div>
+      <button type="button" id="editorAddItemBtn" class="editor-add-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+      <div id="editorError" class="maint-signoff-error"></div>
+      <button type="button" id="editorSaveBtn" class="editor-save-btn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
     </div>
   </div>
 </div>
@@ -1659,6 +2173,7 @@ function renderEquipment(e) {
 
   loadEquipmentLogs(e.id);
   loadSubscribers(e.id);
+  loadSafetyChecklist(e.id);
   showSafetyModal(e);
 
   el.documents.innerHTML = '';
@@ -2887,6 +3402,407 @@ async function notifySubscribers(equipment, entry) {
     console.error('Failed to notify subscribers', err);
   }
 }
+
+// ================= Major Maintenance Safety Checklist =================
+//
+// Two Firestore collections:
+//   safetyChecklists/{equipmentId}        — the checklist definition (admin-editable)
+//   safetyChecklistCompletions/{autoId}    — permanent sign-off audit records (never edited/deleted)
+//
+// IMPORTANT: starter checklists loaded via "Load starter checklist" are DRAFTS
+// based only on what was described when this feature was requested. They are
+// marked unreviewed until an admin explicitly checks "Reviewed and approved
+// by safety/engineering team" — technicians are warned accordingly until then.
+
+function newChecklistItemId() {
+  return 'item_' + Math.random().toString(36).slice(2, 10);
+}
+
+// Equipment-type-specific starter drafts. Bucket elevator items directly
+// reflect the fluid-coupling/reverse-rotation incident this feature exists
+// because of. Everything else is a generic industrial baseline — NOT
+// equipment-specific verified procedure — until an admin reviews and edits it.
+function getStarterChecklistItems(equipmentId) {
+  const id = (equipmentId || '').toLowerCase();
+
+  if (id.startsWith('be')) {
+    return [
+      { text: 'Lock out and tag out the main drive motor before any work begins — verify zero energy state.', critical: true },
+      { text: 'Fully drain the fluid coupling oil and visually confirm it is empty before working on a jammed or stopped elevator.', critical: true },
+      { text: 'Mechanically block or chain the boot and head sections to prevent the belt/buckets from reversing or free-wheeling once a jam is cleared.', critical: true },
+      { text: 'Confirm the reduction gearbox output is isolated/blocked so reverse rotation cannot transmit back through the fluid coupling.', critical: true },
+      { text: 'Do not resume work immediately after clearing a jam — re-verify isolation, since the equipment\'s state may have changed.', critical: true },
+      { text: 'Barricade the area beneath and around the elevator boot/head before entering.', critical: false },
+      { text: 'Obtain a valid Permit to Work signed off by the shift supervisor before starting.', critical: false }
+    ];
+  }
+  if (id.startsWith('vs')) {
+    return [
+      { text: 'Lock out and tag out the drive motor before any work begins.', critical: true },
+      { text: 'Confirm the screen deck has fully stopped vibrating before approaching or touching it.', critical: true },
+      { text: 'Support/block the screen deck if working underneath it, to prevent unexpected drop.', critical: true },
+      { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+    ];
+  }
+  if (id.startsWith('rt')) {
+    return [
+      { text: 'Lock out and tag out all drive motors and pneumatic supply before entry.', critical: true },
+      { text: 'Confirm the rotor has come to a complete stop and cannot be manually rotated before working inside.', critical: true },
+      { text: 'De-energize and bleed down any pneumatic/hydraulic pressure in the filling valves.', critical: true },
+      { text: 'Barricade the packer area and post warning signage.', critical: false },
+      { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+    ];
+  }
+  return [
+    { text: 'Lock out, tag out, and verify zero energy state on all relevant power sources before work begins.', critical: true },
+    { text: 'Confirm all moving/rotating parts have come to a complete stop before approaching.', critical: true },
+    { text: 'De-energize and discharge any stored energy — electrical, pneumatic, hydraulic, or mechanical.', critical: true },
+    { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+  ];
+}
+
+const checklistEl = {
+  overlay: document.getElementById('checklistOverlay'),
+  equipName: document.getElementById('checklistEquipName'),
+  closeX: document.getElementById('checklistCloseX'),
+  editBtn: document.getElementById('checklistEditBtn'),
+  unreviewedWarning: document.getElementById('checklistUnreviewedWarning'),
+  emptyState: document.getElementById('checklistEmptyState'),
+  form: document.getElementById('checklistForm'),
+  job: document.getElementById('checklistJob'),
+  fullName: document.getElementById('checklistFullName'),
+  department: document.getElementById('checklistDepartment'),
+  itemsList: document.getElementById('checklistItemsList'),
+  submitBtn: document.getElementById('checklistSubmitBtn'),
+  formError: document.getElementById('checklistFormError'),
+  success: document.getElementById('checklistSuccess'),
+  downloadPdfBtn: document.getElementById('checklistDownloadPdfBtn'),
+  newSignoffBtn: document.getElementById('checklistNewSignoffBtn'),
+  historyToggle: document.getElementById('checklistHistoryToggle'),
+  historyLabel: document.getElementById('checklistHistoryLabel'),
+  historyCount: document.getElementById('checklistHistoryCount'),
+  historyPanel: document.getElementById('checklistHistoryPanel'),
+  historyEntries: document.getElementById('checklistHistoryEntries'),
+  openBtn: document.getElementById('openSafetyChecklistBtn'),
+  signoffCountBadge: document.getElementById('safetyChecklistSignoffCount'),
+};
+
+const checklistEditEl = {
+  overlay: document.getElementById('checklistEditOverlay'),
+  closeX: document.getElementById('checklistEditCloseX'),
+  reviewedCheckbox: document.getElementById('checklistReviewedCheckbox'),
+  loadStarterBtn: document.getElementById('checklistLoadStarterBtn'),
+  itemsWrap: document.getElementById('checklistEditItems'),
+  addItemBtn: document.getElementById('checklistAddItemBtn'),
+  saveBtn: document.getElementById('checklistEditSaveBtn'),
+  error: document.getElementById('checklistEditError'),
+};
+
+let currentChecklist = null;       // { items, reviewed } or null if none set up yet
+let checklistCompletionsCache = []; // loaded lazily when history panel opens
+let lastSignoffRecord = null;      // for the PDF download after a successful sign-off
+
+function loadSafetyChecklist(equipmentId) {
+  db.collection('safetyChecklists').doc(equipmentId).get()
+    .then(doc => {
+      currentChecklist = doc.exists ? doc.data() : null;
+      renderChecklistSignoffForm();
+      updateSignoffCountBadge(equipmentId);
+    })
+    .catch(err => {
+      console.error('Failed to load safety checklist', err);
+      currentChecklist = null;
+      renderChecklistSignoffForm();
+    });
+}
+
+function updateSignoffCountBadge(equipmentId) {
+  db.collection('safetyChecklistCompletions').where('equipmentId', '==', equipmentId).get()
+    .then(snapshot => {
+      const n = snapshot.size;
+      checklistEl.signoffCountBadge.textContent = n
+        ? `${n} sign-off${n === 1 ? '' : 's'} recorded for this equipment`
+        : 'No sign-offs recorded yet for this equipment';
+    })
+    .catch(() => { checklistEl.signoffCountBadge.textContent = ''; });
+}
+
+function renderChecklistSignoffForm() {
+  const hasChecklist = currentChecklist && Array.isArray(currentChecklist.items) && currentChecklist.items.length > 0;
+
+  checklistEl.emptyState.style.display = hasChecklist ? 'none' : 'block';
+  checklistEl.form.style.display = hasChecklist ? 'block' : 'none';
+  checklistEl.unreviewedWarning.style.display = hasChecklist && !currentChecklist.reviewed ? 'flex' : 'none';
+
+  if (!hasChecklist) {
+    checklistEl.itemsList.innerHTML = '';
+    return;
+  }
+
+  checklistEl.itemsList.innerHTML = currentChecklist.items.map(item => `
+    <label class="checklist-item-row ${item.critical ? 'is-critical' : ''}">
+      <input type="checkbox" class="checklist-check" data-id="${item.id}">
+      <span class="item-text">${escapeHtml(item.text)}${item.critical ? '<span class="critical-tag">CRITICAL</span>' : ''}</span>
+    </label>
+  `).join('');
+
+  checklistEl.itemsList.querySelectorAll('.checklist-check').forEach(cb => {
+    cb.addEventListener('change', updateChecklistSubmitState);
+  });
+  updateChecklistSubmitState();
+}
+
+function updateChecklistSubmitState() {
+  const boxes = checklistEl.itemsList.querySelectorAll('.checklist-check');
+  const allChecked = boxes.length > 0 && Array.from(boxes).every(cb => cb.checked);
+  checklistEl.submitBtn.disabled = !allChecked;
+}
+
+function openChecklistModal() {
+  checklistEl.equipName.textContent = currentEquipmentData ? currentEquipmentData.name : 'Equipment';
+  checklistEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  checklistEl.form.style.display = currentChecklist ? 'block' : 'none';
+  checklistEl.success.style.display = 'none';
+  if (currentEquipmentData) loadSafetyChecklist(currentEquipmentData.id);
+}
+
+function closeChecklistModal() {
+  checklistEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+checklistEl.openBtn.addEventListener('click', openChecklistModal);
+checklistEl.closeX.addEventListener('click', closeChecklistModal);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && checklistEl.overlay.classList.contains('is-open') && !checklistEditEl.overlay.classList.contains('is-open')) {
+    closeChecklistModal();
+  }
+});
+
+checklistEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  checklistEl.formError.textContent = '';
+
+  if (!currentEquipmentData || !currentChecklist) return;
+
+  const boxes = Array.from(checklistEl.itemsList.querySelectorAll('.checklist-check'));
+  if (!boxes.every(cb => cb.checked)) {
+    checklistEl.formError.textContent = 'Every item must be checked before signing off.';
+    return;
+  }
+
+  const itemsSnapshot = currentChecklist.items.map(item => ({
+    id: item.id, text: item.text, critical: !!item.critical, checked: true
+  }));
+
+  checklistEl.submitBtn.disabled = true;
+  checklistEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Recording…';
+
+  try {
+    const uid = await authReady;
+    const record = {
+      equipmentId: currentEquipmentData.id,
+      equipmentName: currentEquipmentData.name || '',
+      jobDescription: checklistEl.job.value.trim(),
+      fullName: checklistEl.fullName.value.trim(),
+      department: checklistEl.department.value.trim(),
+      itemsSnapshot,
+      authorUid: uid,
+      completedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('safetyChecklistCompletions').add(record);
+
+    lastSignoffRecord = { ...record, completedAtLocal: new Date() };
+    checklistEl.form.style.display = 'none';
+    checklistEl.success.style.display = 'block';
+    checklistEl.form.reset();
+    updateSignoffCountBadge(currentEquipmentData.id);
+    if (checklistEl.historyPanel.style.display !== 'none') loadChecklistHistory(currentEquipmentData.id, true);
+  } catch (err) {
+    console.error('Failed to record sign-off', err);
+    checklistEl.formError.textContent = 'Could not record this sign-off right now. Please try again.';
+  } finally {
+    checklistEl.submitBtn.disabled = false;
+    checklistEl.submitBtn.innerHTML = '<i class="fa-solid fa-signature"></i> Complete &amp; Sign Off';
+  }
+});
+
+checklistEl.newSignoffBtn.addEventListener('click', () => {
+  checklistEl.success.style.display = 'none';
+  checklistEl.form.style.display = 'block';
+  renderChecklistSignoffForm();
+});
+
+checklistEl.downloadPdfBtn.addEventListener('click', () => {
+  if (!lastSignoffRecord || typeof window.jspdf === 'undefined') return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const r = lastSignoffRecord;
+
+  doc.setFontSize(15);
+  doc.setTextColor(214, 45, 32);
+  doc.text('Major Maintenance Safety Checklist — Sign-Off Record', 40, 44);
+
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Equipment: ${r.equipmentName} (${r.equipmentId})`, 40, 68);
+  doc.text(`Job/Task: ${r.jobDescription}`, 40, 84);
+  doc.text(`Signed off by: ${r.fullName} — ${r.department}`, 40, 100);
+  doc.text(`Date/time: ${r.completedAtLocal.toLocaleString()}`, 40, 116);
+
+  doc.autoTable({
+    startY: 136,
+    head: [['#', 'Checklist Item', 'Critical?', 'Verified']],
+    body: r.itemsSnapshot.map((it, i) => [String(i + 1), it.text, it.critical ? 'Yes' : '', '✓']),
+    styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [214, 45, 32], textColor: 255, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 55 }, 3: { cellWidth: 50 } },
+    margin: { left: 40, right: 40 }
+  });
+
+  doc.save(`${r.equipmentId}-safety-signoff-${new Date().toISOString().slice(0, 10)}.pdf`);
+});
+
+function loadChecklistHistory(equipmentId, forceReload) {
+  checklistEl.historyEntries.innerHTML = '<p class="log-empty">Loading past sign-offs…</p>';
+  db.collection('safetyChecklistCompletions').where('equipmentId', '==', equipmentId).get()
+    .then(snapshot => {
+      checklistCompletionsCache = [];
+      snapshot.forEach(d => checklistCompletionsCache.push({ id: d.id, ...d.data() }));
+      checklistCompletionsCache.sort((a, b) => {
+        const ta = a.completedAt && a.completedAt.toMillis ? a.completedAt.toMillis() : 0;
+        const tb = b.completedAt && b.completedAt.toMillis ? b.completedAt.toMillis() : 0;
+        return tb - ta;
+      });
+
+      checklistEl.historyCount.style.display = checklistCompletionsCache.length ? 'inline-block' : 'none';
+      checklistEl.historyCount.textContent = checklistCompletionsCache.length;
+
+      if (!checklistCompletionsCache.length) {
+        checklistEl.historyEntries.innerHTML = '<p class="log-empty">No sign-offs recorded yet for this equipment.</p>';
+        return;
+      }
+
+      checklistEl.historyEntries.innerHTML = checklistCompletionsCache.map(r => `
+        <div class="checklist-signoff-record">
+          <div class="rec-head">
+            <span>${escapeHtml(r.fullName || 'Unknown')} — ${escapeHtml(r.department || '')}</span>
+            <span class="rec-meta">${formatLogDate(r.completedAt)}</span>
+          </div>
+          <div>${escapeHtml(r.jobDescription || '')}</div>
+          <div class="rec-meta">${(r.itemsSnapshot || []).length} item(s) verified</div>
+        </div>
+      `).join('');
+    })
+    .catch(err => {
+      console.error('Failed to load sign-off history', err);
+      checklistEl.historyEntries.innerHTML = '<p class="log-empty">Could not load sign-off history right now.</p>';
+    });
+}
+
+checklistEl.historyToggle.addEventListener('click', () => {
+  const isOpen = checklistEl.historyPanel.style.display !== 'none';
+  checklistEl.historyPanel.style.display = isOpen ? 'none' : 'block';
+  checklistEl.historyLabel.textContent = isOpen ? 'View Past Sign-Offs' : 'Hide Past Sign-Offs';
+  if (!isOpen && currentEquipmentData) loadChecklistHistory(currentEquipmentData.id);
+});
+
+// ---------- Admin: edit checklist ----------
+
+function renderChecklistEditItems(items) {
+  checklistEditEl.itemsWrap.innerHTML = '';
+  items.forEach(item => appendChecklistEditRow(item));
+}
+
+function appendChecklistEditRow(item) {
+  const row = document.createElement('div');
+  row.className = 'checklist-edit-item-row';
+  row.dataset.id = item.id;
+  row.innerHTML = `
+    <textarea class="edit-item-text" placeholder="Checklist step…">${escapeHtml(item.text)}</textarea>
+    <div class="checklist-edit-item-controls">
+      <label><input type="checkbox" class="edit-item-critical" ${item.critical ? 'checked' : ''}> Critical</label>
+      <button type="button" class="checklist-remove-item-btn" title="Remove"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `;
+  row.querySelector('.checklist-remove-item-btn').addEventListener('click', () => row.remove());
+  checklistEditEl.itemsWrap.appendChild(row);
+}
+
+function openChecklistEditModal() {
+  const items = (currentChecklist && Array.isArray(currentChecklist.items) && currentChecklist.items.length)
+    ? currentChecklist.items
+    : [];
+  renderChecklistEditItems(items);
+  checklistEditEl.reviewedCheckbox.checked = !!(currentChecklist && currentChecklist.reviewed);
+  checklistEditEl.error.textContent = '';
+  checklistEditEl.overlay.classList.add('is-open');
+}
+
+function closeChecklistEditModal() {
+  checklistEditEl.overlay.classList.remove('is-open');
+}
+
+checklistEl.editBtn.addEventListener('click', () => {
+  if (!requireAdminUnlock()) return;
+  openChecklistEditModal();
+});
+
+checklistEditEl.closeX.addEventListener('click', closeChecklistEditModal);
+
+checklistEditEl.addItemBtn.addEventListener('click', () => {
+  appendChecklistEditRow({ id: newChecklistItemId(), text: '', critical: false });
+});
+
+checklistEditEl.loadStarterBtn.addEventListener('click', () => {
+  if (!currentEquipmentData) return;
+  const hasExisting = checklistEditEl.itemsWrap.children.length > 0;
+  if (hasExisting && !confirm('This will replace the current items below with a starter draft. Continue?')) return;
+
+  const starter = getStarterChecklistItems(currentEquipmentData.id).map(i => ({ ...i, id: newChecklistItemId() }));
+  renderChecklistEditItems(starter);
+  checklistEditEl.reviewedCheckbox.checked = false; // starter drafts are never pre-approved
+});
+
+checklistEditEl.saveBtn.addEventListener('click', async () => {
+  if (!currentEquipmentData) return;
+  checklistEditEl.error.textContent = '';
+
+  const rows = Array.from(checklistEditEl.itemsWrap.querySelectorAll('.checklist-edit-item-row'));
+  const items = rows.map(row => ({
+    id: row.dataset.id || newChecklistItemId(),
+    text: row.querySelector('.edit-item-text').value.trim(),
+    critical: row.querySelector('.edit-item-critical').checked
+  })).filter(item => item.text.length > 0);
+
+  if (!items.length) {
+    checklistEditEl.error.textContent = 'Add at least one checklist item before saving.';
+    return;
+  }
+
+  checklistEditEl.saveBtn.disabled = true;
+  checklistEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+  try {
+    await authReady;
+    await db.collection('safetyChecklists').doc(currentEquipmentData.id).set({
+      equipmentId: currentEquipmentData.id,
+      items,
+      reviewed: checklistEditEl.reviewedCheckbox.checked,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentChecklist = { equipmentId: currentEquipmentData.id, items, reviewed: checklistEditEl.reviewedCheckbox.checked };
+    renderChecklistSignoffForm();
+    closeChecklistEditModal();
+  } catch (err) {
+    console.error('Failed to save checklist', err);
+    checklistEditEl.error.textContent = 'Could not save the checklist right now. Please try again.';
+  } finally {
+    checklistEditEl.saveBtn.disabled = false;
+    checklistEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
+  }
+});
 
 </script>
 </body>
