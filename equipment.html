@@ -608,157 +608,6 @@
     .log-controls select,.log-controls input{width:100%}
   }
 
-  /* ---------- Major Maintenance Safety Checklist ---------- */
-  .maint-banner{
-    max-width:1000px;margin:20px auto 0;padding:18px 22px;
-    background:#fdecea;border:1px solid #f0b3ae;border-radius:14px;
-    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  }
-  .maint-banner-icon{
-    width:46px;height:46px;border-radius:50%;background:var(--danger);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex:0 0 auto;
-  }
-  .maint-banner-text{flex:1;min-width:220px}
-  .maint-banner-text h3{margin:0 0 3px;font-size:1rem;color:#8a1f18}
-  .maint-banner-text p{margin:0;font-size:.84rem;color:#8a1f18;line-height:1.4}
-  .maint-banner-meta{font-size:.76rem;color:#a34840;margin-top:4px}
-  .maint-banner-btn{
-    background:var(--danger);color:#fff;border:none;border-radius:22px;padding:12px 20px;
-    font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;white-space:nowrap;
-    display:flex;align-items:center;gap:8px;flex:0 0 auto;
-  }
-  .maint-banner-btn:hover{background:#8a251d}
-
-  #maintChecklistOverlay,#checklistEditorOverlay{
-    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
-    display:none;align-items:center;justify-content:center;padding:16px;
-  }
-  #maintChecklistOverlay.is-open,#checklistEditorOverlay.is-open{display:flex}
-  .maint-modal{
-    background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:90vh;
-    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
-  }
-  .maint-modal-head{
-    background:var(--danger);color:#fff;padding:18px 20px;display:flex;align-items:flex-start;
-    justify-content:space-between;gap:12px;flex:0 0 auto;position:relative;
-  }
-  .maint-modal-head h3{margin:0 0 3px;font-size:1.05rem}
-  .maint-modal-head p{margin:0;font-size:.8rem;opacity:.92;line-height:1.4}
-  .maint-modal-close{
-    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
-    width:28px;height:28px;border-radius:50%;cursor:pointer;flex:0 0 auto;
-  }
-  .maint-modal-close:hover{background:rgba(255,255,255,.35)}
-  .maint-modal-body{padding:20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-
-  .maint-progress{
-    display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:.82rem;color:var(--muted);
-  }
-  .maint-progress-bar{flex:1;height:8px;border-radius:5px;background:#eef0f2;overflow:hidden}
-  .maint-progress-fill{height:100%;background:var(--brand);transition:width .2s ease}
-
-  .maint-admin-row{display:flex;justify-content:flex-end;margin-bottom:12px}
-  .maint-edit-link{
-    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
-    padding:6px 12px;font-family:inherit;font-size:.76rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
-  }
-  .maint-edit-link:hover{color:var(--brand);border-color:var(--brand-light)}
-
-  .maint-category{margin-bottom:18px}
-  .maint-category-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:8px}
-  .maint-item{
-    display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;
-    background:#f7f8fa;margin-bottom:6px;
-  }
-  .maint-item.critical{background:#fdecea}
-  .maint-item input[type="checkbox"]{width:18px;height:18px;margin-top:2px;flex:0 0 auto;accent-color:var(--brand)}
-  .maint-item-text{font-size:.88rem;line-height:1.45;color:var(--text)}
-  .maint-item.critical .maint-item-text{font-weight:600;color:#8a1f18}
-  .maint-item-critical-flag{color:var(--danger);font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;margin-left:6px}
-
-  .maint-empty{
-    text-align:center;padding:30px 20px;color:var(--muted);font-size:.88rem;
-    background:#f7f8fa;border-radius:10px;
-  }
-
-  .maint-signoff-form{border-top:1px solid var(--border);margin-top:18px;padding-top:18px}
-  .maint-signoff-form h4{margin:0 0 12px;font-size:.9rem}
-  .maint-signoff-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-  .maint-field{display:flex;flex-direction:column;gap:6px}
-  .maint-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
-  .maint-field input,.maint-field textarea{
-    border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;
-    font-size:16px;outline:none;resize:vertical;background:#fff;
-  }
-  .maint-field input:focus,.maint-field textarea:focus{border-color:var(--brand-light)}
-  .maint-signoff-btn{
-    width:100%;background:var(--danger);color:#fff;border:none;border-radius:10px;padding:13px;
-    font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;
-    justify-content:center;gap:9px;
-  }
-  .maint-signoff-btn:hover{background:#8a251d}
-  .maint-signoff-btn:disabled{background:#c9c9c9;cursor:not-allowed}
-  .maint-signoff-error{color:var(--danger);font-size:.82rem;margin-top:8px}
-  .maint-signoff-success{
-    background:#e8f6ee;border:1px solid #b9e3c9;color:var(--brand);border-radius:10px;
-    padding:14px 16px;font-size:.86rem;line-height:1.5;margin-top:12px;display:none;
-  }
-
-  .maint-history-toggle{
-    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
-    padding:8px 14px;font-family:inherit;font-size:.8rem;cursor:pointer;margin-top:16px;
-    display:inline-flex;align-items:center;gap:7px;
-  }
-  .maint-history-toggle:hover{color:var(--brand);border-color:var(--brand-light)}
-  .maint-history-panel{margin-top:12px}
-  .maint-signoff-record{
-    border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#f7f8fa;font-size:.82rem;
-  }
-  .maint-signoff-record .who{font-weight:600}
-  .maint-signoff-record .when{color:var(--muted);font-size:.76rem}
-  .maint-signoff-record .work{margin-top:4px;color:var(--text)}
-
-  /* ---------- Checklist editor (admin) ---------- */
-  .editor-item-row{
-    display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:8px;
-    padding:10px;margin-bottom:8px;background:#f7f8fa;
-  }
-  .editor-item-row textarea{
-    flex:1;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:inherit;
-    font-size:16px;resize:vertical;min-height:40px;
-  }
-  .editor-item-controls{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;width:150px}
-  .editor-item-controls select{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-family:inherit;font-size:13px}
-  .editor-item-controls label{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--danger);font-weight:600}
-  .editor-remove-btn{
-    background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px;flex:0 0 auto;
-  }
-  .editor-remove-btn:hover{background:#fdecea;color:var(--danger)}
-  .editor-add-btn{
-    background:none;border:1px dashed var(--border);color:var(--brand);border-radius:8px;
-    padding:10px;width:100%;font-family:inherit;font-size:.86rem;cursor:pointer;margin-bottom:14px;
-  }
-  .editor-add-btn:hover{border-color:var(--brand-light);background:#eef4f1}
-  .editor-default-btn{
-    background:none;border:1px solid var(--border);color:var(--muted);border-radius:16px;
-    padding:8px 14px;font-family:inherit;font-size:.78rem;cursor:pointer;margin-bottom:14px;
-    display:inline-flex;align-items:center;gap:6px;
-  }
-  .editor-default-btn:hover{color:var(--brand);border-color:var(--brand-light)}
-  .editor-save-btn{
-    width:100%;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
-    font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;
-  }
-  .editor-save-btn:hover{background:#005229}
-
-  @media (max-width:600px){
-    .maint-banner{padding:16px}
-    .maint-signoff-row{grid-template-columns:1fr}
-    .editor-item-row{flex-direction:column}
-    .editor-item-controls{width:100%;flex-direction:row;flex-wrap:wrap}
-  }
-
-
   .subscriber-item .del-btn{
     background:none;border:none;color:var(--danger);cursor:pointer;padding:6px 8px;
     border-radius:6px;font-size:.85rem;flex:0 0 auto;
@@ -1093,18 +942,6 @@
   </div>
 </header>
 
-<div class="maint-banner">
-  <div class="maint-banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-  <div class="maint-banner-text">
-    <h3>Major Maintenance Safety Checklist</h3>
-    <p>Complete and sign this checklist before starting any major or dangerous maintenance work on this equipment — jam clearance, gearbox/coupling work, guard removal, or anything involving stored energy.</p>
-    <div class="maint-banner-meta" id="maintBannerMeta"></div>
-  </div>
-  <button type="button" id="maintBannerBtn" class="maint-banner-btn">
-    <i class="fa-solid fa-clipboard-check"></i> Start Checklist
-  </button>
-</div>
-
 <div class="container" id="container">
 
   <div class="hero">
@@ -1349,81 +1186,6 @@
       <div id="logEntries" class="log-entries">
         <p class="log-empty">Loading entries…</p>
       </div>
-    </div>
-  </div>
-</div>
-
-<div id="maintChecklistOverlay">
-  <div class="maint-modal">
-    <div class="maint-modal-head">
-      <div>
-        <h3 id="maintModalTitle"><i class="fa-solid fa-triangle-exclamation"></i> Major Maintenance Safety Checklist</h3>
-        <p>Every item must be checked and signed off before starting major or dangerous maintenance work.</p>
-      </div>
-      <button type="button" class="maint-modal-close" id="maintCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="maint-modal-body">
-      <div class="maint-admin-row">
-        <button type="button" id="maintEditLink" class="maint-edit-link"><i class="fa-solid fa-pen"></i> Edit Checklist</button>
-      </div>
-
-      <div class="maint-progress">
-        <span id="maintProgressLabel">0 of 0 checked</span>
-        <div class="maint-progress-bar"><div class="maint-progress-fill" id="maintProgressFill" style="width:0%"></div></div>
-      </div>
-
-      <div id="maintItemsContainer"><p class="maint-empty">Loading checklist…</p></div>
-
-      <form id="maintSignoffForm" class="maint-signoff-form">
-        <h4><i class="fa-solid fa-signature"></i> Confirm &amp; Sign Off</h4>
-        <div class="maint-signoff-row">
-          <div class="maint-field">
-            <label for="maintFullName">Full Name *</label>
-            <input type="text" id="maintFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
-          </div>
-          <div class="maint-field">
-            <label for="maintDepartment">Department *</label>
-            <input type="text" id="maintDepartment" required maxlength="99" placeholder="e.g. Mechanical Maintenance">
-          </div>
-        </div>
-        <div class="maint-field" style="margin-bottom:12px">
-          <label for="maintWorkDesc">Maintenance work about to be performed *</label>
-          <textarea id="maintWorkDesc" rows="2" required maxlength="500" placeholder="e.g. Clearing jam on elevator leg, replacing bucket chain…"></textarea>
-        </div>
-        <button type="submit" id="maintSignoffBtn" class="maint-signoff-btn" disabled>
-          <i class="fa-solid fa-lock"></i> Check all items to sign off
-        </button>
-        <div id="maintSignoffError" class="maint-signoff-error"></div>
-        <div id="maintSignoffSuccess" class="maint-signoff-success"></div>
-      </form>
-
-      <button type="button" id="maintHistoryToggle" class="maint-history-toggle">
-        <i class="fa-solid fa-clock-rotate-left"></i> View Past Sign-offs
-      </button>
-      <div id="maintHistoryPanel" class="maint-history-panel" style="display:none">
-        <p class="maint-empty" id="maintHistoryEmpty">Loading sign-off history…</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="checklistEditorOverlay">
-  <div class="maint-modal">
-    <div class="maint-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-list-check"></i> Edit Safety Checklist</h3>
-        <p>Add, edit, or remove the items technicians must confirm for this equipment.</p>
-      </div>
-      <button type="button" class="maint-modal-close" id="editorCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="maint-modal-body">
-      <button type="button" id="editorLoadDefaultBtn" class="editor-default-btn">
-        <i class="fa-solid fa-download"></i> Load Default Checklist
-      </button>
-      <div id="editorItemsContainer"></div>
-      <button type="button" id="editorAddItemBtn" class="editor-add-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
-      <div id="editorError" class="maint-signoff-error"></div>
-      <button type="button" id="editorSaveBtn" class="editor-save-btn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
     </div>
   </div>
 </div>
@@ -2997,7 +2759,6 @@ document.getElementById('logExportPdfBtn').addEventListener('click', () => {
 
   doc.save(exportLogFilename('pdf'));
 });
-
 
 function loadEquipmentLogs(equipmentId, forceReload) {
   if (historyLoadedFor === equipmentId && !forceReload) {
