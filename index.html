@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>GHACEM Equipment Documentation Portal</title>
+<title>InfoPort</title>
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#006937">
@@ -14,12 +14,15 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GHACEM EDP">
+<meta name="apple-mobile-web-app-title" content="InfoPort">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 
@@ -679,14 +682,41 @@ font-size:16px;
 .t5-success i{font-size:46px;color:#00a651;margin-bottom:14px;}
 .t5-success h4{color:#006937;margin-bottom:8px;}
 .t5-success p{color:#666;font-size:14px;}
-.t5-success button{
-  margin-top:18px;background:#006937;color:#fff;border:none;padding:12px 24px;
-  border-radius:30px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+.t5-pdf-note{color:#888;font-size:12.5px;margin-top:10px;}
+.t5-success-actions{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px;
 }
+.t5-success-actions button{
+  background:#006937;color:#fff;border:none;padding:12px 24px;
+  border-radius:30px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+}
+.t5-secondary-btn{background:#fff !important;color:#006937 !important;border:1.5px solid #006937 !important;}
 
 @media(max-width:600px){
-  .t5-banner{flex-direction:column;align-items:stretch;text-align:center;}
+  .t5-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
   .t5-banner-btn{justify-content:center;}
+  .t5-history-toggle{justify-content:center;}
+
+  #t5Overlay{padding:0;}
+  .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
+  .t5-modal-head{padding:16px 18px;}
+  .t5-modal-head h3{font-size:16px;}
+  .t5-modal-head p{font-size:12px;}
+  .t5-modal-body{padding:16px;max-height:none;}
+
+  .t5-hazard-row{padding:12px;}
+  .t5-hazard-name{font-size:14px;min-width:0;flex-basis:100%;}
+  .t5-yn{width:100%;}
+  .t5-yn button{flex:1;text-align:center;}
+
+  .t5-risk-select{flex-direction:column;}
+  .t5-risk-select button{min-width:0;width:100%;}
+}
+
+@media(max-width:400px){
+  .t5-modal-head{flex-wrap:wrap;}
+  .t5-modal-close{margin-left:auto;}
 }
 
 </style>
@@ -701,8 +731,7 @@ font-size:16px;
 
 <img src="assets/logo.png">
 
-<h2>Equipment Documentation Portal
-</h2>
+<h2>InfoPort</h2>
 
 </div>
 
@@ -718,7 +747,7 @@ font-size:16px;
 
 <div>
 
-<h1>Equipment Documentation Portal</h1>
+<h1>InfoPort</h1>
 
 <p>Search • Troubleshoot • Access Equipment Information Instantly</p>
 
@@ -1124,7 +1153,11 @@ Engineering Documentation Portal
         <i class="fa-solid fa-circle-check"></i>
         <h4>Take Five Recorded</h4>
         <p id="t5SuccessDetail"></p>
-        <button type="button" id="t5NewBtn">Start Another Take Five</button>
+        <p class="t5-pdf-note" id="t5PdfNote">A PDF copy has been downloaded automatically.</p>
+        <div class="t5-success-actions">
+          <button type="button" id="t5DownloadAgainBtn" class="t5-secondary-btn"><i class="fa-solid fa-file-pdf"></i> Download PDF Again</button>
+          <button type="button" id="t5NewBtn">Start Another Take Five</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1312,6 +1345,8 @@ const t5El = {
   formError: document.getElementById('t5FormError'),
   success: document.getElementById('t5Success'),
   successDetail: document.getElementById('t5SuccessDetail'),
+  pdfNote: document.getElementById('t5PdfNote'),
+  downloadAgainBtn: document.getElementById('t5DownloadAgainBtn'),
   newBtn: document.getElementById('t5NewBtn'),
 };
 
@@ -1456,6 +1491,85 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && t5El.overlay.classList.contains('is-open')) t5CloseModal();
 });
 
+// ---------- PDF export (auto-downloads right after a successful save) ----------
+
+let t5LastRecord = null;
+
+function t5RiskLabelFull(risk) {
+  return risk === 'red' ? 'RED RISK' : risk === 'amber' ? 'AMBER RISK' : 'ZERO HARM';
+}
+
+function t5GeneratePdf(record) {
+  if (typeof window.jspdf === 'undefined') {
+    console.error('jsPDF failed to load — cannot generate Take Five PDF.');
+    return false;
+  }
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const riskColors = { zero: [0, 166, 81], amber: [245, 158, 11], red: [217, 45, 32] };
+    const overallColor = riskColors[record.overallRisk] || riskColors.zero;
+
+    doc.setFillColor(0, 105, 55);
+    doc.rect(0, 0, 595, 56, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('Take Five — Pre-Task Risk Assessment', 40, 34);
+
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    const y = 78;
+    doc.text(`Date: ${record.date}`, 40, y);
+    doc.text(`Task: ${record.task}`, 40, y + 16);
+    doc.text(`Location: ${record.location}`, 40, y + 32);
+    doc.text(`Names of people involved: ${record.namesInvolved}`, 40, y + 48);
+
+    doc.setFillColor(overallColor[0], overallColor[1], overallColor[2]);
+    doc.roundedRect(40, y + 62, 170, 22, 4, 4, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text(`OVERALL: ${t5RiskLabelFull(record.overallRisk)}`, 48, y + 77);
+
+    const body = record.hazards.map((h, i) => [
+      String(i + 1),
+      h.name,
+      h.answer === 'yes' ? 'Yes' : 'No',
+      h.answer === 'yes' ? h.description : '—',
+      h.answer === 'yes' ? h.controls : '—',
+      h.answer === 'yes' ? t5RiskLabelFull(h.risk) : '—'
+    ]);
+
+    doc.autoTable({
+      startY: y + 96,
+      head: [['#', 'Hazard', 'Y/N', 'Describe the Hazard', 'How Made Safe', 'Risk']],
+      body,
+      styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
+      headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 90 }, 2: { cellWidth: 22 }, 5: { cellWidth: 55 } },
+      margin: { left: 40, right: 40 },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 5) {
+          const risk = record.hazards[data.row.index].risk;
+          if (risk === 'red') { data.cell.styles.textColor = [217, 45, 32]; data.cell.styles.fontStyle = 'bold'; }
+          else if (risk === 'amber') { data.cell.styles.textColor = [180, 110, 0]; data.cell.styles.fontStyle = 'bold'; }
+        }
+      }
+    });
+
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (y + 96);
+    doc.setFontSize(8);
+    doc.setTextColor(140, 140, 140);
+    doc.text(`Generated ${new Date().toLocaleString()} — InfoPort`, 40, Math.min(finalY + 20, 810));
+
+    const safeTask = (record.task || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+    doc.save(`take-five-${record.date}-${safeTask}.pdf`);
+    return true;
+  } catch (err) {
+    console.error('Failed to generate Take Five PDF', err);
+    return false;
+  }
+}
+
 t5El.form.addEventListener('submit', async (e) => {
   e.preventDefault();
   t5El.formError.textContent = '';
@@ -1497,6 +1611,12 @@ t5El.form.addEventListener('submit', async (e) => {
     const riskLabel = overallRisk === 'red' ? 'Red Risk' : overallRisk === 'amber' ? 'Amber Risk' : 'Zero Harm';
     t5El.successDetail.textContent = `${record.task} — ${record.location} (${riskLabel})`;
 
+    t5LastRecord = record;
+    const pdfOk = t5GeneratePdf(record);
+    t5El.pdfNote.textContent = pdfOk
+      ? 'A PDF copy has been downloaded automatically.'
+      : 'Could not auto-download the PDF — use the button below to try again.';
+
     t5RefreshBannerMeta();
     if (t5El.historyPanel.classList.contains('is-open')) t5LoadHistory();
   } catch (err) {
@@ -1509,6 +1629,10 @@ t5El.form.addEventListener('submit', async (e) => {
 });
 
 t5El.newBtn.addEventListener('click', t5OpenModal);
+
+t5El.downloadAgainBtn.addEventListener('click', () => {
+  if (t5LastRecord) t5GeneratePdf(t5LastRecord);
+});
 
 // ---------- History (last 7 days only) ----------
 
