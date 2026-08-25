@@ -560,6 +560,40 @@ font-size:16px;
 
 .t5-banner-btns{display:flex;flex-direction:column;gap:10px;}
 
+/* ================= OFFLINE ACCESS — Download Everything ================= */
+
+.offline-dl-banner{
+  max-width:1200px;margin:16px auto 0;padding:22px 26px;
+  background:#fff;border-left:6px solid #006937;border-radius:14px;
+  box-shadow:0 10px 20px rgba(0,0,0,.06);
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+}
+.offline-dl-icon{
+  width:52px;height:52px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.offline-dl-text{flex:1;min-width:220px;}
+.offline-dl-text h3{color:#006937;margin-bottom:6px;font-size:19px;}
+.offline-dl-text p{color:#666;font-size:14px;margin:0;}
+.offline-dl-status{color:#888;font-size:13px;margin-top:8px;}
+.offline-dl-btn{
+  background:#006937;color:#fff;border:none;padding:14px 24px;border-radius:30px;
+  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:10px;transition:.2s;
+}
+.offline-dl-btn:hover{background:#00552c;}
+.offline-dl-btn:disabled{background:#ccc;cursor:not-allowed;}
+.offline-dl-progress-wrap{width:100%;margin-top:14px;display:none;}
+.offline-dl-progress-wrap.show{display:block;}
+.offline-dl-progress-label{font-size:13px;color:#666;margin-bottom:6px;}
+.offline-dl-progress-track{background:#eee;border-radius:20px;height:8px;overflow:hidden;}
+.offline-dl-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+@media(max-width:600px){
+  .offline-dl-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
+  .offline-dl-btn{justify-content:center;}
+}
+
 .t5-banner-btn{
   background:#006937;color:#fff;border:2px solid #006937;padding:14px 24px;border-radius:30px;
   font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
@@ -813,6 +847,22 @@ font-size:16px;
       <i class="fa-solid fa-clock-rotate-left"></i> Take Five History
     </button>
   </div>
+</div>
+
+<div class="offline-dl-banner">
+  <div class="offline-dl-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+  <div class="offline-dl-text">
+    <h3>Offline Access</h3>
+    <p>Download all equipment manuals, checklists, and data now, so everything still works with no signal in the field.</p>
+    <div class="offline-dl-status" id="offlineDlStatus">Checking status…</div>
+    <div class="offline-dl-progress-wrap" id="offlineDlProgressWrap">
+      <div class="offline-dl-progress-label" id="offlineDlProgressLabel">Starting…</div>
+      <div class="offline-dl-progress-track"><div class="offline-dl-progress-fill" id="offlineDlProgressFill"></div></div>
+    </div>
+  </div>
+  <button type="button" class="offline-dl-btn" id="offlineDlBtn">
+    <i class="fa-solid fa-cloud-arrow-down"></i> Download Everything for Offline Use
+  </button>
 </div>
 
 <div class="controls">
@@ -1897,6 +1947,113 @@ function t5UpdateOfflineBanner() {
 window.addEventListener('online', t5UpdateOfflineBanner);
 window.addEventListener('offline', t5UpdateOfflineBanner);
 t5UpdateOfflineBanner();
+
+// ================= Offline Access — Download Everything =================
+//
+// Normal offline caching only happens opportunistically, as things are
+// viewed. This button proactively fetches equipment.json, every equipment
+// image and manual PDF, and the Firestore data each page needs (spare
+// parts, safety checklists, recent logs, recent Take Five records) so a
+// technician can prep before heading somewhere with no signal.
+
+(function () {
+  const dlBtn = document.getElementById('offlineDlBtn');
+  const dlStatus = document.getElementById('offlineDlStatus');
+  const progressWrap = document.getElementById('offlineDlProgressWrap');
+  const progressLabel = document.getElementById('offlineDlProgressLabel');
+  const progressFill = document.getElementById('offlineDlProgressFill');
+  const LAST_DL_KEY = 'infoport_offline_download_ts';
+
+  function formatLastDownload() {
+    const ts = localStorage.getItem(LAST_DL_KEY);
+    if (!ts) return "Not downloaded yet — recommended before heading somewhere with no signal.";
+    const date = new Date(parseInt(ts, 10));
+    return `Last downloaded: ${date.toLocaleString()}`;
+  }
+  dlStatus.textContent = formatLastDownload();
+
+  // Simple concurrency-limited queue so we don't fire 60+ requests at once
+  // on a slow connection.
+  async function runQueue(tasks, concurrency, onProgress) {
+    let index = 0;
+    let completed = 0;
+    let failed = 0;
+    async function worker() {
+      while (index < tasks.length) {
+        const i = index++;
+        try {
+          await tasks[i]();
+        } catch (err) {
+          failed++;
+          console.warn('Offline download: an item failed', err);
+        }
+        completed++;
+        onProgress(completed, tasks.length);
+      }
+    }
+    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, worker);
+    await Promise.all(workers);
+    return { failed };
+  }
+
+  async function fetchAndCache(url) {
+    const res = await fetch(url, { cache: 'reload' });
+    if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+    return res;
+  }
+
+  dlBtn.addEventListener('click', async () => {
+    if (!navigator.onLine) {
+      alert('You need an internet connection to download content for offline use.');
+      return;
+    }
+
+    dlBtn.disabled = true;
+    dlBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading…';
+    progressWrap.classList.add('show');
+    progressLabel.textContent = 'Starting…';
+    progressFill.style.width = '0%';
+
+    try {
+      const eqRes = await fetchAndCache('equipment.json');
+      const equipmentList = await eqRes.json();
+
+      const tasks = [];
+
+      equipmentList.forEach((e) => {
+        if (e.image) tasks.push(() => fetchAndCache(e.image));
+        (e.documents || []).forEach((d) => {
+          if (d.file) tasks.push(() => fetchAndCache(encodeURI(d.file)));
+        });
+      });
+
+      tasks.push(() => t5db.collection('spareParts').get({ source: 'server' }));
+      equipmentList.forEach((e) => {
+        tasks.push(() => t5db.collection('safetyChecklists').doc(e.id).get({ source: 'server' }));
+        tasks.push(() => t5db.collection('equipmentLogs').where('equipmentId', '==', e.id).get({ source: 'server' }));
+      });
+      const t5Cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
+      tasks.push(() => t5db.collection('takeFiveAssessments').where('createdAt', '>=', t5Cutoff).get({ source: 'server' }));
+
+      const { failed } = await runQueue(tasks, 4, (done, total) => {
+        progressLabel.textContent = `Downloading… ${done} of ${total}`;
+        progressFill.style.width = `${Math.round((done / total) * 100)}%`;
+      });
+
+      localStorage.setItem(LAST_DL_KEY, String(Date.now()));
+      dlStatus.textContent = formatLastDownload();
+      progressLabel.textContent = failed
+        ? `Done — ${failed} item${failed === 1 ? '' : 's'} couldn't be downloaded. Try again on a better connection if something's missing offline.`
+        : 'Done — everything is available offline.';
+    } catch (err) {
+      console.error('Offline download failed', err);
+      progressLabel.textContent = 'Something went wrong. Please check your connection and try again.';
+    } finally {
+      dlBtn.disabled = false;
+      dlBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Download Everything for Offline Use';
+    }
+  });
+})();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
