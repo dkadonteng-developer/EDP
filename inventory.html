@@ -229,10 +229,17 @@
     .controls select{width:100%}
     .admin-controls{flex-direction:column;align-items:stretch}
     .add-part-btn,.admin-toggle-btn,.viewer-badge{justify-content:center}
-  }
+  }#offlineBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:#d92d20;color:#fff;text-align:center;
+  padding:9px 12px;font-family:'Poppins',Arial,sans-serif;font-size:13px;font-weight:600;
+}
+#offlineBanner.show{display:block;}
 </style>
 </head>
 <body>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <header>
   <a href="index.html" id="headerBackLink" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
@@ -393,6 +400,13 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
 const auth = firebase.auth();
 
 const authReady = new Promise((resolve) => {
@@ -794,6 +808,21 @@ el.seedBtn.addEventListener('click', async () => {
     el.seedBtn.innerHTML = '<i class="fa-solid fa-database"></i> Load Demo Data';
   }
 });
+
+function invUpdateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', invUpdateOfflineBanner);
+window.addEventListener('offline', invUpdateOfflineBanner);
+invUpdateOfflineBanner();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
 </script>
 
 </body>
