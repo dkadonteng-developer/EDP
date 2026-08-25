@@ -558,28 +558,17 @@ font-size:16px;
 .t5-banner-text p{color:#666;font-size:14px;margin:0;}
 .t5-banner-meta{color:#888;font-size:13px;margin-top:8px;}
 
-.t5-banner-btn{
-  background:#006937;color:#fff;border:none;padding:14px 24px;border-radius:30px;
-  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
-  display:flex;align-items:center;gap:10px;transition:.2s;
-}
-.t5-banner-btn:hover{background:#00552c;}
+.t5-banner-btns{display:flex;flex-direction:column;gap:10px;}
 
-.t5-history-toggle{
-  background:none;border:none;color:#006937;font-family:inherit;
-  font-size:13px;font-weight:600;cursor:pointer;
-  display:flex;align-items:center;gap:6px;margin-top:10px;padding:0;
+.t5-banner-btn{
+  background:#006937;color:#fff;border:2px solid #006937;padding:14px 24px;border-radius:30px;
+  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:.2s;
 }
-.t5-history-panel{display:none;max-width:1200px;margin:12px auto 0;padding:0 26px;}
-.t5-history-panel.is-open{display:block;}
-.t5-history-entry{
-  background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,.05);
-  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-}
-.t5-history-main{flex:1;min-width:200px;}
-.t5-history-main strong{display:block;color:#333;font-size:14px;}
-.t5-history-main span{color:#888;font-size:12.5px;}
+.t5-banner-btn:hover{background:#00552c;border-color:#00552c;}
+.t5-banner-btn-outline{background:#fff;color:#006937;}
+.t5-banner-btn-outline:hover{background:#f0f9f4;border-color:#006937;}
+
 .t5-risk-chip{
   padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;
   text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;
@@ -588,6 +577,43 @@ font-size:16px;
 .t5-risk-chip.amber{background:#f59e0b;}
 .t5-risk-chip.red{background:#d92d20;}
 .t5-history-empty{color:#888;font-size:14px;padding:10px 0;}
+
+/* Take Five History modal */
+.t5-history-modal{max-width:820px;}
+.t5-history-toolbar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding-bottom:14px;margin-bottom:14px;border-bottom:2px solid #eee;
+}
+.t5-select-all{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#444;font-weight:600;cursor:pointer;}
+.t5-select-all input{width:18px;height:18px;cursor:pointer;}
+#t5SelectedCount{font-size:13px;color:#888;flex:1;}
+.t5-export-btn{
+  background:#006937;color:#fff;border:none;padding:11px 20px;border-radius:24px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;transition:.2s;
+}
+.t5-export-btn:disabled{background:#ccc;cursor:not-allowed;}
+.t5-export-btn:not(:disabled):hover{background:#00552c;}
+
+.t5-history-card{border:1px solid #eee;border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.t5-history-card-head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:#fff;
+}
+.t5-history-card-head input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;cursor:pointer;}
+.t5-history-card-main{flex:1;min-width:0;}
+.t5-history-card-main strong{display:block;color:#333;font-size:14px;}
+.t5-history-card-main span{color:#888;font-size:12.5px;}
+.t5-history-card-chevron{color:#999;transition:transform .2s;flex-shrink:0;}
+.t5-history-card.is-open .t5-history-card-chevron{transform:rotate(180deg);}
+
+.t5-history-card-detail{display:none;padding:0 16px 16px;border-top:1px dashed #eee;}
+.t5-history-card.is-open .t5-history-card-detail{display:block;padding-top:14px;}
+.t5-history-hazard{padding:10px 0;border-bottom:1px solid #f2f2f2;}
+.t5-history-hazard:last-child{border-bottom:none;}
+.t5-history-hazard-name{font-weight:600;font-size:13.5px;color:#333;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.t5-history-hazard-text{font-size:12.5px;color:#666;margin-top:4px;line-height:1.5;}
+.t5-history-hazard-text b{color:#444;}
+.t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0;}
 
 #t5Overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
@@ -682,7 +708,6 @@ font-size:16px;
 .t5-success i{font-size:46px;color:#00a651;margin-bottom:14px;}
 .t5-success h4{color:#006937;margin-bottom:8px;}
 .t5-success p{color:#666;font-size:14px;}
-.t5-pdf-note{color:#888;font-size:12.5px;margin-top:10px;}
 .t5-success-actions{
   display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px;
 }
@@ -696,9 +721,8 @@ font-size:16px;
 @media(max-width:600px){
   .t5-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
   .t5-banner-btn{justify-content:center;}
-  .t5-history-toggle{justify-content:center;}
 
-  #t5Overlay{padding:0;}
+  #t5Overlay,#t5HistoryOverlay{padding:0;}
   .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
   .t5-modal-head{padding:16px 18px;}
   .t5-modal-head h3{font-size:16px;}
@@ -712,6 +736,11 @@ font-size:16px;
 
   .t5-risk-select{flex-direction:column;}
   .t5-risk-select button{min-width:0;width:100%;}
+
+  .t5-history-toolbar{flex-direction:column;align-items:stretch;gap:10px;}
+  .t5-export-btn{justify-content:center;}
+  .t5-history-card-head{flex-wrap:wrap;}
+  .t5-history-card-main{flex-basis:100%;order:1;}
 }
 
 @media(max-width:400px){
@@ -768,17 +797,15 @@ font-size:16px;
     <h3>Take Five — Pre-Task Risk Assessment</h3>
     <p>Complete a Take Five before starting any assigned work. Stop, think, and identify the hazards before you begin.</p>
     <div class="t5-banner-meta" id="t5BannerMeta">Loading…</div>
-    <button type="button" class="t5-history-toggle" id="t5HistoryToggle">
-      <i class="fa-solid fa-clock-rotate-left"></i> View this week's assessments
+  </div>
+  <div class="t5-banner-btns">
+    <button type="button" class="t5-banner-btn" id="t5OpenBtn">
+      <i class="fa-solid fa-clipboard-check"></i> Start Take Five
+    </button>
+    <button type="button" class="t5-banner-btn t5-banner-btn-outline" id="t5HistoryBtn">
+      <i class="fa-solid fa-clock-rotate-left"></i> Take Five History
     </button>
   </div>
-  <button type="button" class="t5-banner-btn" id="t5OpenBtn">
-    <i class="fa-solid fa-clipboard-check"></i> Start Take Five
-  </button>
-</div>
-
-<div class="t5-history-panel" id="t5HistoryPanel">
-  <div id="t5HistoryEntries"></div>
 </div>
 
 <div class="controls">
@@ -1160,12 +1187,35 @@ Engineering Documentation Portal
         <i class="fa-solid fa-circle-check"></i>
         <h4>Take Five Recorded</h4>
         <p id="t5SuccessDetail"></p>
-        <p class="t5-pdf-note" id="t5PdfNote">A PDF copy has been downloaded automatically.</p>
         <div class="t5-success-actions">
-          <button type="button" id="t5DownloadAgainBtn" class="t5-secondary-btn"><i class="fa-solid fa-file-pdf"></i> Download PDF Again</button>
+          <button type="button" id="t5ViewHistoryBtn" class="t5-secondary-btn"><i class="fa-solid fa-clock-rotate-left"></i> View Take Five History</button>
           <button type="button" id="t5NewBtn">Start Another Take Five</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="t5HistoryOverlay">
+  <div class="t5-modal t5-history-modal">
+    <div class="t5-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Take Five History</h3>
+        <p>Assessments logged in the last 7 days.</p>
+      </div>
+      <button type="button" class="t5-modal-close" id="t5HistoryCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="t5-modal-body">
+      <div class="t5-history-toolbar">
+        <label class="t5-select-all">
+          <input type="checkbox" id="t5SelectAllCheckbox"> Select all
+        </label>
+        <span id="t5SelectedCount">None selected</span>
+        <button type="button" id="t5ExportSelectedBtn" class="t5-export-btn" disabled>
+          <i class="fa-solid fa-file-pdf"></i> Export Selected as PDF
+        </button>
+      </div>
+      <div id="t5HistoryList"><p class="t5-history-empty">Loading…</p></div>
     </div>
   </div>
 </div>
@@ -1340,9 +1390,7 @@ const T5_TOTAL_HAZARDS = T5_HAZARD_GROUPS.reduce((n, g) => n + g.items.length, 0
 const t5El = {
   bannerMeta: document.getElementById('t5BannerMeta'),
   openBtn: document.getElementById('t5OpenBtn'),
-  historyToggle: document.getElementById('t5HistoryToggle'),
-  historyPanel: document.getElementById('t5HistoryPanel'),
-  historyEntries: document.getElementById('t5HistoryEntries'),
+  historyBtn: document.getElementById('t5HistoryBtn'),
 
   overlay: document.getElementById('t5Overlay'),
   closeX: document.getElementById('t5CloseX'),
@@ -1359,9 +1407,15 @@ const t5El = {
   formError: document.getElementById('t5FormError'),
   success: document.getElementById('t5Success'),
   successDetail: document.getElementById('t5SuccessDetail'),
-  pdfNote: document.getElementById('t5PdfNote'),
-  downloadAgainBtn: document.getElementById('t5DownloadAgainBtn'),
+  viewHistoryBtn: document.getElementById('t5ViewHistoryBtn'),
   newBtn: document.getElementById('t5NewBtn'),
+
+  historyOverlay: document.getElementById('t5HistoryOverlay'),
+  historyCloseX: document.getElementById('t5HistoryCloseX'),
+  historyList: document.getElementById('t5HistoryList'),
+  selectAllCheckbox: document.getElementById('t5SelectAllCheckbox'),
+  selectedCount: document.getElementById('t5SelectedCount'),
+  exportSelectedBtn: document.getElementById('t5ExportSelectedBtn'),
 };
 
 let t5State = {}; // hazardId -> { name, answer: 'yes'|'no'|null, description, controls, risk }
@@ -1505,81 +1559,97 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && t5El.overlay.classList.contains('is-open')) t5CloseModal();
 });
 
-// ---------- PDF export (auto-downloads right after a successful save) ----------
-
-let t5LastRecord = null;
+// ---------- PDF export (manual, from Take Five History — supports multiple at once) ----------
 
 function t5RiskLabelFull(risk) {
   return risk === 'red' ? 'RED RISK' : risk === 'amber' ? 'AMBER RISK' : 'ZERO HARM';
 }
 
-function t5GeneratePdf(record) {
+function t5DrawRecordPage(doc, record) {
+  const riskColors = { zero: [0, 166, 81], amber: [245, 158, 11], red: [217, 45, 32] };
+  const overallColor = riskColors[record.overallRisk] || riskColors.zero;
+
+  doc.setFillColor(0, 105, 55);
+  doc.rect(0, 0, 595, 56, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.text('Take Five — Pre-Task Risk Assessment', 40, 34);
+
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  const y = 78;
+  doc.text(`Date: ${record.date}`, 40, y);
+  doc.text(`Task: ${record.task}`, 40, y + 16);
+  doc.text(`Location: ${record.location}`, 40, y + 32);
+  doc.text(`Names of people involved: ${record.namesInvolved}`, 40, y + 48);
+
+  doc.setFillColor(overallColor[0], overallColor[1], overallColor[2]);
+  doc.roundedRect(40, y + 62, 170, 22, 4, 4, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text(`OVERALL: ${t5RiskLabelFull(record.overallRisk)}`, 48, y + 77);
+
+  const hazards = record.hazards || [];
+  const body = hazards.map((h, i) => [
+    String(i + 1),
+    h.name,
+    h.answer === 'yes' ? 'Yes' : 'No',
+    h.answer === 'yes' ? h.description : '—',
+    h.answer === 'yes' ? h.controls : '—',
+    h.answer === 'yes' ? t5RiskLabelFull(h.risk) : '—'
+  ]);
+
+  doc.autoTable({
+    startY: y + 96,
+    head: [['#', 'Hazard', 'Y/N', 'Describe the Hazard', 'How Made Safe', 'Risk']],
+    body,
+    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 90 }, 2: { cellWidth: 22 }, 5: { cellWidth: 55 } },
+    margin: { left: 40, right: 40 },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 5) {
+        const risk = hazards[data.row.index] ? hazards[data.row.index].risk : null;
+        if (risk === 'red') { data.cell.styles.textColor = [217, 45, 32]; data.cell.styles.fontStyle = 'bold'; }
+        else if (risk === 'amber') { data.cell.styles.textColor = [180, 110, 0]; data.cell.styles.fontStyle = 'bold'; }
+      }
+    }
+  });
+
+  const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (y + 96);
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text(`Generated ${new Date().toLocaleString()} — InfoPort`, 40, Math.min(finalY + 20, 810));
+}
+
+function t5GeneratePdfBatch(records) {
   if (typeof window.jspdf === 'undefined') {
-    console.error('jsPDF failed to load — cannot generate Take Five PDF.');
+    alert('The PDF export library failed to load. Check your connection and try again.');
     return false;
   }
+  if (!records.length) return false;
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const riskColors = { zero: [0, 166, 81], amber: [245, 158, 11], red: [217, 45, 32] };
-    const overallColor = riskColors[record.overallRisk] || riskColors.zero;
-
-    doc.setFillColor(0, 105, 55);
-    doc.rect(0, 0, 595, 56, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.text('Take Five — Pre-Task Risk Assessment', 40, 34);
-
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    const y = 78;
-    doc.text(`Date: ${record.date}`, 40, y);
-    doc.text(`Task: ${record.task}`, 40, y + 16);
-    doc.text(`Location: ${record.location}`, 40, y + 32);
-    doc.text(`Names of people involved: ${record.namesInvolved}`, 40, y + 48);
-
-    doc.setFillColor(overallColor[0], overallColor[1], overallColor[2]);
-    doc.roundedRect(40, y + 62, 170, 22, 4, 4, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text(`OVERALL: ${t5RiskLabelFull(record.overallRisk)}`, 48, y + 77);
-
-    const body = record.hazards.map((h, i) => [
-      String(i + 1),
-      h.name,
-      h.answer === 'yes' ? 'Yes' : 'No',
-      h.answer === 'yes' ? h.description : '—',
-      h.answer === 'yes' ? h.controls : '—',
-      h.answer === 'yes' ? t5RiskLabelFull(h.risk) : '—'
-    ]);
-
-    doc.autoTable({
-      startY: y + 96,
-      head: [['#', 'Hazard', 'Y/N', 'Describe the Hazard', 'How Made Safe', 'Risk']],
-      body,
-      styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
-      headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 90 }, 2: { cellWidth: 22 }, 5: { cellWidth: 55 } },
-      margin: { left: 40, right: 40 },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 5) {
-          const risk = record.hazards[data.row.index].risk;
-          if (risk === 'red') { data.cell.styles.textColor = [217, 45, 32]; data.cell.styles.fontStyle = 'bold'; }
-          else if (risk === 'amber') { data.cell.styles.textColor = [180, 110, 0]; data.cell.styles.fontStyle = 'bold'; }
-        }
-      }
+    records.forEach((record, i) => {
+      if (i > 0) doc.addPage();
+      t5DrawRecordPage(doc, record);
     });
 
-    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (y + 96);
-    doc.setFontSize(8);
-    doc.setTextColor(140, 140, 140);
-    doc.text(`Generated ${new Date().toLocaleString()} — InfoPort`, 40, Math.min(finalY + 20, 810));
-
-    const safeTask = (record.task || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
-    doc.save(`take-five-${record.date}-${safeTask}.pdf`);
+    let filename;
+    if (records.length === 1) {
+      const r = records[0];
+      const safeTask = (r.task || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+      filename = `take-five-${r.date}-${safeTask}.pdf`;
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      filename = `take-five-batch-${today}-${records.length}-assessments.pdf`;
+    }
+    doc.save(filename);
     return true;
   } catch (err) {
     console.error('Failed to generate Take Five PDF', err);
+    alert('Could not generate the PDF. Please try again.');
     return false;
   }
 }
@@ -1625,14 +1695,7 @@ t5El.form.addEventListener('submit', async (e) => {
     const riskLabel = overallRisk === 'red' ? 'Red Risk' : overallRisk === 'amber' ? 'Amber Risk' : 'Zero Harm';
     t5El.successDetail.textContent = `${record.task} — ${record.location} (${riskLabel})`;
 
-    t5LastRecord = record;
-    const pdfOk = t5GeneratePdf(record);
-    t5El.pdfNote.textContent = pdfOk
-      ? 'A PDF copy has been downloaded automatically.'
-      : 'Could not auto-download the PDF — use the button below to try again.';
-
     t5RefreshBannerMeta();
-    if (t5El.historyPanel.classList.contains('is-open')) t5LoadHistory();
   } catch (err) {
     console.error('Failed to save Take Five assessment', err);
     t5El.formError.textContent = 'Could not save this assessment right now. Please try again.';
@@ -1644,11 +1707,12 @@ t5El.form.addEventListener('submit', async (e) => {
 
 t5El.newBtn.addEventListener('click', t5OpenModal);
 
-t5El.downloadAgainBtn.addEventListener('click', () => {
-  if (t5LastRecord) t5GeneratePdf(t5LastRecord);
+t5El.viewHistoryBtn.addEventListener('click', () => {
+  t5CloseModal();
+  t5OpenHistoryModal();
 });
 
-// ---------- History (last 7 days only) ----------
+// ---------- History modal (last 7 days only) ----------
 
 function t5SevenDaysAgo() {
   const d = new Date();
@@ -1675,8 +1739,23 @@ async function t5RefreshBannerMeta() {
   }
 }
 
+let t5HistoryDocs = [];
+let t5SelectedIds = new Set();
+
+function t5OpenHistoryModal() {
+  t5El.historyOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  t5LoadHistory();
+}
+function t5CloseHistoryModal() {
+  t5El.historyOverlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
 async function t5LoadHistory() {
-  t5El.historyEntries.innerHTML = '<p class="t5-history-empty">Loading…</p>';
+  t5El.historyList.innerHTML = '<p class="t5-history-empty">Loading…</p>';
+  t5SelectedIds.clear();
+  t5UpdateSelectionUI();
   try {
     await t5AuthReady;
     const cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
@@ -1688,33 +1767,95 @@ async function t5LoadHistory() {
       const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
       return tb - ta;
     });
-
-    if (!docs.length) {
-      t5El.historyEntries.innerHTML = '<p class="t5-history-empty">No assessments logged in the last 7 days.</p>';
-      return;
-    }
-
-    t5El.historyEntries.innerHTML = docs.map(r => `
-      <div class="t5-history-entry">
-        <div class="t5-history-main">
-          <strong>${t5EscapeHtml(r.task || 'Untitled task')}</strong>
-          <span>${t5EscapeHtml(r.location || '')} • ${t5EscapeHtml(r.namesInvolved || '')} • ${t5EscapeHtml(r.date || '')}</span>
-        </div>
-        <span class="t5-risk-chip ${r.overallRisk || 'zero'}">${t5RiskLabel(r.overallRisk)}</span>
-      </div>
-    `).join('');
+    t5HistoryDocs = docs;
+    t5RenderHistoryList();
   } catch (err) {
     console.error('Failed to load Take Five history', err);
-    t5El.historyEntries.innerHTML = '<p class="t5-history-empty">Could not load recent assessments right now.</p>';
+    t5El.historyList.innerHTML = '<p class="t5-history-empty">Could not load recent assessments right now.</p>';
   }
 }
 
-t5El.historyToggle.addEventListener('click', () => {
-  const isOpen = t5El.historyPanel.classList.toggle('is-open');
-  t5El.historyToggle.innerHTML = isOpen
-    ? '<i class="fa-solid fa-clock-rotate-left"></i> Hide this week\'s assessments'
-    : '<i class="fa-solid fa-clock-rotate-left"></i> View this week\'s assessments';
-  if (isOpen) t5LoadHistory();
+function t5RenderHistoryList() {
+  if (!t5HistoryDocs.length) {
+    t5El.historyList.innerHTML = '<p class="t5-history-empty">No assessments logged in the last 7 days.</p>';
+    return;
+  }
+
+  t5El.historyList.innerHTML = t5HistoryDocs.map(r => {
+    const yesHazards = (r.hazards || []).filter(h => h.answer === 'yes');
+    const detailHtml = yesHazards.length
+      ? yesHazards.map(h => `
+          <div class="t5-history-hazard">
+            <div class="t5-history-hazard-name">
+              <span>${t5EscapeHtml(h.name)}</span>
+              <span class="t5-risk-chip ${h.risk || 'zero'}">${t5RiskLabel(h.risk)}</span>
+            </div>
+            <div class="t5-history-hazard-text"><b>Hazard:</b> ${t5EscapeHtml(h.description || '—')}</div>
+            <div class="t5-history-hazard-text"><b>Controls:</b> ${t5EscapeHtml(h.controls || '—')}</div>
+          </div>
+        `).join('')
+      : '<p class="t5-history-no-hazards">No hazards were marked applicable — Zero Harm.</p>';
+
+    return `
+      <div class="t5-history-card" data-id="${r.id}">
+        <div class="t5-history-card-head">
+          <input type="checkbox" class="t5-history-checkbox" data-id="${r.id}">
+          <div class="t5-history-card-main">
+            <strong>${t5EscapeHtml(r.task || 'Untitled task')}</strong>
+            <span>${t5EscapeHtml(r.location || '')} • ${t5EscapeHtml(r.namesInvolved || '')} • ${t5EscapeHtml(r.date || '')}</span>
+          </div>
+          <span class="t5-risk-chip ${r.overallRisk || 'zero'}">${t5RiskLabel(r.overallRisk)}</span>
+          <i class="fa-solid fa-chevron-down t5-history-card-chevron"></i>
+        </div>
+        <div class="t5-history-card-detail">${detailHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  t5El.historyList.querySelectorAll('.t5-history-card-head').forEach(head => {
+    head.addEventListener('click', (e) => {
+      if (e.target.classList.contains('t5-history-checkbox')) return;
+      head.closest('.t5-history-card').classList.toggle('is-open');
+    });
+  });
+  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      if (cb.checked) t5SelectedIds.add(cb.dataset.id);
+      else t5SelectedIds.delete(cb.dataset.id);
+      t5UpdateSelectionUI();
+    });
+  });
+}
+
+function t5UpdateSelectionUI() {
+  const n = t5SelectedIds.size;
+  t5El.selectedCount.textContent = n === 0 ? 'None selected' : `${n} selected`;
+  t5El.exportSelectedBtn.disabled = n === 0;
+  t5El.selectAllCheckbox.checked = t5HistoryDocs.length > 0 && n === t5HistoryDocs.length;
+}
+
+t5El.selectAllCheckbox.addEventListener('change', () => {
+  if (t5El.selectAllCheckbox.checked) {
+    t5HistoryDocs.forEach(r => t5SelectedIds.add(r.id));
+  } else {
+    t5SelectedIds.clear();
+  }
+  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
+    cb.checked = t5SelectedIds.has(cb.dataset.id);
+  });
+  t5UpdateSelectionUI();
+});
+
+t5El.exportSelectedBtn.addEventListener('click', () => {
+  const selected = t5HistoryDocs.filter(r => t5SelectedIds.has(r.id));
+  if (selected.length) t5GeneratePdfBatch(selected);
+});
+
+t5El.historyBtn.addEventListener('click', t5OpenHistoryModal);
+t5El.historyCloseX.addEventListener('click', t5CloseHistoryModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && t5El.historyOverlay.classList.contains('is-open')) t5CloseHistoryModal();
 });
 
 // ---------- Best-effort cleanup: delete assessments older than 7 days ----------
