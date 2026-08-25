@@ -718,12 +718,19 @@ font-size:16px;
   .t5-modal-head{flex-wrap:wrap;}
   .t5-modal-close{margin-left:auto;}
 }
-
+#offlineBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:#d92d20;color:#fff;text-align:center;
+  padding:9px 12px;font-family:'Poppins',Arial,sans-serif;font-size:13px;font-weight:600;
+}
+#offlineBanner.show{display:block;}
 </style>
 
 </head>
 
 <body>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <nav>
 
@@ -1285,6 +1292,13 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const t5db = firebase.firestore();
+t5db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
 const t5auth = firebase.auth();
 
 let t5AuthorUid = null;
@@ -1727,6 +1741,21 @@ async function t5CleanupOldAssessments() {
 
 t5RefreshBannerMeta();
 t5CleanupOldAssessments();
+
+function t5UpdateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', t5UpdateOfflineBanner);
+window.addEventListener('offline', t5UpdateOfflineBanner);
+t5UpdateOfflineBanner();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
 </script>
 
 </body>
