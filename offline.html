@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfoPort — Offline</title>
+<style>
+  *{margin:0;box-sizing:border-box;}
+  body{
+    font-family:'Poppins',Arial,sans-serif;
+    background:#f5f7fa;color:#333;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;text-align:center;
+  }
+  .card{
+    background:#fff;border-radius:18px;padding:40px 32px;max-width:420px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+  }
+  .icon{
+    width:64px;height:64px;border-radius:50%;background:#006937;color:#fff;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;
+  }
+  h1{color:#006937;font-size:20px;margin-bottom:10px;}
+  p{color:#666;font-size:14px;line-height:1.6;margin-bottom:24px;}
+  button{
+    background:#006937;color:#fff;border:none;padding:13px 28px;border-radius:30px;
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  button:hover{background:#00552c;}
+  a{color:#006937;font-weight:600;text-decoration:none;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">&#9888;</div>
+    <h1>You're offline</h1>
+    <p>This page hasn't been opened before, so it isn't saved for offline use yet. Equipment pages, manuals, and checklists you've already viewed will still work as normal.</p>
+    <button onclick="location.reload()">Try Again</button>
+    <p style="margin-top:16px;margin-bottom:0;"><a href="/index.html">Back to Home</a></p>
+  </div>
+</body>
+</html>
