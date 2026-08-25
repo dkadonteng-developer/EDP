@@ -2,7 +2,7 @@
 //
 // Bump CACHE_VERSION whenever the HTML/CSS/JS in this site changes.
 // Old caches from previous versions are deleted automatically on activate.
-const CACHE_VERSION = 'infoport-v1';
+const CACHE_VERSION = 'infoport-v2';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -18,6 +18,7 @@ const SHELL_FILES = [
   '/inventory.html',
   '/offline.html',
   '/manifest.json',
+  '/equipment.json',
   '/assets/logo.png',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
