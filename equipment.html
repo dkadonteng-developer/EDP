@@ -818,10 +818,17 @@
   #previewFsWrap.fake-fullscreen .viewer-empty,
   #previewFsWrap:fullscreen .pdf-loading,
   #previewFsWrap.fake-fullscreen .pdf-loading{flex:1;max-height:none;height:auto}
-  #fullscreenBtn.is-active i{color:var(--brand)}
+  #fullscreenBtn.is-active i{color:var(--brand)}#offlineBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:var(--danger);color:#fff;text-align:center;
+  padding:9px 12px;font-family:'Poppins',Arial,sans-serif;font-size:13px;font-weight:600;
+}
+#offlineBanner.show{display:block;}
 </style>
 </head>
 <body>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <div id="safetyOverlay">
   <div class="safety-modal">
@@ -1278,6 +1285,13 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
 const auth = firebase.auth();
 
 // Anonymous sign-in gives this browser a stable identity (persisted by
@@ -3564,6 +3578,21 @@ checklistEditEl.saveBtn.addEventListener('click', async () => {
     checklistEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
   }
 });
+
+function eqUpdateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', eqUpdateOfflineBanner);
+window.addEventListener('offline', eqUpdateOfflineBanner);
+eqUpdateOfflineBanner();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
 
 </script>
 </body>
