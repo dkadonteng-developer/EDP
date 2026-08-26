@@ -539,69 +539,56 @@ font-size:16px;
 }
 
 
-/* ================= TAKE FIVE — Pre-Task Risk Assessment ================= */
+/* ================= QUICK ACTIONS BAR — Take Five + Offline Access ================= */
+/* One compact toolbar replaces what used to be two full-height cards. */
 
-.t5-banner{
-  max-width:1200px;margin:30px auto 0;padding:22px 26px;
-  background:#fff;border-left:6px solid #006937;border-radius:14px;
-  box-shadow:0 10px 20px rgba(0,0,0,.06);
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+.quick-actions-bar{
+  max-width:1200px;margin:20px auto 0;padding:10px 16px;
+  background:#fff;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.05);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
 }
 
-.t5-banner-icon{
-  width:52px;height:52px;flex-shrink:0;background:#006937;color:#fff;
-  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;
+.quick-action-group{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:260px;padding:4px 0;
 }
 
-.t5-banner-text{flex:1;min-width:220px;}
-.t5-banner-text h3{color:#006937;margin-bottom:6px;font-size:19px;}
-.t5-banner-text p{color:#666;font-size:14px;margin:0;}
-.t5-banner-meta{color:#888;font-size:13px;margin-top:8px;}
-
-.t5-banner-btns{display:flex;flex-direction:column;gap:10px;}
-
-/* ================= OFFLINE ACCESS — Download Everything ================= */
-
-.offline-dl-banner{
-  max-width:1200px;margin:16px auto 0;padding:22px 26px;
-  background:#fff;border-left:6px solid #006937;border-radius:14px;
-  box-shadow:0 10px 20px rgba(0,0,0,.06);
-  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
-}
-.offline-dl-icon{
-  width:52px;height:52px;flex-shrink:0;background:#006937;color:#fff;
-  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;
-}
-.offline-dl-text{flex:1;min-width:220px;}
-.offline-dl-text h3{color:#006937;margin-bottom:6px;font-size:19px;}
-.offline-dl-text p{color:#666;font-size:14px;margin:0;}
-.offline-dl-status{color:#888;font-size:13px;margin-top:8px;}
-.offline-dl-btn{
-  background:#006937;color:#fff;border:none;padding:14px 24px;border-radius:30px;
-  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
-  display:flex;align-items:center;gap:10px;transition:.2s;
-}
-.offline-dl-btn:hover{background:#00552c;}
-.offline-dl-btn:disabled{background:#ccc;cursor:not-allowed;}
-.offline-dl-progress-wrap{width:100%;margin-top:14px;display:none;}
-.offline-dl-progress-wrap.show{display:block;}
-.offline-dl-progress-label{font-size:13px;color:#666;margin-bottom:6px;}
-.offline-dl-progress-track{background:#eee;border-radius:20px;height:8px;overflow:hidden;}
-.offline-dl-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
-
-@media(max-width:600px){
-  .offline-dl-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
-  .offline-dl-btn{justify-content:center;}
+.quick-action-icon{
+  width:32px;height:32px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;
 }
 
-.t5-banner-btn{
-  background:#006937;color:#fff;border:2px solid #006937;padding:14px 24px;border-radius:30px;
-  font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;
-  display:flex;align-items:center;justify-content:center;gap:10px;transition:.2s;
+.quick-action-info{display:flex;flex-direction:column;flex:1;min-width:0;gap:1px;}
+.quick-action-label{font-size:13px;font-weight:700;color:#333;}
+.quick-action-meta{font-size:11px;color:#888;line-height:1.3;}
+
+.quick-action-btns{display:flex;gap:6px;flex-shrink:0;}
+.quick-action-btn{
+  background:#006937;color:#fff;border:1.5px solid #006937;padding:8px 14px;border-radius:20px;
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;transition:.2s;
 }
-.t5-banner-btn:hover{background:#00552c;border-color:#00552c;}
-.t5-banner-btn-outline{background:#fff;color:#006937;}
-.t5-banner-btn-outline:hover{background:#f0f9f4;border-color:#006937;}
+.quick-action-btn:hover{background:#00552c;border-color:#00552c;}
+.quick-action-btn.outline{background:#fff;color:#006937;}
+.quick-action-btn.outline:hover{background:#f0f9f4;}
+.quick-action-btn:disabled{background:#ccc;border-color:#ccc;cursor:not-allowed;}
+
+.quick-action-divider{width:1px;align-self:stretch;background:#eee;margin:2px 4px;}
+
+.qa-progress-wrap{width:100%;margin-top:6px;display:none;}
+.qa-progress-wrap.show{display:block;}
+.qa-progress-label{font-size:11px;color:#666;margin-bottom:4px;}
+.qa-progress-track{background:#eee;border-radius:20px;height:6px;overflow:hidden;}
+.qa-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+@media(max-width:700px){
+  .quick-actions-bar{flex-direction:column;align-items:stretch;padding:12px 14px;}
+  .quick-action-divider{display:none;height:1px;width:100%;margin:4px 0;}
+}
+@media(max-width:420px){
+  .quick-action-group{flex-wrap:wrap;}
+  .quick-action-btns{width:100%;}
+  .quick-action-btn{flex:1;justify-content:center;}
+}
 
 .t5-risk-chip{
   padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;
@@ -650,6 +637,13 @@ font-size:16px;
 .t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0;}
 
 /* ================= PWA INSTALL PROMPT ================= */
+
+#pwaInstallOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2500;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#pwaInstallOverlay.is-open{display:flex;}
 
 .pwa-install-modal{max-width:440px;}
 
@@ -799,9 +793,6 @@ font-size:16px;
 .t5-secondary-btn{background:#fff !important;color:#006937 !important;border:1.5px solid #006937 !important;}
 
 @media(max-width:600px){
-  .t5-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
-  .t5-banner-btn{justify-content:center;}
-
   #t5Overlay,#t5HistoryOverlay,#pwaInstallOverlay{padding:0;}
   .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
   .t5-modal-head{padding:16px 18px;}
@@ -871,37 +862,41 @@ font-size:16px;
 
 </section>
 
-<div class="t5-banner">
-  <div class="t5-banner-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-  <div class="t5-banner-text">
-    <h3>Take Five — Pre-Task Risk Assessment</h3>
-    <p>Complete a Take Five before starting any assigned work. Stop, think, and identify the hazards before you begin.</p>
-    <div class="t5-banner-meta" id="t5BannerMeta">Loading…</div>
-  </div>
-  <div class="t5-banner-btns">
-    <button type="button" class="t5-banner-btn" id="t5OpenBtn">
-      <i class="fa-solid fa-clipboard-check"></i> Start Take Five
-    </button>
-    <button type="button" class="t5-banner-btn t5-banner-btn-outline" id="t5HistoryBtn">
-      <i class="fa-solid fa-clock-rotate-left"></i> Take Five History
-    </button>
-  </div>
-</div>
-
-<div class="offline-dl-banner">
-  <div class="offline-dl-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
-  <div class="offline-dl-text">
-    <h3>Offline Access</h3>
-    <p>Download all equipment manuals, checklists, and data now, so everything still works with no signal in the field.</p>
-    <div class="offline-dl-status" id="offlineDlStatus">Checking status…</div>
-    <div class="offline-dl-progress-wrap" id="offlineDlProgressWrap">
-      <div class="offline-dl-progress-label" id="offlineDlProgressLabel">Starting…</div>
-      <div class="offline-dl-progress-track"><div class="offline-dl-progress-fill" id="offlineDlProgressFill"></div></div>
+<div class="quick-actions-bar">
+  <div class="quick-action-group">
+    <div class="quick-action-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+    <div class="quick-action-info">
+      <span class="quick-action-label">Take Five</span>
+      <span class="quick-action-meta" id="t5BannerMeta">Loading…</span>
+    </div>
+    <div class="quick-action-btns">
+      <button type="button" class="quick-action-btn" id="t5OpenBtn">
+        <i class="fa-solid fa-clipboard-check"></i> Start
+      </button>
+      <button type="button" class="quick-action-btn outline" id="t5HistoryBtn">
+        <i class="fa-solid fa-clock-rotate-left"></i> History
+      </button>
     </div>
   </div>
-  <button type="button" class="offline-dl-btn" id="offlineDlBtn">
-    <i class="fa-solid fa-cloud-arrow-down"></i> Download Everything for Offline Use
-  </button>
+
+  <div class="quick-action-divider"></div>
+
+  <div class="quick-action-group">
+    <div class="quick-action-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+    <div class="quick-action-info">
+      <span class="quick-action-label">Offline Access</span>
+      <span class="quick-action-meta" id="offlineDlStatus">Checking status…</span>
+      <div class="qa-progress-wrap" id="offlineDlProgressWrap">
+        <div class="qa-progress-label" id="offlineDlProgressLabel">Starting…</div>
+        <div class="qa-progress-track"><div class="qa-progress-fill" id="offlineDlProgressFill"></div></div>
+      </div>
+    </div>
+    <div class="quick-action-btns">
+      <button type="button" class="quick-action-btn" id="offlineDlBtn">
+        <i class="fa-solid fa-cloud-arrow-down"></i> Download
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="controls">
