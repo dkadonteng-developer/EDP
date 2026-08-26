@@ -793,7 +793,7 @@ font-size:16px;
 .t5-secondary-btn{background:#fff !important;color:#006937 !important;border:1.5px solid #006937 !important;}
 
 @media(max-width:600px){
-  #t5Overlay,#t5HistoryOverlay,#pwaInstallOverlay{padding:0;}
+  #t5Overlay,#t5HistoryOverlay{padding:0;}
   .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
   .t5-modal-head{padding:16px 18px;}
   .t5-modal-head h3{font-size:16px;}
@@ -812,6 +812,14 @@ font-size:16px;
   .t5-export-btn{justify-content:center;}
   .t5-history-card-head{flex-wrap:wrap;}
   .t5-history-card-main{flex-basis:100%;order:1;}
+
+  /* Install prompt stays a small centered popup on phones — it's just a
+     few short steps, not the multi-page content the rule above is for. */
+  #pwaInstallOverlay{align-items:center;padding:16px;}
+  .pwa-install-modal{
+    max-width:400px;width:100%;min-height:0;border-radius:18px;margin-bottom:0;
+  }
+  .pwa-install-modal .t5-modal-head{border-radius:18px 18px 0 0;}
 }
 
 @media(max-width:400px){
