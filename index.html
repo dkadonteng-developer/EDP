@@ -649,6 +649,45 @@ font-size:16px;
 .t5-history-hazard-text b{color:#444;}
 .t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0;}
 
+/* ================= PWA INSTALL PROMPT ================= */
+
+.pwa-install-modal{max-width:440px;}
+
+.pwa-step{
+  display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;
+  padding:14px;background:#f8faf9;border-radius:12px;
+}
+.pwa-step-num{
+  width:28px;height:28px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;
+}
+.pwa-step-icon{
+  width:36px;height:36px;flex-shrink:0;background:#e7f3ec;color:#006937;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.pwa-step-text{flex:1;font-size:14px;color:#444;line-height:1.5;padding-top:4px;}
+.pwa-step-text b{color:#222;}
+
+.pwa-install-native-btn{
+  width:100%;background:#006937;color:#fff;border:none;padding:15px;
+  border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.2s;
+}
+.pwa-install-native-btn:hover{background:#00552c;}
+
+.pwa-note{
+  background:#fff6e5;color:#a05a00;font-size:13px;padding:12px 14px;
+  border-radius:10px;margin-bottom:14px;line-height:1.5;
+}
+
+.pwa-dont-show{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:#888;
+  margin-top:18px;cursor:pointer;
+}
+.pwa-dont-show input{width:16px;height:16px;cursor:pointer;flex-shrink:0;}
+
 #t5Overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
   z-index:2000;align-items:flex-start;justify-content:center;
@@ -763,7 +802,7 @@ font-size:16px;
   .t5-banner{flex-direction:column;align-items:stretch;text-align:center;padding:18px;}
   .t5-banner-btn{justify-content:center;}
 
-  #t5Overlay,#t5HistoryOverlay{padding:0;}
+  #t5Overlay,#t5HistoryOverlay,#pwaInstallOverlay{padding:0;}
   .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
   .t5-modal-head{padding:16px 18px;}
   .t5-modal-head h3{font-size:16px;}
@@ -1273,6 +1312,24 @@ Engineering Documentation Portal
         </button>
       </div>
       <div id="t5HistoryList"><p class="t5-history-empty">Loading…</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="pwaInstallOverlay">
+  <div class="t5-modal pwa-install-modal">
+    <div class="t5-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-mobile-screen-button"></i> Install InfoPort</h3>
+        <p>Add it to your home screen for one-tap access — even offline.</p>
+      </div>
+      <button type="button" class="t5-modal-close" id="pwaInstallCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="t5-modal-body">
+      <div id="pwaInstallContent"></div>
+      <label class="pwa-dont-show">
+        <input type="checkbox" id="pwaDontShowAgain"> Don't show this again on this device
+      </label>
     </div>
   </div>
 </div>
@@ -2054,6 +2111,150 @@ t5UpdateOfflineBanner();
     }
   });
 })();
+
+// ================= PWA Install Prompt =================
+//
+// Shows a one-time (per device) "how to install" prompt, tailored to the
+// visitor's actual phone/browser. Never shows once the site is genuinely
+// installed (detected via standalone display-mode, the browser's
+// appinstalled event, or navigator.standalone on iOS). Dismissing without
+// checking the box just snoozes it for 7 days; checking the box opts out
+// permanently on this device.
+
+const PWA_INSTALLED_KEY = 'infoport_pwa_installed';
+const PWA_OPTOUT_KEY = 'infoport_pwa_optout';
+const PWA_DISMISS_UNTIL_KEY = 'infoport_pwa_dismiss_until';
+
+let pwaDeferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaDeferredPrompt = e;
+});
+
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+  pwaCloseModal();
+});
+
+function pwaIsStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function pwaDetectPlatform() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isIPadOS13 = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  const isAndroid = /Android/.test(ua);
+  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  if (isIOS || isIPadOS13) return isSafari ? 'ios-safari' : 'ios-other';
+  if (isAndroid) return 'android';
+  return 'desktop';
+}
+
+const pwaEl = {
+  overlay: document.getElementById('pwaInstallOverlay'),
+  closeX: document.getElementById('pwaInstallCloseX'),
+  content: document.getElementById('pwaInstallContent'),
+  dontShowAgain: document.getElementById('pwaDontShowAgain'),
+};
+
+function pwaStep(num, icon, html) {
+  return `
+    <div class="pwa-step">
+      <div class="pwa-step-num">${num}</div>
+      <div class="pwa-step-icon"><i class="fa-solid ${icon}"></i></div>
+      <div class="pwa-step-text">${html}</div>
+    </div>
+  `;
+}
+
+function pwaRenderContent(platform) {
+  if (platform === 'ios-safari') {
+    pwaEl.content.innerHTML =
+      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
+      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
+      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
+    return;
+  }
+  if (platform === 'ios-other') {
+    pwaEl.content.innerHTML =
+      '<div class="pwa-note"><i class="fa-solid fa-triangle-exclamation"></i> "Add to Home Screen" works best in Safari on iPhone/iPad. Open this page in Safari, then:</div>' +
+      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
+      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
+      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
+    return;
+  }
+  if (platform === 'android') {
+    if (pwaDeferredPrompt) {
+      pwaEl.content.innerHTML = `
+        <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Tap below and confirm — Chrome will add InfoPort straight to your home screen.</p>
+        <button type="button" class="pwa-install-native-btn" id="pwaNativeInstallBtn">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+      `;
+      document.getElementById('pwaNativeInstallBtn').addEventListener('click', async () => {
+        if (!pwaDeferredPrompt) return;
+        pwaDeferredPrompt.prompt();
+        const { outcome } = await pwaDeferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+          pwaCloseModal();
+        }
+        pwaDeferredPrompt = null;
+      });
+    } else {
+      pwaEl.content.innerHTML =
+        pwaStep(1, 'fa-ellipsis-vertical', 'Tap the <b>menu</b> (⋮) in the top right of Chrome.') +
+        pwaStep(2, 'fa-square-plus', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>).') +
+        pwaStep(3, 'fa-check', 'Tap <b>Install</b> to confirm.');
+    }
+    return;
+  }
+}
+
+function pwaCloseModal() {
+  pwaEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+function pwaDismiss() {
+  if (pwaEl.dontShowAgain.checked) {
+    localStorage.setItem(PWA_OPTOUT_KEY, 'true');
+  } else {
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem(PWA_DISMISS_UNTIL_KEY, String(Date.now() + sevenDays));
+  }
+  pwaCloseModal();
+}
+
+pwaEl.closeX.addEventListener('click', pwaDismiss);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && pwaEl.overlay.classList.contains('is-open')) pwaDismiss();
+});
+
+function pwaMaybeShowPrompt() {
+  if (pwaIsStandalone()) {
+    localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+    return;
+  }
+  if (localStorage.getItem(PWA_INSTALLED_KEY) === 'true') return;
+  if (localStorage.getItem(PWA_OPTOUT_KEY) === 'true') return;
+
+  const dismissUntil = parseInt(localStorage.getItem(PWA_DISMISS_UNTIL_KEY) || '0', 10);
+  if (Date.now() < dismissUntil) return;
+
+  const platform = pwaDetectPlatform();
+  if (platform === 'desktop') return; // phone-only prompt
+
+  setTimeout(() => {
+    pwaRenderContent(platform);
+    pwaEl.overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }, 1800);
+}
+
+pwaMaybeShowPrompt();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
