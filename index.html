@@ -963,265 +963,7 @@ Equipment List
 
 </h2>
 
-<div class="cards" id="cardsGrid">
-
-<div class="card">
-
-<img src="assets/equipment/rt.JPG" alt="Rotor Packer 1">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational
-
-</span>
-
-<h3>Rotor Packer 1</h3>
-
-<p><strong>ID:</strong> rt-01</p>
-
-<p><strong>Manufacturer:</strong> Haver & Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=rt-01">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/rt2.JPG" alt="Rotor Packer 2">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational
-
-</span>
-
-<h3>Rotor Packer 2</h3>
-
-<p><strong>ID:</strong> rt-02</p>
-
-<p><strong>Manufacturer:</strong> Haver & Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=rt-02">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/rt4.JPG" alt="Rotor Packer 4">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Rotor Packer 4</h3>
-
-<p><strong>ID:</strong> rt-04</p>
-
-<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=rt-04">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/rt6.JPG" alt="Rotor Packer 6">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Rotor Packer 6</h3>
-
-<p><strong>ID:</strong> rt-06</p>
-
-<p><strong>Manufacturer:</strong> Haver</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=rt-06">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/be1.JPG" alt="Bucket Elevator (Packer 1 & 2)">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Bucket Elevator (Packer 1 & 2) </h3>
-
-<p><strong>ID:</strong> be1</p>
-
-<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=be1">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/be4.JPG" alt="Bucket Elevator (Packer 4)">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Bucket Elevator (Packer 4)</h3>
-
-<p><strong>ID:</strong> be4</p>
-
-<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=be4">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/be6.jpg" alt="Bucket Elevator (Packer 6)">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Bucket Elevator (Packer 6)</h3>
-
-<p><strong>ID:</strong> be6</p>
-
-<p><strong>Manufacturer:</strong> Haver &amp; Boecker</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=be6">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/vs1.JPG" alt="Vibrating Screen (Packer 1 & 2)">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Vibrating Screen (Packer 1 & 2)</h3>
-
-<p><strong>ID:</strong> vs1</p>
-
-<p><strong>Manufacturer:</strong> Niagara & Haver</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=vs1">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<img src="assets/equipment/vs2.JPG" alt="Vibrating Screen (Packer 4)">
-
-<div class="card-content">
-
-<span class="badge">
-
-Operational</span>
-
-<h3>Vibrating Screen (Packer 4)</h3>
-
-<p><strong>ID:</strong> vs2</p>
-
-<p><strong>Manufacturer:</strong> Haver</p>
-
-<p><strong>Location:</strong> Packing Plant</p>
-
-<a href="equipment.html?id=vs2">
-
-View Details
-
-</a>
-
-</div>
-
-</div>
-
-</div>
+<div class="cards" id="cardsGrid"><p class="loading-text" style="padding:30px;color:#888;grid-column:1/-1;text-align:center;">Loading equipment…</p></div>
 
 </div>
 
@@ -1337,8 +1079,37 @@ Engineering Documentation Portal
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
 <script>
-(function () {
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
+
+function escapeHtmlCard(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+(async function () {
   const cardsGrid = document.getElementById('cardsGrid');
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
@@ -1351,8 +1122,43 @@ Engineering Documentation Portal
     'material transport': 'material-transport'
   };
 
+  // ---------- Load equipment from Firestore (editable via admin.html) ----------
+  let equipmentData = [];
+  try {
+    const snap = await db.collection('equipment').orderBy('name').get();
+    equipmentData = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    console.error('Failed to load equipment list', err);
+  }
+
+  if (!equipmentData.length) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No equipment found. If this is unexpected, check your connection and try again.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
+    return;
+  }
+
+  cardsGrid.innerHTML = equipmentData.map((e) => `
+    <div class="card">
+      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
+      <div class="card-content">
+        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
+        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
+        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
+        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
+        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
+        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
+      </div>
+    </div>
+  `).join('');
+
+  // ---------- Search / sort / filter — unchanged from before ----------
   // Build a lightweight model of each card up front: text to search,
-  // department bucket (derived from the existing "Location" line),
+  // department bucket (derived from the "Location" line just rendered),
   // and sort keys — so filtering/sorting never has to touch the DOM twice.
   const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el) => {
     const name = (el.querySelector('h3')?.textContent || '').trim();
@@ -1431,10 +1237,6 @@ Engineering Documentation Portal
 </script>
 
 
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-
 <script>
 // ================= Take Five — Pre-Task Risk Assessment =================
 //
@@ -1448,24 +1250,7 @@ Engineering Documentation Portal
 // visiting the page, also set a Firestore TTL policy in the console (see
 // the notes given alongside this file).
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
-  authDomain: "edp-equipment.firebaseapp.com",
-  projectId: "edp-equipment",
-  storageBucket: "edp-equipment.firebasestorage.app",
-  messagingSenderId: "556924119553",
-  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
-  measurementId: "G-YGXNH7T0T0"
-};
-firebase.initializeApp(firebaseConfig);
-const t5db = firebase.firestore();
-t5db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Offline persistence only works in one browser tab at a time.');
-  } else if (err.code === 'unimplemented') {
-    console.warn('This browser does not support offline persistence.');
-  }
-});
+const t5db = db; // Firebase is already initialized earlier (see the equipment-cards script above)
 const t5auth = firebase.auth();
 
 let t5AuthorUid = null;
@@ -2011,8 +1796,8 @@ t5UpdateOfflineBanner();
 // ================= Offline Access — Download Everything =================
 //
 // Normal offline caching only happens opportunistically, as things are
-// viewed. This button proactively fetches equipment.json, every equipment
-// image and manual PDF, and the Firestore data each page needs (spare
+// viewed. This button proactively fetches the equipment list from
+// Firestore, every equipment image and manual PDF, and the Firestore data each page needs (spare
 // parts, safety checklists, recent logs, recent Take Five records) so a
 // technician can prep before heading somewhere with no signal.
 
@@ -2075,8 +1860,8 @@ t5UpdateOfflineBanner();
     progressFill.style.width = '0%';
 
     try {
-      const eqRes = await fetchAndCache('equipment.json');
-      const equipmentList = await eqRes.json();
+      const eqSnap = await t5db.collection('equipment').get({ source: 'server' });
+      const equipmentList = eqSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
       const tasks = [];
 
