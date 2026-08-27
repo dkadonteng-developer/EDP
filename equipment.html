@@ -51,6 +51,74 @@
   .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
   .section h2 i{color:var(--brand)}
 
+  /* ---------- Exploded View ---------- */
+  .explode-hint{color:var(--muted);font-size:.85rem;margin:-6px 0 14px}
+  .explode-wrap{
+    position:relative;border-radius:12px;overflow:hidden;background:#eef1f3;
+    border:1px solid var(--border);
+  }
+  .explode-zoom{
+    position:relative;width:100%;transition:transform .45s cubic-bezier(.22,.61,.36,1);
+    transform-origin:50% 50%;
+  }
+  .explode-zoom img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+  .explode-zoom.is-zoomed{transform:scale(2.2)}
+
+  .explode-pin{
+    position:absolute;width:30px;height:30px;border-radius:50%;
+    background:var(--brand);color:#fff;border:2px solid #fff;
+    display:flex;align-items:center;justify-content:center;font-size:.85rem;
+    transform:translate(-50%,-50%);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.35);
+    transition:transform .2s ease, background .2s ease;
+  }
+  .explode-pin::after{
+    content:'';position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--brand);
+    opacity:.5;animation:explodePulse 1.8s ease-out infinite;
+  }
+  .explode-pin:hover{background:var(--brand-light)}
+  .explode-pin.is-active{background:var(--danger);z-index:2}
+  .explode-pin.is-active::after{display:none}
+  @keyframes explodePulse{
+    0%{transform:scale(1);opacity:.5}
+    100%{transform:scale(1.6);opacity:0}
+  }
+
+  #partPanelOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1500;
+    display:none;align-items:flex-end;justify-content:center;
+  }
+  #partPanelOverlay.is-open{display:flex}
+  .part-panel{
+    background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:82vh;
+    overflow-y:auto;padding:24px;position:relative;box-shadow:0 -8px 30px rgba(0,0,0,.3);
+    animation:partPanelIn .25s ease;
+  }
+  @keyframes partPanelIn{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @media (min-width:700px){
+    #partPanelOverlay{align-items:center}
+    .part-panel{border-radius:18px;max-height:78vh}
+  }
+  .part-panel-close{
+    position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;
+    border:none;background:#f0f2f4;color:var(--text);cursor:pointer;font-size:1rem;
+  }
+  .part-panel-close:hover{background:#e2e6e9}
+  .part-panel-photo-wrap{
+    width:100%;height:170px;border-radius:12px;overflow:hidden;background:#eef1f3;
+    display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+  }
+  .part-panel-photo-wrap img{width:100%;height:100%;object-fit:cover;display:none}
+  .part-panel-photo-wrap.has-photo img{display:block}
+  .part-panel-photo-wrap:not(.has-photo)::after{
+    content:'\f1b2';font-family:'Font Awesome 6 Free';font-weight:900;font-size:1.8rem;color:#c3cad0;
+  }
+  .part-panel h3{margin:0 0 14px;font-size:1.2rem;padding-right:34px}
+  .part-panel-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.92rem}
+  .part-panel-row b{color:var(--muted);font-weight:500}
+  .part-panel-function{margin-top:16px}
+  .part-panel-function b{display:block;color:var(--muted);font-weight:500;font-size:.8rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px}
+  .part-panel-function p{margin:0;font-size:.92rem;line-height:1.55}
+
   /* ---------- Major Maintenance Safety Checklist (prominent banner) ---------- */
   .safety-checklist-section{
     background:#fff5f4;border:1px solid #f3c6c1;
@@ -979,7 +1047,7 @@
 </div>
 
 <header>
-  <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <a href="index.html" class="header-back" id="headerBackLink"><i class="fa-solid fa-arrow-left"></i> <span id="headerBackText">Dashboard</span></a>
   <div class="header-right">
     <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
   </div>
@@ -1001,11 +1069,38 @@
       <p id="description" class="skeleton">Loading description…</p>
       <div class="grid">
         <div class="item"><b>ID</b><span id="equipmentId"></span></div>
+        <div class="item"><b>Group</b><span id="group"></span></div>
         <div class="item"><b>Department</b><span id="department"></span></div>
         <div class="item"><b>Manufacturer</b><span id="manufacturer"></span></div>
         <div class="item"><b>Model</b><span id="model"></span></div>
         <div class="item"><b>Serial</b><span id="serial"></span></div>
         <div class="item"><b>Installation</b><span id="installation"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="explodedSection" style="display:none;">
+    <h2><i class="fa-solid fa-diagram-project"></i> Exploded View</h2>
+    <p class="explode-hint">Tap a part to zoom in and see its details.</p>
+    <div class="explode-wrap" id="explodeWrap">
+      <div class="explode-zoom" id="explodeZoom">
+        <img id="explodeDiagramImg" alt="Exploded view diagram">
+      </div>
+    </div>
+  </div>
+
+  <div id="partPanelOverlay">
+    <div class="part-panel" id="partPanel">
+      <button type="button" class="part-panel-close" id="partPanelClose" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      <div class="part-panel-photo-wrap" id="partPanelPhotoWrap">
+        <img id="partPanelPhoto" alt="">
+      </div>
+      <h3 id="partPanelName"></h3>
+      <div class="part-panel-row"><b>Model No.</b><span id="partPanelModel"></span></div>
+      <div class="part-panel-row"><b>Serial No.</b><span id="partPanelSerial"></span></div>
+      <div class="part-panel-function">
+        <b>Function</b>
+        <p id="partPanelFunction"></p>
       </div>
     </div>
   </div>
@@ -1415,11 +1510,25 @@ const el = {
   name: document.getElementById('name'),
   description: document.getElementById('description'),
   equipmentId: document.getElementById('equipmentId'),
+  group: document.getElementById('group'),
   department: document.getElementById('department'),
   manufacturer: document.getElementById('manufacturer'),
   model: document.getElementById('model'),
   serial: document.getElementById('serial'),
   installation: document.getElementById('installation'),
+  explodedSection: document.getElementById('explodedSection'),
+  explodeWrap: document.getElementById('explodeWrap'),
+  explodeZoom: document.getElementById('explodeZoom'),
+  explodeDiagramImg: document.getElementById('explodeDiagramImg'),
+  partPanelOverlay: document.getElementById('partPanelOverlay'),
+  partPanel: document.getElementById('partPanel'),
+  partPanelClose: document.getElementById('partPanelClose'),
+  partPanelPhotoWrap: document.getElementById('partPanelPhotoWrap'),
+  partPanelPhoto: document.getElementById('partPanelPhoto'),
+  partPanelName: document.getElementById('partPanelName'),
+  partPanelModel: document.getElementById('partPanelModel'),
+  partPanelSerial: document.getElementById('partPanelSerial'),
+  partPanelFunction: document.getElementById('partPanelFunction'),
   documents: document.getElementById('documents'),
   viewerEmpty: document.getElementById('viewerEmpty'),
   pdfLoading: document.getElementById('pdfLoading'),
@@ -1981,6 +2090,27 @@ el.searchClear.addEventListener('click', () => {
   clearAllHighlights();
 });
 
+// ---------- Header back link ----------
+
+const headerBackLink = document.getElementById('headerBackLink');
+const headerBackText = document.getElementById('headerBackText');
+
+function updateHeaderBackLink(fallbackGroup) {
+  // Prefer the group name passed in the URL (set when arriving from group.html —
+  // true "back" navigation). Fall back to the equipment's own group field, e.g.
+  // when the page was opened directly via a QR code.
+  const urlGroup = new URLSearchParams(location.search).get('group');
+  const groupName = urlGroup || fallbackGroup;
+  if (groupName) {
+    headerBackLink.href = `group.html?group=${encodeURIComponent(groupName)}`;
+    headerBackText.textContent = groupName;
+  } else {
+    headerBackLink.href = 'index.html';
+    headerBackText.textContent = 'Dashboard';
+  }
+}
+updateHeaderBackLink(null);
+
 // ---------- Equipment data ----------
 
 function renderEquipment(e) {
@@ -2004,6 +2134,12 @@ function renderEquipment(e) {
   el.name.textContent = e.name || '—';
   el.description.textContent = e.description || 'No description available.';
   el.equipmentId.textContent = e.id || '—';
+  if (e.group) {
+    el.group.innerHTML = `<a href="group.html?group=${encodeURIComponent(e.group)}">${escapeHtml(e.group)}</a>`;
+  } else {
+    el.group.textContent = '—';
+  }
+  updateHeaderBackLink(e.group);
   el.department.textContent = e.department || '—';
   el.manufacturer.textContent = e.manufacturer || '—';
   el.model.textContent = e.model || '—';
@@ -2013,6 +2149,7 @@ function renderEquipment(e) {
   loadEquipmentLogs(e.id);
   loadSubscribers(e.id);
   loadSafetyChecklist(e.id);
+  loadExplodedView(e);
   showSafetyModal(e);
 
   el.documents.innerHTML = '';
@@ -2031,6 +2168,87 @@ function renderEquipment(e) {
     el.documents.appendChild(div);
   });
 }
+
+// ---------- Exploded View ----------
+// Diagram + clickable hotspot pins (positioned by percentage so they stay
+// correctly placed at any screen size). Clicking a pin zooms the diagram in
+// centered on that pin and slides up a panel with the part's details, both
+// loaded from the `equipmentParts` collection (equipmentId, name,
+// serialNumber, modelNumber, function, x, y, image).
+
+let activeExplodePin = null;
+
+function loadExplodedView(e) {
+  if (!e.explodedView) {
+    el.explodedSection.style.display = 'none';
+    return;
+  }
+  el.explodedSection.style.display = 'block';
+  el.explodeDiagramImg.src = e.explodedView;
+  el.explodeZoom.classList.remove('is-zoomed');
+  el.explodeZoom.style.transformOrigin = '50% 50%';
+
+  db.collection('equipmentParts').where('equipmentId', '==', e.id).get()
+    .then((snapshot) => {
+      const parts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      renderExplodePins(parts);
+    })
+    .catch((err) => {
+      console.error('Failed to load exploded view parts', err);
+    });
+}
+
+function renderExplodePins(parts) {
+  el.explodeWrap.querySelectorAll('.explode-pin').forEach((p) => p.remove());
+  parts.forEach((part) => {
+    const pin = document.createElement('div');
+    pin.className = 'explode-pin';
+    pin.style.left = `${part.x}%`;
+    pin.style.top = `${part.y}%`;
+    pin.innerHTML = '<i class="fa-solid fa-magnifying-glass-plus"></i>';
+    pin.title = part.name || '';
+    pin.addEventListener('click', () => openPartPanel(part, pin));
+    el.explodeWrap.appendChild(pin);
+  });
+}
+
+function openPartPanel(part, pinEl) {
+  if (activeExplodePin) activeExplodePin.classList.remove('is-active');
+  activeExplodePin = pinEl;
+  pinEl.classList.add('is-active');
+
+  el.explodeZoom.style.transformOrigin = `${part.x}% ${part.y}%`;
+  el.explodeZoom.classList.add('is-zoomed');
+
+  el.partPanelName.textContent = part.name || 'Unnamed part';
+  el.partPanelModel.textContent = part.modelNumber || '—';
+  el.partPanelSerial.textContent = part.serialNumber || '—';
+  el.partPanelFunction.textContent = part.function || 'No function description available.';
+
+  if (part.image) {
+    el.partPanelPhoto.src = part.image;
+    el.partPanelPhotoWrap.classList.add('has-photo');
+  } else {
+    el.partPanelPhoto.removeAttribute('src');
+    el.partPanelPhotoWrap.classList.remove('has-photo');
+  }
+
+  el.partPanelOverlay.classList.add('is-open');
+}
+
+function closePartPanel() {
+  el.partPanelOverlay.classList.remove('is-open');
+  el.explodeZoom.classList.remove('is-zoomed');
+  if (activeExplodePin) {
+    activeExplodePin.classList.remove('is-active');
+    activeExplodePin = null;
+  }
+}
+
+el.partPanelClose.addEventListener('click', closePartPanel);
+el.partPanelOverlay.addEventListener('click', (ev) => {
+  if (ev.target === el.partPanelOverlay) closePartPanel();
+});
 
 const id = new URLSearchParams(location.search).get('id');
 
