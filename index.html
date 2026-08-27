@@ -1118,13 +1118,21 @@ function escapeHtmlCard(str) {
     'material transport': 'material-transport'
   };
 
-  // ---------- Load equipment from Firestore (editable via admin.html) ----------
+  // ---------- Load equipment + groups from Firestore (editable via admin.html) ----------
   let equipmentData = [];
+  let groupPictures = {};
   try {
-    const snap = await db.collection('equipment').orderBy('name').get();
-    equipmentData = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const [equipSnap, groupsSnap] = await Promise.all([
+      db.collection('equipment').orderBy('name').get(),
+      db.collection('groups').get(),
+    ]);
+    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    groupsSnap.docs.forEach((doc) => {
+      const g = doc.data();
+      if (g.name && g.image) groupPictures[g.name] = g.image;
+    });
   } catch (err) {
-    console.error('Failed to load equipment list', err);
+    console.error('Failed to load equipment/groups list', err);
   }
 
   if (!equipmentData.length) {
@@ -1140,10 +1148,11 @@ function escapeHtmlCard(str) {
 
   // ---------- Group equipment by the admin-set "Group" field ----------
   // Equipment with no group set falls back into its own "Ungrouped" tile so
-  // nothing goes missing from the dashboard. Each tile shows a thumbnail
-  // (first equipment's image), how many pieces of equipment sit inside it,
-  // and the department most of its equipment belongs to (used for the
-  // existing department filter chips).
+  // nothing goes missing from the dashboard. Each tile shows the group's own
+  // picture if the admin set one (Groups tab in admin.html), otherwise falls
+  // back to one of its equipment's photos — plus how many pieces of
+  // equipment sit inside it, and the department most of its equipment
+  // belongs to (used for the existing department filter chips).
   const groupMap = new Map();
   equipmentData.forEach((e) => {
     const groupName = (e.group && e.group.trim()) || 'Ungrouped';
@@ -1159,7 +1168,7 @@ function escapeHtmlCard(str) {
     });
     const topDepartment = Object.keys(deptCounts).sort((a, b) => deptCounts[b] - deptCounts[a])[0] || '';
     const departmentKey = DEPARTMENT_MAP[topDepartment.toLowerCase()] || 'others';
-    const image = (items.find((e) => e.image) || {}).image || '';
+    const image = groupPictures[name] || (items.find((e) => e.image) || {}).image || '';
 
     return {
       name,
