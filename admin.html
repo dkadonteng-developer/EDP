@@ -156,6 +156,38 @@
     cursor:pointer;flex-shrink:0;
   }
   .equip-form-body{padding:22px;max-height:75vh;overflow-y:auto;}
+
+  #qrOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
+    display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;
+  }
+  #qrOverlay.is-open{display:flex;}
+  .qr-modal{
+    background:#fff;border-radius:16px;max-width:960px;width:100%;margin-bottom:24px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .qr-modal-head{
+    background:var(--brand);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;
+    align-items:flex-start;gap:14px;
+  }
+  .qr-modal-head h3{margin:0 0 3px;font-size:1.05rem;}
+  .qr-modal-head p{margin:0;font-size:.8rem;opacity:.9;max-width:480px;}
+  .qr-modal-head-btns{display:flex;gap:10px;align-items:flex-start;flex-shrink:0;}
+  .qr-modal-body{padding:22px;max-height:75vh;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
+  .qr-card{
+    border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;background:#fff;
+  }
+  .qr-card img{width:100%;max-width:160px;height:auto;image-rendering:pixelated;}
+  .qr-card strong{display:block;font-size:.85rem;margin:8px 0 2px;}
+  .qr-card span{display:block;font-size:.72rem;color:var(--muted);margin-bottom:8px;}
+  .qr-card a{font-size:.75rem;color:var(--brand);text-decoration:none;font-weight:600;}
+  .qr-card a:hover{text-decoration:underline;}
+  @media print{
+    body *{visibility:hidden;}
+    .qr-modal-body,.qr-modal-body *{visibility:visible;}
+    .qr-modal-body{position:absolute;top:0;left:0;width:100%;padding:0;}
+    .qr-card a{display:none;}
+  }
   .ef-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
   @media(max-width:560px){.ef-row{grid-template-columns:1fr;}}
   .ef-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
@@ -304,6 +336,9 @@
           <button type="button" class="toolbar-btn outline" id="importLegacyBtn">
             <i class="fa-solid fa-file-import"></i> Import Legacy Data
           </button>
+          <button type="button" class="toolbar-btn outline" id="genQrBtn">
+            <i class="fa-solid fa-qrcode"></i> Generate QR Codes
+          </button>
           <button type="button" class="toolbar-btn" id="addEquipBtn">
             <i class="fa-solid fa-plus"></i> Add Equipment
           </button>
@@ -390,6 +425,14 @@
 
         <div class="ef-row">
           <div class="ef-field">
+            <label for="efGroup">Group</label>
+            <input type="text" id="efGroup" placeholder="e.g. Packer 1">
+          </div>
+        </div>
+        <div class="ef-hint">Equipment sharing the same Group (e.g. "Packer 1") appear together under one tile on the dashboard.</div>
+
+        <div class="ef-row">
+          <div class="ef-field">
             <label for="efManufacturer">Manufacturer</label>
             <input type="text" id="efManufacturer" placeholder="e.g. Haver & Boecker">
           </div>
@@ -445,6 +488,23 @@
         </button>
       </form>
     </div>
+  </div>
+</div>
+
+<!-- ---- QR Codes overlay ---- -->
+<div id="qrOverlay">
+  <div class="qr-modal">
+    <div class="qr-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-qrcode"></i> Equipment QR Codes</h3>
+        <p>Each code links to that equipment's info page. Print this sheet or download codes individually.</p>
+      </div>
+      <div class="qr-modal-head-btns">
+        <button type="button" class="toolbar-btn outline" id="qrPrintBtn"><i class="fa-solid fa-print"></i> Print All</button>
+        <button type="button" class="equip-form-close" id="qrCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="qr-modal-body" id="qrGrid"></div>
   </div>
 </div>
 
@@ -581,7 +641,7 @@ function renderEquipmentList() {
       <img src="${escapeHtml(e.image || '')}" alt="" onerror="this.style.display='none'">
       <div class="equip-row-main">
         <strong>${escapeHtml(e.name || e.id)}</strong>
-        <span>ID: ${escapeHtml(e.id)} • ${escapeHtml(e.department || '—')} • ${escapeHtml(e.manufacturer || '—')}</span>
+        <span>ID: ${escapeHtml(e.id)} • ${escapeHtml(e.department || '—')} • ${escapeHtml(e.manufacturer || '—')}${e.group ? ` • Group: ${escapeHtml(e.group)}` : ''}</span>
       </div>
       <span class="equip-row-badge">${escapeHtml(e.status || 'Unknown')}</span>
       <div class="equip-row-btns">
@@ -672,6 +732,7 @@ const efEl = {
   name: document.getElementById('efName'),
   status: document.getElementById('efStatus'),
   department: document.getElementById('efDepartment'),
+  group: document.getElementById('efGroup'),
   manufacturer: document.getElementById('efManufacturer'),
   model: document.getElementById('efModel'),
   serial: document.getElementById('efSerial'),
@@ -790,6 +851,7 @@ function openEquipForm(existing) {
     efEl.name.value = existing.name || '';
     efEl.status.value = existing.status || 'Operational';
     efEl.department.value = existing.department || '';
+    efEl.group.value = existing.group || '';
     efEl.manufacturer.value = existing.manufacturer || '';
     efEl.model.value = existing.model || '';
     efEl.serial.value = existing.serial || '';
@@ -814,6 +876,49 @@ function closeEquipForm() {
 }
 
 document.getElementById('addEquipBtn').addEventListener('click', () => openEquipForm(null));
+
+// ================= QR codes =================
+// Generated client-side via the free api.qrserver.com image endpoint — no
+// library to load. Each code encodes the absolute URL to that equipment's
+// info page, derived from this page's own location so it works regardless
+// of where the site ends up hosted (custom domain, GitHub Pages subpath, etc).
+const qrOverlay = document.getElementById('qrOverlay');
+const qrGrid = document.getElementById('qrGrid');
+
+function equipmentPageUrl(id) {
+  const base = window.location.href.replace(/admin\.html.*$/, '');
+  return `${base}equipment.html?id=${encodeURIComponent(id)}`;
+}
+
+function renderQrGrid() {
+  if (!equipmentCache.length) {
+    qrGrid.innerHTML = '<p class="empty-state">No equipment yet — add some first.</p>';
+    return;
+  }
+  qrGrid.innerHTML = equipmentCache.map((e) => {
+    const url = equipmentPageUrl(e.id);
+    const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+    return `
+      <div class="qr-card">
+        <img src="${qrImg}" alt="QR code for ${escapeHtml(e.name || e.id)}">
+        <strong>${escapeHtml(e.name || e.id)}</strong>
+        <span>ID: ${escapeHtml(e.id)}</span>
+        <a href="${qrImg}" download="qr-${escapeHtml(e.id)}.png" target="_blank" rel="noopener"><i class="fa-solid fa-download"></i> Download</a>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('genQrBtn').addEventListener('click', () => {
+  renderQrGrid();
+  qrOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('qrCloseX').addEventListener('click', () => {
+  qrOverlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+});
+document.getElementById('qrPrintBtn').addEventListener('click', () => window.print());
 efEl.closeX.addEventListener('click', closeEquipForm);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && efEl.overlay.classList.contains('is-open')) closeEquipForm();
@@ -846,6 +951,7 @@ efEl.form.addEventListener('submit', async (e) => {
     name: efEl.name.value.trim(),
     status: efEl.status.value,
     department: efEl.department.value.trim(),
+    group: efEl.group.value.trim(),
     manufacturer: efEl.manufacturer.value.trim(),
     model: efEl.model.value.trim(),
     serial: efEl.serial.value.trim(),
