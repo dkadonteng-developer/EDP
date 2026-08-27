@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>InfoPort — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#006937">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="InfoPort">
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
+<style>
+  :root{
+    --brand:#006937;
+    --brand-light:#00a651;
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --text:#1f2a24;
+    --muted:#6b7280;
+    --border:#e6e9ec;
+    --danger:#d92d20;
+    --amber:#b45309;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:'Poppins',Arial,sans-serif;background:var(--bg);color:var(--text);
+  }
+
+  #offlineBanner{
+    display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+    background:var(--danger);color:#fff;text-align:center;
+    padding:9px 12px;font-size:13px;font-weight:600;
+  }
+  #offlineBanner.show{display:block;}
+
+  header{
+    background:var(--brand);color:#fff;padding:16px 22px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  header h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:10px;flex:1;}
+  .header-back{color:#fff;text-decoration:none;font-size:.85rem;display:flex;align-items:center;gap:6px;opacity:.9;}
+  .header-back:hover{opacity:1;}
+  #headerSignOutBtn{
+    background:rgba(255,255,255,.18);color:#fff;border:none;padding:9px 16px;border-radius:20px;
+    font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:none;align-items:center;gap:8px;
+  }
+  #headerSignOutBtn:hover{background:rgba(255,255,255,.3);}
+  #headerSignOutBtn.show{display:flex;}
+
+  .container{max-width:980px;margin:0 auto;padding:24px 18px 60px;}
+
+  /* ---------- Sign-in screen ---------- */
+  #signInScreen{
+    max-width:400px;margin:60px auto;background:var(--card);border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);padding:36px 30px;text-align:center;
+  }
+  #signInScreen .icon{
+    width:60px;height:60px;border-radius:50%;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 18px;
+  }
+  #signInScreen h2{margin:0 0 6px;font-size:1.2rem;color:var(--brand);}
+  #signInScreen p{color:var(--muted);font-size:.88rem;margin:0 0 22px;}
+  #signInScreen form{display:flex;flex-direction:column;gap:14px;text-align:left;}
+  #signInScreen label{font-size:.85rem;font-weight:600;color:#444;display:flex;flex-direction:column;gap:6px;}
+  #signInScreen input{
+    font-family:inherit;font-size:16px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  }
+  #signInScreen input:focus{outline:none;border-color:var(--brand);}
+  .signin-error{color:var(--danger);font-size:.85rem;min-height:1.2em;}
+  .signin-submit-btn{
+    background:var(--brand);color:#fff;border:none;padding:14px;border-radius:10px;
+    font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .signin-submit-btn:hover{background:#005229;}
+  .signin-submit-btn:disabled{background:#ccc;cursor:not-allowed;}
+  .signin-note{
+    background:#fff6e5;color:var(--amber);font-size:.78rem;padding:12px 14px;border-radius:10px;
+    margin-top:20px;line-height:1.5;text-align:left;
+  }
+
+  /* ---------- Dashboard shell ---------- */
+  #dashboard{display:none;}
+  #dashboard.show{display:block;}
+
+  .admin-tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .admin-tab-btn{
+    background:#fff;border:1.5px solid var(--border);color:#555;padding:10px 18px;border-radius:20px;
+    font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .admin-tab-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .admin-panel{display:none;}
+  .admin-panel.active{display:block;}
+
+  .panel-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .panel-toolbar h2{font-size:1.05rem;margin:0;color:var(--brand);}
+  .panel-toolbar .btns{display:flex;gap:10px;flex-wrap:wrap;}
+  .toolbar-btn{
+    background:var(--brand);color:#fff;border:none;padding:10px 18px;border-radius:20px;
+    font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .toolbar-btn:hover{background:#005229;}
+  .toolbar-btn.outline{background:#fff;color:var(--brand);border:1.5px solid var(--brand);}
+  .toolbar-btn.outline:hover{background:#f0f9f4;}
+
+  .equip-row{
+    background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:10px;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 10px rgba(0,0,0,.04);
+  }
+  .equip-row img{width:56px;height:56px;object-fit:cover;border-radius:10px;background:#eee;flex-shrink:0;}
+  .equip-row-main{flex:1;min-width:180px;}
+  .equip-row-main strong{display:block;font-size:.95rem;color:#222;}
+  .equip-row-main span{color:var(--muted);font-size:.78rem;}
+  .equip-row-badge{
+    font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:12px;text-transform:uppercase;
+    background:#e7f8ee;color:#00733a;white-space:nowrap;
+  }
+  .equip-row-btns{display:flex;gap:8px;flex-shrink:0;}
+  .row-icon-btn{
+    background:#f2f4f3;border:none;color:#555;width:34px;height:34px;border-radius:8px;cursor:pointer;
+  }
+  .row-icon-btn:hover{background:#e5e8e7;}
+  .row-icon-btn.danger{color:var(--danger);}
+  .row-icon-btn.danger:hover{background:#fdeceb;}
+
+  .empty-state{color:var(--muted);font-size:.88rem;padding:24px;text-align:center;background:#fff;border-radius:14px;}
+
+  /* ---------- Equipment form modal ---------- */
+  #equipFormOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
+    display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;
+  }
+  #equipFormOverlay.is-open{display:flex;}
+  .equip-form-modal{
+    background:#fff;border-radius:16px;max-width:640px;width:100%;margin-bottom:24px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .equip-form-head{
+    background:var(--brand);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;
+    align-items:flex-start;gap:14px;
+  }
+  .equip-form-head h3{margin:0 0 3px;font-size:1.05rem;}
+  .equip-form-head p{margin:0;font-size:.8rem;opacity:.9;}
+  .equip-form-close{
+    background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:50%;
+    cursor:pointer;flex-shrink:0;
+  }
+  .equip-form-body{padding:22px;max-height:75vh;overflow-y:auto;}
+  .ef-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  @media(max-width:560px){.ef-row{grid-template-columns:1fr;}}
+  .ef-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ef-field label{font-size:.8rem;font-weight:600;color:#444;}
+  .ef-field input,.ef-field select,.ef-field textarea{
+    font-family:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;
+  }
+  .ef-field input:focus,.ef-field select:focus,.ef-field textarea:focus{outline:none;border-color:var(--brand);}
+  .ef-field textarea{resize:vertical;min-height:60px;}
+  .ef-hint{font-size:.72rem;color:var(--muted);margin-top:-8px;margin-bottom:14px;}
+
+  .ef-subsection{margin:20px 0 14px;padding-top:14px;border-top:1px solid var(--border);}
+  .ef-subsection h4{font-size:.85rem;color:var(--brand);margin:0 0 10px;}
+  .ef-repeat-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .ef-repeat-row input{flex:1;font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;}
+  .ef-repeat-remove{background:#fdeceb;color:var(--danger);border:none;width:32px;height:32px;border-radius:7px;cursor:pointer;flex-shrink:0;}
+  .ef-add-row-btn{
+    background:none;border:1.5px dashed var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;
+    font-family:inherit;font-size:.78rem;cursor:pointer;width:100%;
+  }
+  .ef-add-row-btn:hover{border-color:var(--brand);color:var(--brand);}
+
+  .ef-error{color:var(--danger);font-size:.82rem;min-height:1.2em;margin-top:6px;}
+  .ef-save-btn{
+    width:100%;background:var(--brand);color:#fff;border:none;padding:14px;border-radius:10px;
+    font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:8px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .ef-save-btn:hover{background:#005229;}
+  .ef-save-btn:disabled{background:#ccc;cursor:not-allowed;}
+
+  /* ---------- Maintenance history panel ---------- */
+  .history-filter{
+    background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:18px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .history-filter label{font-size:.8rem;font-weight:600;color:#444;}
+  .history-filter select{
+    font-family:inherit;font-size:14px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;
+  }
+
+  .history-section{margin-bottom:26px;}
+  .history-section h3{font-size:.92rem;color:var(--brand);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .history-entry{
+    background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:14px;box-shadow:0 3px 8px rgba(0,0,0,.04);
+  }
+  .history-entry-main{flex:1;min-width:0;}
+  .history-entry-main .who{font-weight:600;font-size:.86rem;color:#222;}
+  .history-entry-main .meta{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .history-entry-main .note{font-size:.8rem;color:#555;margin-top:6px;line-height:1.4;}
+  .history-risk-chip{
+    padding:4px 10px;border-radius:14px;font-size:.68rem;font-weight:700;color:#fff;text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .history-risk-chip.zero,.history-risk-chip.reviewed{background:#00a651;}
+  .history-risk-chip.amber{background:#f59e0b;}
+  .history-risk-chip.red,.history-risk-chip.unreviewed{background:#d92d20;}
+
+  /* ---------- Spare parts link card ---------- */
+  .link-out-card{
+    background:#fff;border-radius:14px;padding:26px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.04);
+  }
+  .link-out-card i{font-size:32px;color:var(--brand);margin-bottom:14px;}
+  .link-out-card h3{margin:0 0 8px;color:var(--brand);}
+  .link-out-card p{color:var(--muted);font-size:.88rem;margin:0 0 18px;}
+  .link-out-card a{
+    display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;text-decoration:none;
+    padding:12px 22px;border-radius:24px;font-size:.85rem;font-weight:600;
+  }
+  .link-out-card a:hover{background:#005229;}
+
+  .loading-text{color:var(--muted);font-size:.85rem;padding:20px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
+
+<header>
+  <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <h1><i class="fa-solid fa-user-shield"></i> Admin</h1>
+  <button type="button" id="headerSignOutBtn"><i class="fa-solid fa-right-from-bracket"></i> <span id="headerSignedInAs"></span></button>
+</header>
+
+<div class="container">
+
+  <!-- ================= SIGN-IN SCREEN ================= -->
+  <div id="signInScreen">
+    <div class="icon"><i class="fa-solid fa-user-shield"></i></div>
+    <h2>Admin Sign In</h2>
+    <p>Sign in with your admin account to view and edit equipment, maintenance history, and stores.</p>
+    <form id="signInForm">
+      <label>Email
+        <input type="email" id="signInEmail" required autocomplete="username">
+      </label>
+      <label>Password
+        <input type="password" id="signInPassword" required autocomplete="current-password">
+      </label>
+      <div class="signin-error" id="signInError"></div>
+      <button type="submit" class="signin-submit-btn" id="signInSubmitBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+      </button>
+    </form>
+    <div class="signin-note">
+      <i class="fa-solid fa-circle-info"></i>
+      Admin accounts are created in the Firebase Console, not on this page.
+      If you don't have one yet, see the setup notes provided with this file.
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div id="dashboard">
+
+    <div class="admin-tabs">
+      <button type="button" class="admin-tab-btn active" data-tab="equipmentPanel">
+        <i class="fa-solid fa-toolbox"></i> Equipment
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="historyPanel">
+        <i class="fa-solid fa-clock-rotate-left"></i> Maintenance History
+      </button>
+      <button type="button" class="admin-tab-btn" data-tab="partsPanel">
+        <i class="fa-solid fa-warehouse"></i> Spare Parts
+      </button>
+    </div>
+
+    <!-- ---- Equipment panel ---- -->
+    <div class="admin-panel active" id="equipmentPanel">
+      <div class="panel-toolbar">
+        <h2>Equipment List</h2>
+        <div class="btns">
+          <button type="button" class="toolbar-btn outline" id="importLegacyBtn">
+            <i class="fa-solid fa-file-import"></i> Import Legacy Data
+          </button>
+          <button type="button" class="toolbar-btn" id="addEquipBtn">
+            <i class="fa-solid fa-plus"></i> Add Equipment
+          </button>
+        </div>
+      </div>
+      <div id="equipListContainer"><p class="loading-text">Loading equipment…</p></div>
+    </div>
+
+    <!-- ---- Maintenance history panel ---- -->
+    <div class="admin-panel" id="historyPanel">
+      <div class="panel-toolbar">
+        <h2>Maintenance History</h2>
+      </div>
+      <div class="history-filter">
+        <label for="historyEquipFilter">Filter by equipment</label>
+        <select id="historyEquipFilter">
+          <option value="">All equipment</option>
+        </select>
+      </div>
+
+      <div class="history-section">
+        <h3><i class="fa-solid fa-comments"></i> Maintenance Log Entries</h3>
+        <div id="logsHistoryContainer"><p class="loading-text">Loading…</p></div>
+      </div>
+
+      <div class="history-section">
+        <h3><i class="fa-solid fa-clipboard-check"></i> Safety Checklist Sign-Offs</h3>
+        <div id="completionsHistoryContainer"><p class="loading-text">Loading…</p></div>
+      </div>
+    </div>
+
+    <!-- ---- Spare parts panel ---- -->
+    <div class="admin-panel" id="partsPanel">
+      <div class="link-out-card">
+        <i class="fa-solid fa-warehouse"></i>
+        <h3>Spare Parts Inventory</h3>
+        <p>Spare parts have their own dedicated management screen — add, edit, and remove parts, and adjust stock levels there. It uses the same admin sign-in as this page.</p>
+        <a href="inventory.html"><i class="fa-solid fa-arrow-right"></i> Open Spare Parts Inventory</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= Equipment add/edit form ================= -->
+<div id="equipFormOverlay">
+  <div class="equip-form-modal">
+    <div class="equip-form-head">
+      <div>
+        <h3 id="equipFormTitle"><i class="fa-solid fa-toolbox"></i> Add Equipment</h3>
+        <p>Fields marked * are required.</p>
+      </div>
+      <button type="button" class="equip-form-close" id="equipFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="equip-form-body">
+      <form id="equipForm">
+        <div class="ef-row">
+          <div class="ef-field">
+            <label for="efId">Equipment ID *</label>
+            <input type="text" id="efId" required placeholder="e.g. rt-08" pattern="[a-z0-9-]+">
+          </div>
+          <div class="ef-field">
+            <label for="efName">Name *</label>
+            <input type="text" id="efName" required placeholder="e.g. Rotor Packer 8">
+          </div>
+        </div>
+        <div class="ef-hint">ID must be lowercase letters, numbers, and hyphens only — it's used in the page URL and can't be changed later.</div>
+
+        <div class="ef-row">
+          <div class="ef-field">
+            <label for="efStatus">Status *</label>
+            <select id="efStatus" required>
+              <option value="Operational">Operational</option>
+              <option value="Under Maintenance">Under Maintenance</option>
+              <option value="Down">Down</option>
+              <option value="Decommissioned">Decommissioned</option>
+            </select>
+          </div>
+          <div class="ef-field">
+            <label for="efDepartment">Department / Location *</label>
+            <input type="text" id="efDepartment" required placeholder="e.g. Packing Plant">
+          </div>
+        </div>
+
+        <div class="ef-row">
+          <div class="ef-field">
+            <label for="efManufacturer">Manufacturer</label>
+            <input type="text" id="efManufacturer" placeholder="e.g. Haver & Boecker">
+          </div>
+          <div class="ef-field">
+            <label for="efModel">Model</label>
+            <input type="text" id="efModel">
+          </div>
+        </div>
+
+        <div class="ef-row">
+          <div class="ef-field">
+            <label for="efSerial">Serial Number</label>
+            <input type="text" id="efSerial">
+          </div>
+          <div class="ef-field">
+            <label for="efInstallation">Installation Date</label>
+            <input type="date" id="efInstallation">
+          </div>
+        </div>
+
+        <div class="ef-field">
+          <label for="efDescription">Description</label>
+          <textarea id="efDescription" placeholder="Short description shown on the equipment page"></textarea>
+        </div>
+
+        <div class="ef-field">
+          <label for="efImage">Image path</label>
+          <input type="text" id="efImage" placeholder="e.g. assets/equipment/rt8.jpg">
+        </div>
+        <div class="ef-hint">Upload the image file to that path in the GitHub repo first — this only stores the path, it doesn't upload the file.</div>
+
+        <div class="ef-subsection">
+          <h4><i class="fa-solid fa-file-pdf"></i> Documents (manuals, drawings, etc.)</h4>
+          <div id="efDocumentsRows"></div>
+          <button type="button" class="ef-add-row-btn" id="efAddDocumentBtn"><i class="fa-solid fa-plus"></i> Add Document</button>
+        </div>
+        <div class="ef-hint">Upload each PDF to the repo first (e.g. under <code>docs/&lt;equipment-id&gt;/</code>), then enter its path here.</div>
+
+        <div class="ef-subsection">
+          <h4><i class="fa-solid fa-shield-halved"></i> Safety Requirements</h4>
+          <div id="efSafetyRows"></div>
+          <button type="button" class="ef-add-row-btn" id="efAddSafetyBtn"><i class="fa-solid fa-plus"></i> Add Requirement</button>
+        </div>
+
+        <div class="ef-error" id="equipFormError"></div>
+        <button type="submit" class="ef-save-btn" id="equipFormSaveBtn">
+          <i class="fa-solid fa-floppy-disk"></i> Save Equipment
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// ================= Real admin authentication =================
+// This page has no "sign up" — admin accounts are created in the Firebase
+// Console (Authentication tab), then granted admin rights by adding a
+// document at admins/{uid}. Anyone can attempt to sign in here, but only
+// accounts with a matching admins/{uid} document get past the gate.
+
+let isAdmin = false;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user && !user.isAnonymous) {
+    try {
+      const doc = await db.collection('admins').doc(user.uid).get();
+      isAdmin = doc.exists;
+    } catch (err) {
+      console.error('Admin membership check failed', err);
+      isAdmin = false;
+    }
+  } else {
+    isAdmin = false;
+  }
+  renderAuthState(user);
+});
+
+function renderAuthState(user) {
+  const signInScreen = document.getElementById('signInScreen');
+  const dashboard = document.getElementById('dashboard');
+  const signOutBtn = document.getElementById('headerSignOutBtn');
+  const signedInAs = document.getElementById('headerSignedInAs');
+
+  if (isAdmin) {
+    signInScreen.style.display = 'none';
+    dashboard.classList.add('show');
+    signOutBtn.classList.add('show');
+    signedInAs.textContent = user.email;
+    loadEquipmentList();
+    loadHistoryEquipmentOptions();
+  } else {
+    signInScreen.style.display = 'block';
+    dashboard.classList.remove('show');
+    signOutBtn.classList.remove('show');
+    if (user && !user.isAnonymous) {
+      document.getElementById('signInError').textContent = 'This account is not authorized as an admin.';
+      auth.signOut();
+    }
+  }
+}
+
+document.getElementById('signInForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('signInError');
+  const submitBtn = document.getElementById('signInSubmitBtn');
+  errorEl.textContent = '';
+
+  const email = document.getElementById('signInEmail').value.trim();
+  const password = document.getElementById('signInPassword').value;
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    // onAuthStateChanged above handles the rest (admin check + rendering)
+  } catch (err) {
+    console.error('Sign-in failed', err);
+    errorEl.textContent = 'Incorrect email or password.';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+  }
+});
+
+document.getElementById('headerSignOutBtn').addEventListener('click', () => {
+  if (confirm('Sign out of the admin panel?')) auth.signOut();
+});
+
+// ================= Tabs =================
+document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach((p) => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ================= Equipment list =================
+
+let equipmentCache = [];
+
+async function loadEquipmentList() {
+  const container = document.getElementById('equipListContainer');
+  container.innerHTML = '<p class="loading-text">Loading equipment…</p>';
+  try {
+    const snap = await db.collection('equipment').orderBy('name').get();
+    equipmentCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderEquipmentList();
+  } catch (err) {
+    console.error('Failed to load equipment', err);
+    container.innerHTML = '<p class="empty-state">Could not load equipment. Check your connection and try again.</p>';
+  }
+}
+
+function renderEquipmentList() {
+  const container = document.getElementById('equipListContainer');
+  if (!equipmentCache.length) {
+    container.innerHTML = '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
+    return;
+  }
+  container.innerHTML = equipmentCache.map((e) => `
+    <div class="equip-row">
+      <img src="${escapeHtml(e.image || '')}" alt="" onerror="this.style.display='none'">
+      <div class="equip-row-main">
+        <strong>${escapeHtml(e.name || e.id)}</strong>
+        <span>ID: ${escapeHtml(e.id)} • ${escapeHtml(e.department || '—')} • ${escapeHtml(e.manufacturer || '—')}</span>
+      </div>
+      <span class="equip-row-badge">${escapeHtml(e.status || 'Unknown')}</span>
+      <div class="equip-row-btns">
+        <button type="button" class="row-icon-btn" title="Edit" data-edit="${e.id}"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="row-icon-btn danger" title="Delete" data-delete="${e.id}"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-edit]').forEach((btn) => {
+    btn.addEventListener('click', () => openEquipForm(equipmentCache.find((e) => e.id === btn.dataset.edit)));
+  });
+  container.querySelectorAll('[data-delete]').forEach((btn) => {
+    btn.addEventListener('click', () => deleteEquipment(btn.dataset.delete));
+  });
+}
+
+async function deleteEquipment(id) {
+  const e = equipmentCache.find((x) => x.id === id);
+  if (!confirm(`Delete "${e ? e.name : id}"? This removes it from the equipment list, but does NOT delete its existing logs, checklists, or spare-parts tags — those will be orphaned.`)) return;
+  try {
+    await db.collection('equipment').doc(id).delete();
+    loadEquipmentList();
+    loadHistoryEquipmentOptions();
+  } catch (err) {
+    console.error('Failed to delete equipment', err);
+    alert('Could not delete this equipment. Please try again.');
+  }
+}
+
+// ---------- Equipment add/edit form ----------
+
+const efEl = {
+  overlay: document.getElementById('equipFormOverlay'),
+  closeX: document.getElementById('equipFormCloseX'),
+  form: document.getElementById('equipForm'),
+  title: document.getElementById('equipFormTitle'),
+  id: document.getElementById('efId'),
+  name: document.getElementById('efName'),
+  status: document.getElementById('efStatus'),
+  department: document.getElementById('efDepartment'),
+  manufacturer: document.getElementById('efManufacturer'),
+  model: document.getElementById('efModel'),
+  serial: document.getElementById('efSerial'),
+  installation: document.getElementById('efInstallation'),
+  description: document.getElementById('efDescription'),
+  image: document.getElementById('efImage'),
+  documentsRows: document.getElementById('efDocumentsRows'),
+  safetyRows: document.getElementById('efSafetyRows'),
+  error: document.getElementById('equipFormError'),
+  saveBtn: document.getElementById('equipFormSaveBtn'),
+};
+
+let editingEquipmentId = null;
+
+function addDocumentRow(name = '', file = '') {
+  const row = document.createElement('div');
+  row.className = 'ef-repeat-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Document name (e.g. Operation Manual)" class="ef-doc-name" value="${escapeHtml(name)}">
+    <input type="text" placeholder="File path (e.g. docs/rt-08/manual.pdf)" class="ef-doc-file" value="${escapeHtml(file)}">
+    <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+  `;
+  row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
+  efEl.documentsRows.appendChild(row);
+}
+
+function addSafetyRow(text = '') {
+  const row = document.createElement('div');
+  row.className = 'ef-repeat-row';
+  row.innerHTML = `
+    <input type="text" placeholder="e.g. Lockout/tagout required before opening guards" class="ef-safety-text" value="${escapeHtml(text)}">
+    <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+  `;
+  row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
+  efEl.safetyRows.appendChild(row);
+}
+
+document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
+document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
+
+function openEquipForm(existing) {
+  editingEquipmentId = existing ? existing.id : null;
+  efEl.error.textContent = '';
+  efEl.form.reset();
+  efEl.documentsRows.innerHTML = '';
+  efEl.safetyRows.innerHTML = '';
+
+  if (existing) {
+    efEl.title.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Equipment';
+    efEl.id.value = existing.id;
+    efEl.id.disabled = true;
+    efEl.name.value = existing.name || '';
+    efEl.status.value = existing.status || 'Operational';
+    efEl.department.value = existing.department || '';
+    efEl.manufacturer.value = existing.manufacturer || '';
+    efEl.model.value = existing.model || '';
+    efEl.serial.value = existing.serial || '';
+    efEl.installation.value = existing.installation || '';
+    efEl.description.value = existing.description || '';
+    efEl.image.value = existing.image || '';
+    (existing.documents || []).forEach((d) => addDocumentRow(d.name, d.file));
+    (existing.safetyRequirements || []).forEach((s) => addSafetyRow(s));
+  } else {
+    efEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Equipment';
+    efEl.id.disabled = false;
+  }
+
+  if (!efEl.documentsRows.children.length) addDocumentRow();
+  efEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEquipForm() {
+  efEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('addEquipBtn').addEventListener('click', () => openEquipForm(null));
+efEl.closeX.addEventListener('click', closeEquipForm);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && efEl.overlay.classList.contains('is-open')) closeEquipForm();
+});
+
+efEl.form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  efEl.error.textContent = '';
+
+  const id = efEl.id.value.trim();
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    efEl.error.textContent = 'ID must be lowercase letters, numbers, and hyphens only.';
+    return;
+  }
+  if (!editingEquipmentId && equipmentCache.some((x) => x.id === id)) {
+    efEl.error.textContent = 'An equipment with this ID already exists.';
+    return;
+  }
+
+  const documents = Array.from(efEl.documentsRows.querySelectorAll('.ef-repeat-row')).map((row) => ({
+    name: row.querySelector('.ef-doc-name').value.trim(),
+    file: row.querySelector('.ef-doc-file').value.trim(),
+  })).filter((d) => d.name && d.file);
+
+  const safetyRequirements = Array.from(efEl.safetyRows.querySelectorAll('.ef-repeat-row'))
+    .map((row) => row.querySelector('.ef-safety-text').value.trim())
+    .filter(Boolean);
+
+  const data = {
+    name: efEl.name.value.trim(),
+    status: efEl.status.value,
+    department: efEl.department.value.trim(),
+    manufacturer: efEl.manufacturer.value.trim(),
+    model: efEl.model.value.trim(),
+    serial: efEl.serial.value.trim(),
+    installation: efEl.installation.value,
+    description: efEl.description.value.trim(),
+    image: efEl.image.value.trim(),
+    documents,
+    safetyRequirements,
+  };
+
+  efEl.saveBtn.disabled = true;
+  efEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    await db.collection('equipment').doc(id).set(data);
+    closeEquipForm();
+    loadEquipmentList();
+    loadHistoryEquipmentOptions();
+  } catch (err) {
+    console.error('Failed to save equipment', err);
+    efEl.error.textContent = 'Could not save this equipment. Please try again.';
+  } finally {
+    efEl.saveBtn.disabled = false;
+    efEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Equipment';
+  }
+});
+
+// ---------- Import legacy equipment.json ----------
+
+document.getElementById('importLegacyBtn').addEventListener('click', async () => {
+  if (!confirm('This reads equipment.json and writes each entry into the database. Existing equipment with the same ID will be overwritten with the equipment.json version. Continue?')) return;
+
+  const btn = document.getElementById('importLegacyBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing…';
+  try {
+    const res = await fetch('equipment.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const list = await res.json();
+    const batch = db.batch();
+    list.forEach((e) => {
+      const { id, ...rest } = e;
+      batch.set(db.collection('equipment').doc(id), rest);
+    });
+    await batch.commit();
+    alert(`Imported ${list.length} equipment record(s).`);
+    loadEquipmentList();
+    loadHistoryEquipmentOptions();
+  } catch (err) {
+    console.error('Import failed', err);
+    alert('Could not import equipment.json. Check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-file-import"></i> Import Legacy Data';
+  }
+});
+
+// ================= Maintenance history (cross-equipment) =================
+
+async function loadHistoryEquipmentOptions() {
+  const select = document.getElementById('historyEquipFilter');
+  const current = select.value;
+  select.innerHTML = '<option value="">All equipment</option>' +
+    equipmentCache.map((e) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name || e.id)}</option>`).join('');
+  select.value = current;
+  loadHistoryData();
+}
+
+document.getElementById('historyEquipFilter').addEventListener('change', loadHistoryData);
+
+async function loadHistoryData() {
+  const equipId = document.getElementById('historyEquipFilter').value;
+  await Promise.all([loadLogsHistory(equipId), loadCompletionsHistory(equipId)]);
+}
+
+function equipmentNameFor(id) {
+  const e = equipmentCache.find((x) => x.id === id);
+  return e ? (e.name || e.id) : id;
+}
+
+async function loadLogsHistory(equipId) {
+  const container = document.getElementById('logsHistoryContainer');
+  container.innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    let query = equipId
+      ? db.collection('equipmentLogs').where('equipmentId', '==', equipId)
+      : db.collection('equipmentLogs');
+    const snap = await query.get();
+    if (snap.empty) {
+      container.innerHTML = '<p class="empty-state">No log entries found.</p>';
+      return;
+    }
+    const docs = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+        const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+        return tb - ta;
+      })
+      .slice(0, 100);
+    container.innerHTML = docs.map((d) => {
+      const date = d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toLocaleString() : '';
+      return `
+        <div class="history-entry">
+          <div class="history-entry-main">
+            <div class="who">${escapeHtml(d.fullName || 'Unknown')} — ${escapeHtml(equipmentNameFor(d.equipmentId))}</div>
+            <div class="meta">${escapeHtml(d.department || '')} • ${escapeHtml(date)}</div>
+            <div class="note">${escapeHtml(d.comment || '')}</div>
+          </div>
+          <button type="button" class="row-icon-btn danger" title="Delete" data-log-id="${d.id}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('[data-log-id]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this log entry? This cannot be undone.')) return;
+        await db.collection('equipmentLogs').doc(btn.dataset.logId).delete();
+        loadLogsHistory(equipId);
+      });
+    });
+  } catch (err) {
+    console.error('Failed to load log history', err);
+    container.innerHTML = '<p class="empty-state">Could not load log entries.</p>';
+  }
+}
+
+async function loadCompletionsHistory(equipId) {
+  const container = document.getElementById('completionsHistoryContainer');
+  container.innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    const query = equipId
+      ? db.collection('safetyChecklistCompletions').where('equipmentId', '==', equipId)
+      : db.collection('safetyChecklistCompletions');
+    const snap = await query.get();
+    if (snap.empty) {
+      container.innerHTML = '<p class="empty-state">No sign-offs found.</p>';
+      return;
+    }
+    const docs = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const ta = a.completedAt && a.completedAt.toMillis ? a.completedAt.toMillis() : 0;
+        const tb = b.completedAt && b.completedAt.toMillis ? b.completedAt.toMillis() : 0;
+        return tb - ta;
+      })
+      .slice(0, 100);
+    container.innerHTML = docs.map((d) => {
+      const date = d.completedAt && d.completedAt.toDate ? d.completedAt.toDate().toLocaleString() : '';
+      return `
+        <div class="history-entry">
+          <div class="history-entry-main">
+            <div class="who">${escapeHtml(d.fullName || 'Unknown')} — ${escapeHtml(equipmentNameFor(d.equipmentId))}</div>
+            <div class="meta">${escapeHtml(d.department || '')} • ${escapeHtml(date)}</div>
+            <div class="note">${escapeHtml(d.jobDescription || '')}</div>
+          </div>
+          <button type="button" class="row-icon-btn danger" title="Delete" data-comp-id="${d.id}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `;
+    }).join('');
+    container.querySelectorAll('[data-comp-id]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this sign-off record? This cannot be undone.')) return;
+        await db.collection('safetyChecklistCompletions').doc(btn.dataset.compId).delete();
+        loadCompletionsHistory(equipId);
+      });
+    });
+  } catch (err) {
+    console.error('Failed to load completions history', err);
+    container.innerHTML = '<p class="empty-state">Could not load sign-off records.</p>';
+  }
+}
+
+// ================= Offline banner + service worker =================
+
+function updateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+updateOfflineBanner();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
