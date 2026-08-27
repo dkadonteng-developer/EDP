@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 
 <style>
   :root{
@@ -169,6 +170,20 @@
   .ef-subsection{margin:20px 0 14px;padding-top:14px;border-top:1px solid var(--border);}
   .ef-subsection h4{font-size:.85rem;color:var(--brand);margin:0 0 10px;}
   .ef-repeat-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+  .ef-repeat-row.ef-doc-row{
+    flex-direction:column;align-items:stretch;gap:0;background:#fafafa;padding:12px;border-radius:8px;
+  }
+  .ef-doc-row-top{display:flex;gap:8px;}
+  .ef-doc-row-top input{
+    flex:1;font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;
+  }
+  .ef-upload-btn{
+    display:inline-flex;align-items:center;gap:6px;background:#eef6f1;color:var(--brand);
+    padding:7px 12px;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;
+    width:fit-content;margin-top:8px;
+  }
+  .ef-upload-btn:hover{background:#e0f0e6;}
+  .ef-upload-progress{font-size:.72rem;color:var(--muted);margin-top:6px;}
   .ef-repeat-row input{flex:1;font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;}
   .ef-repeat-remove{background:#fdeceb;color:var(--danger);border:none;width:32px;height:32px;border-radius:7px;cursor:pointer;flex-shrink:0;}
   .ef-add-row-btn{
@@ -401,17 +416,22 @@
         </div>
 
         <div class="ef-field">
-          <label for="efImage">Image path</label>
-          <input type="text" id="efImage" placeholder="e.g. assets/equipment/rt8.jpg">
+          <label for="efImage">Image</label>
+          <input type="text" id="efImage" placeholder="e.g. assets/equipment/rt8.jpg — or upload one below">
+          <label class="ef-upload-btn">
+            <i class="fa-solid fa-upload"></i> Upload Image
+            <input type="file" accept="image/*" id="efImageFile" hidden>
+          </label>
+          <div class="ef-upload-progress" id="efImageUploadProgress" style="display:none;"></div>
         </div>
-        <div class="ef-hint">Upload the image file to that path in the GitHub repo first — this only stores the path, it doesn't upload the file.</div>
+        <div class="ef-hint">Enter the Equipment ID above first, then upload an image — or type a path to a file already in the GitHub repo instead.</div>
 
         <div class="ef-subsection">
           <h4><i class="fa-solid fa-file-pdf"></i> Documents (manuals, drawings, etc.)</h4>
           <div id="efDocumentsRows"></div>
           <button type="button" class="ef-add-row-btn" id="efAddDocumentBtn"><i class="fa-solid fa-plus"></i> Add Document</button>
         </div>
-        <div class="ef-hint">Upload each PDF to the repo first (e.g. under <code>docs/&lt;equipment-id&gt;/</code>), then enter its path here.</div>
+        <div class="ef-hint">Each row can either be uploaded directly (recommended) or point to a file path already in the GitHub repo.</div>
 
         <div class="ef-subsection">
           <h4><i class="fa-solid fa-shield-halved"></i> Safety Requirements</h4>
@@ -441,6 +461,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -578,16 +599,65 @@ function renderEquipmentList() {
   });
 }
 
+// Deletes every doc a query returns, in Firestore-batch-safe chunks of 400.
+// Returns how many were deleted.
+async function batchDeleteQuery(query) {
+  const snap = await query.get();
+  if (snap.empty) return 0;
+  for (let i = 0; i < snap.docs.length; i += 400) {
+    const chunk = snap.docs.slice(i, i + 400);
+    const batch = db.batch();
+    chunk.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+  return snap.docs.length;
+}
+
+// Deleting equipment also cleans up everything that pointed at it:
+// its maintenance logs, its safety checklist and sign-off history, and
+// its email subscribers get deleted outright (they're meaningless without
+// the equipment they belong to). Spare parts are NOT deleted — a part can
+// serve multiple equipment — instead the deleted ID is just removed from
+// each part's compatibility list so old tags don't linger.
+async function cascadeDeleteEquipment(id) {
+  const results = { logs: 0, completions: 0, subscribers: 0, partsUpdated: 0 };
+
+  results.logs = await batchDeleteQuery(db.collection('equipmentLogs').where('equipmentId', '==', id));
+  results.completions = await batchDeleteQuery(db.collection('safetyChecklistCompletions').where('equipmentId', '==', id));
+  results.subscribers = await batchDeleteQuery(db.collection('emailSubscribers').where('equipmentId', '==', id));
+
+  const partsSnap = await db.collection('spareParts').where('compatibleEquipment', 'array-contains', id).get();
+  if (!partsSnap.empty) {
+    const batch = db.batch();
+    partsSnap.docs.forEach((doc) => {
+      batch.update(doc.ref, { compatibleEquipment: firebase.firestore.FieldValue.arrayRemove(id) });
+    });
+    await batch.commit();
+    results.partsUpdated = partsSnap.docs.length;
+  }
+
+  await db.collection('safetyChecklists').doc(id).delete().catch(() => {});
+  await db.collection('equipment').doc(id).delete();
+
+  return results;
+}
+
 async function deleteEquipment(id) {
   const e = equipmentCache.find((x) => x.id === id);
-  if (!confirm(`Delete "${e ? e.name : id}"? This removes it from the equipment list, but does NOT delete its existing logs, checklists, or spare-parts tags — those will be orphaned.`)) return;
+  if (!confirm(`Delete "${e ? e.name : id}"? This also permanently deletes its maintenance logs, safety checklist, sign-off history, and email subscribers, and untags it from any spare parts. This cannot be undone.`)) return;
   try {
-    await db.collection('equipment').doc(id).delete();
+    const results = await cascadeDeleteEquipment(id);
     loadEquipmentList();
     loadHistoryEquipmentOptions();
+    alert(
+      `Deleted "${e ? e.name : id}".\n\n` +
+      `Also removed: ${results.logs} log entr${results.logs === 1 ? 'y' : 'ies'}, ` +
+      `${results.completions} sign-off record(s), ${results.subscribers} subscriber(s). ` +
+      `Untagged from ${results.partsUpdated} spare part(s).`
+    );
   } catch (err) {
     console.error('Failed to delete equipment', err);
-    alert('Could not delete this equipment. Please try again.');
+    alert('Could not fully delete this equipment. Some related records may remain — please check and try again.');
   }
 }
 
@@ -616,15 +686,72 @@ const efEl = {
 
 let editingEquipmentId = null;
 
+// ---------- File uploads (Firebase Storage) ----------
+// Uploads go to equipment-images/{id}/... or equipment-documents/{id}/...
+// and the resulting download URL is written into the same text field the
+// admin could otherwise type a GitHub-repo path into — either works.
+
+function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const id = efEl.id.value.trim();
+    if (!id || !/^[a-z0-9-]+$/.test(id)) {
+      alert('Enter a valid Equipment ID first (lowercase letters, numbers, and hyphens only).');
+      fileInput.value = '';
+      return;
+    }
+    progressEl.style.display = 'block';
+    progressEl.textContent = 'Uploading… 0%';
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `equipment-${kind}/${id}/${Date.now()}-${safeName}`;
+      const task = storage.ref().child(path).put(file);
+      await new Promise((resolve, reject) => {
+        task.on('state_changed',
+          (snap) => {
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+            progressEl.textContent = `Uploading… ${pct}%`;
+          },
+          reject,
+          resolve
+        );
+      });
+      const url = await task.snapshot.ref.getDownloadURL();
+      targetTextInput.value = url;
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1800);
+    } catch (err) {
+      console.error('Upload failed', err);
+      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+    } finally {
+      fileInput.value = '';
+    }
+  });
+}
+
 function addDocumentRow(name = '', file = '') {
   const row = document.createElement('div');
-  row.className = 'ef-repeat-row';
+  row.className = 'ef-repeat-row ef-doc-row';
   row.innerHTML = `
-    <input type="text" placeholder="Document name (e.g. Operation Manual)" class="ef-doc-name" value="${escapeHtml(name)}">
-    <input type="text" placeholder="File path (e.g. docs/rt-08/manual.pdf)" class="ef-doc-file" value="${escapeHtml(file)}">
-    <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+    <div class="ef-doc-row-top">
+      <input type="text" placeholder="Document name (e.g. Operation Manual)" class="ef-doc-name" value="${escapeHtml(name)}">
+      <input type="text" placeholder="File path or URL" class="ef-doc-file" value="${escapeHtml(file)}">
+      <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <label class="ef-upload-btn">
+      <i class="fa-solid fa-upload"></i> Upload PDF
+      <input type="file" accept="application/pdf" class="ef-doc-file-input" hidden>
+    </label>
+    <div class="ef-upload-progress" style="display:none;"></div>
   `;
   row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
+  wireFileUpload(
+    row.querySelector('.ef-doc-file-input'),
+    row.querySelector('.ef-doc-file'),
+    row.querySelector('.ef-upload-progress'),
+    'documents'
+  );
   efEl.documentsRows.appendChild(row);
 }
 
@@ -641,6 +768,13 @@ function addSafetyRow(text = '') {
 
 document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
 document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
+
+wireFileUpload(
+  document.getElementById('efImageFile'),
+  efEl.image,
+  document.getElementById('efImageUploadProgress'),
+  'images'
+);
 
 function openEquipForm(existing) {
   editingEquipmentId = existing ? existing.id : null;
