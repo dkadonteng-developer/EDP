@@ -195,6 +195,67 @@
     .qr-modal-body{position:absolute;top:0;left:0;width:100%;padding:0;}
     .qr-card a{display:none;}
   }
+
+  /* ---------- Exploded View overlay ---------- */
+  #explodedViewOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
+    display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;
+  }
+  #explodedViewOverlay.is-open{display:flex;}
+  .ev-modal{
+    background:#fff;border-radius:16px;max-width:900px;width:100%;margin-bottom:24px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.3);
+  }
+  .ev-modal-head{
+    background:var(--brand);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;
+    align-items:flex-start;gap:14px;
+  }
+  .ev-modal-head h3{margin:0 0 3px;font-size:1.05rem;}
+  .ev-modal-head p{margin:0;font-size:.8rem;opacity:.9;}
+  .ev-modal-body{padding:22px;max-height:80vh;overflow-y:auto;}
+
+  .ev-uploader{
+    border:2px dashed var(--border);border-radius:12px;padding:30px 20px;text-align:center;color:var(--muted);
+  }
+  .ev-uploader i{font-size:1.8rem;margin-bottom:10px;color:var(--brand-light);display:block;}
+
+  .ev-canvas-wrap{
+    position:relative;display:inline-block;max-width:100%;border-radius:10px;overflow:hidden;
+    border:1px solid var(--border);cursor:crosshair;background:#f0f2f4;
+  }
+  .ev-canvas-wrap img{display:block;max-width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
+  .ev-pin{
+    position:absolute;width:26px;height:26px;border-radius:50%;background:var(--danger);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;
+    transform:translate(-50%,-50%);cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  .ev-pin:hover{background:#b8241a;}
+  .ev-hint-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 16px;flex-wrap:wrap;}
+  .ev-hint-row .ef-hint{margin:0;}
+  .ev-replace-btn{
+    background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:inherit;
+    font-size:.78rem;color:var(--muted);cursor:pointer;flex-shrink:0;
+  }
+  .ev-replace-btn:hover{border-color:var(--brand);color:var(--brand);}
+
+  .ev-part-form{
+    border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:16px;background:#f7f8fa;
+  }
+  .ev-part-form h4{margin:0 0 12px;font-size:.9rem;color:var(--brand);}
+
+  .ev-parts-list{margin-top:18px;}
+  .ev-parts-list h4{font-size:.85rem;color:var(--brand);margin:0 0 10px;}
+  .ev-part-row{
+    display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;margin-bottom:8px;background:#fff;
+  }
+  .ev-part-row .ev-part-num{
+    width:26px;height:26px;border-radius:50%;background:var(--danger);color:#fff;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;
+  }
+  .ev-part-row .ev-part-main{flex:1;min-width:0;}
+  .ev-part-row strong{display:block;font-size:.88rem;}
+  .ev-part-row span{display:block;font-size:.76rem;color:var(--muted);}
   .ef-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
   @media(max-width:560px){.ef-row{grid-template-columns:1fr;}}
   .ef-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
@@ -534,6 +595,93 @@
   </div>
 </div>
 
+<!-- ---- Exploded View overlay ---- -->
+<div id="explodedViewOverlay">
+  <div class="ev-modal">
+    <div class="ev-modal-head">
+      <div>
+        <h3 id="evTitle"><i class="fa-solid fa-diagram-project"></i> Exploded View</h3>
+        <p>Upload a diagram, then click on it to place a part and fill in its details.</p>
+      </div>
+      <button type="button" class="equip-form-close" id="evCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ev-modal-body">
+
+      <div id="evUploaderWrap">
+        <div class="ev-uploader">
+          <i class="fa-solid fa-image"></i>
+          <p>No exploded-view diagram uploaded yet for this equipment.</p>
+          <label class="ef-upload-btn" style="margin-top:10px;display:inline-flex;">
+            <i class="fa-solid fa-upload"></i> Upload Diagram
+            <input type="file" accept="image/*" id="evDiagramFile" hidden>
+          </label>
+          <div class="ef-upload-progress" id="evUploadProgress" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div id="evCanvasSection" style="display:none;">
+        <div class="ev-hint-row">
+          <p class="ef-hint">Click anywhere on the diagram to add a part pin at that spot.</p>
+          <label class="ev-replace-btn">
+            <i class="fa-solid fa-arrows-rotate"></i> Replace Diagram
+            <input type="file" accept="image/*" id="evReplaceFile" hidden>
+          </label>
+        </div>
+        <div class="ev-canvas-wrap" id="evCanvasWrap">
+          <img id="evDiagramImg" alt="Exploded view diagram">
+        </div>
+
+        <div class="ev-part-form" id="evPartForm" style="display:none;">
+          <h4 id="evPartFormTitle"><i class="fa-solid fa-gear"></i> New Part</h4>
+          <div class="ef-row">
+            <div class="ef-field">
+              <label for="evPartName">Part Name *</label>
+              <input type="text" id="evPartName" placeholder="e.g. Drive Gearbox">
+            </div>
+            <div class="ef-field">
+              <label for="evPartModel">Model Number</label>
+              <input type="text" id="evPartModel">
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-field">
+              <label for="evPartSerial">Serial Number</label>
+              <input type="text" id="evPartSerial">
+            </div>
+            <div class="ef-field">
+              <label for="evPartImage">Part Photo (optional)</label>
+              <input type="text" id="evPartImage" placeholder="Close-up photo URL">
+              <label class="ef-upload-btn" style="margin-top:6px;">
+                <i class="fa-solid fa-upload"></i> Upload Photo
+                <input type="file" accept="image/*" id="evPartImageFile" hidden>
+              </label>
+              <div class="ef-upload-progress" id="evPartImageUploadProgress" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="ef-field">
+            <label for="evPartFunction">Function</label>
+            <textarea id="evPartFunction" placeholder="What this part does"></textarea>
+          </div>
+          <div class="ef-error" id="evPartFormError"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="ef-save-btn" id="evPartSaveBtn" style="flex:1;">
+              <i class="fa-solid fa-floppy-disk"></i> Save Part
+            </button>
+            <button type="button" class="row-icon-btn danger" id="evPartDeleteBtn" style="display:none;" title="Delete part"><i class="fa-solid fa-trash"></i></button>
+            <button type="button" class="ev-replace-btn" id="evPartCancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        <div class="ev-parts-list">
+          <h4>Parts on this diagram</h4>
+          <div id="evPartsListContainer"><p class="loading-text">Loading parts…</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ---- Group form overlay ---- -->
 <div id="groupFormOverlay">
   <div class="equip-form-modal">
@@ -709,11 +857,16 @@ function renderEquipmentList() {
       </div>
       <span class="equip-row-badge">${escapeHtml(e.status || 'Unknown')}</span>
       <div class="equip-row-btns">
+        <button type="button" class="row-icon-btn" title="Exploded View" data-exploded="${e.id}"><i class="fa-solid fa-diagram-project"></i></button>
         <button type="button" class="row-icon-btn" title="Edit" data-edit="${e.id}"><i class="fa-solid fa-pen"></i></button>
         <button type="button" class="row-icon-btn danger" title="Delete" data-delete="${e.id}"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
   `).join('');
+
+  container.querySelectorAll('[data-exploded]').forEach((btn) => {
+    btn.addEventListener('click', () => openExplodedViewOverlay(equipmentCache.find((e) => e.id === btn.dataset.exploded)));
+  });
 
   container.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openEquipForm(equipmentCache.find((e) => e.id === btn.dataset.edit)));
@@ -1300,6 +1453,11 @@ efEl.form.addEventListener('submit', async (e) => {
     .map((row) => row.querySelector('.ef-safety-text').value.trim())
     .filter(Boolean);
 
+  // explodedView is managed separately via the Exploded View overlay (not this
+  // form), but this save fully overwrites the document — so carry the existing
+  // value forward or it would be silently wiped on every edit.
+  const existingRecord = editingEquipmentId ? equipmentCache.find((x) => x.id === editingEquipmentId) : null;
+
   const data = {
     name: efEl.name.value.trim(),
     status: efEl.status.value,
@@ -1313,6 +1471,7 @@ efEl.form.addEventListener('submit', async (e) => {
     image: efEl.image.value.trim(),
     documents,
     safetyRequirements,
+    explodedView: (existingRecord && existingRecord.explodedView) || '',
   };
 
   efEl.saveBtn.disabled = true;
@@ -1330,6 +1489,293 @@ efEl.form.addEventListener('submit', async (e) => {
     efEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Equipment';
   }
 });
+
+// ================= Exploded View =================
+// A per-equipment diagram image with clickable "pins" placed by percentage
+// position (so they stay correctly placed regardless of screen size). Each
+// pin is backed by a doc in the top-level `equipmentParts` collection
+// (equipmentId + name + serialNumber + modelNumber + function + x/y + image).
+// The diagram image itself lives on the equipment doc as `explodedView`.
+
+let evEquipment = null;
+let evParts = [];
+let evPendingPin = null;   // {x,y} percent — set while the part form is open
+let evEditingPartId = null;
+
+const evEl = {
+  overlay: document.getElementById('explodedViewOverlay'),
+  closeX: document.getElementById('evCloseX'),
+  title: document.getElementById('evTitle'),
+  uploaderWrap: document.getElementById('evUploaderWrap'),
+  canvasSection: document.getElementById('evCanvasSection'),
+  canvasWrap: document.getElementById('evCanvasWrap'),
+  diagramImg: document.getElementById('evDiagramImg'),
+  partForm: document.getElementById('evPartForm'),
+  partFormTitle: document.getElementById('evPartFormTitle'),
+  partName: document.getElementById('evPartName'),
+  partModel: document.getElementById('evPartModel'),
+  partSerial: document.getElementById('evPartSerial'),
+  partImage: document.getElementById('evPartImage'),
+  partFunction: document.getElementById('evPartFunction'),
+  partFormError: document.getElementById('evPartFormError'),
+  partSaveBtn: document.getElementById('evPartSaveBtn'),
+  partDeleteBtn: document.getElementById('evPartDeleteBtn'),
+  partCancelBtn: document.getElementById('evPartCancelBtn'),
+  partsListContainer: document.getElementById('evPartsListContainer'),
+};
+
+function openExplodedViewOverlay(equipment) {
+  if (!equipment) return;
+  evEquipment = equipment;
+  evParts = [];
+  evPendingPin = null;
+  evEditingPartId = null;
+  evEl.title.innerHTML = `<i class="fa-solid fa-diagram-project"></i> Exploded View — ${escapeHtml(equipment.name || equipment.id)}`;
+  evEl.partForm.style.display = 'none';
+
+  if (equipment.explodedView) {
+    evEl.uploaderWrap.style.display = 'none';
+    evEl.canvasSection.style.display = 'block';
+    evEl.diagramImg.src = equipment.explodedView;
+    loadExplodedViewParts();
+  } else {
+    evEl.uploaderWrap.style.display = 'block';
+    evEl.canvasSection.style.display = 'none';
+  }
+
+  evEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeExplodedViewOverlay() {
+  evEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+  evEl.partForm.style.display = 'none';
+  evEditingPartId = null;
+  evPendingPin = null;
+}
+evEl.closeX.addEventListener('click', closeExplodedViewOverlay);
+
+async function saveDiagramUrl(url) {
+  await db.collection('equipment').doc(evEquipment.id).update({ explodedView: url });
+  evEquipment.explodedView = url;
+  const cached = equipmentCache.find((e) => e.id === evEquipment.id);
+  if (cached) cached.explodedView = url;
+  evEl.uploaderWrap.style.display = 'none';
+  evEl.canvasSection.style.display = 'block';
+  evEl.diagramImg.src = url;
+  loadExplodedViewParts();
+}
+
+function wireDiagramUpload(fileInput) {
+  const progressEl = document.getElementById('evUploadProgress');
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file || !evEquipment) return;
+    progressEl.style.display = 'block';
+    progressEl.textContent = 'Uploading… 0%';
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `equipment-exploded-view/${evEquipment.id}/${Date.now()}-${safeName}`;
+      const task = storage.ref().child(path).put(file);
+      await new Promise((resolve, reject) => {
+        task.on('state_changed',
+          (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
+          reject,
+          resolve
+        );
+      });
+      const url = await task.snapshot.ref.getDownloadURL();
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+      await saveDiagramUrl(url);
+    } catch (err) {
+      console.error('Diagram upload failed', err);
+      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+    } finally {
+      fileInput.value = '';
+    }
+  });
+}
+wireDiagramUpload(document.getElementById('evDiagramFile'));
+wireDiagramUpload(document.getElementById('evReplaceFile'));
+
+function wireEvPartImageUpload(fileInput, targetInput) {
+  const progressEl = document.getElementById('evPartImageUploadProgress');
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file || !evEquipment) return;
+    progressEl.style.display = 'block';
+    progressEl.textContent = 'Uploading… 0%';
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `equipment-part-photos/${evEquipment.id}/${Date.now()}-${safeName}`;
+      const task = storage.ref().child(path).put(file);
+      await new Promise((resolve, reject) => {
+        task.on('state_changed',
+          (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
+          reject,
+          resolve
+        );
+      });
+      const url = await task.snapshot.ref.getDownloadURL();
+      targetInput.value = url;
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+    } catch (err) {
+      console.error('Part photo upload failed', err);
+      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+    } finally {
+      fileInput.value = '';
+    }
+  });
+}
+wireEvPartImageUpload(document.getElementById('evPartImageFile'), evEl.partImage);
+
+// Click anywhere on the diagram (not on an existing pin) to place a new part.
+evEl.canvasWrap.addEventListener('click', (ev) => {
+  const rect = evEl.canvasWrap.getBoundingClientRect();
+  const x = ((ev.clientX - rect.left) / rect.width) * 100;
+  const y = ((ev.clientY - rect.top) / rect.height) * 100;
+  openPartForm(null, { x, y });
+});
+
+function openPartForm(existingPart, pendingPos) {
+  evEditingPartId = existingPart ? existingPart.id : null;
+  evPendingPin = existingPart ? { x: existingPart.x, y: existingPart.y } : pendingPos;
+  evEl.partFormError.textContent = '';
+  evEl.partFormTitle.innerHTML = existingPart
+    ? '<i class="fa-solid fa-pen"></i> Edit Part'
+    : '<i class="fa-solid fa-plus"></i> New Part';
+  evEl.partName.value = existingPart ? (existingPart.name || '') : '';
+  evEl.partModel.value = existingPart ? (existingPart.modelNumber || '') : '';
+  evEl.partSerial.value = existingPart ? (existingPart.serialNumber || '') : '';
+  evEl.partImage.value = existingPart ? (existingPart.image || '') : '';
+  evEl.partFunction.value = existingPart ? (existingPart.function || '') : '';
+  evEl.partDeleteBtn.style.display = existingPart ? 'flex' : 'none';
+  evEl.partForm.style.display = 'block';
+  evEl.partForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+evEl.partCancelBtn.addEventListener('click', () => {
+  evEl.partForm.style.display = 'none';
+  evEditingPartId = null;
+  evPendingPin = null;
+});
+
+evEl.partSaveBtn.addEventListener('click', async () => {
+  evEl.partFormError.textContent = '';
+  const name = evEl.partName.value.trim();
+  if (!name) {
+    evEl.partFormError.textContent = 'Part name is required.';
+    return;
+  }
+  if (!evPendingPin) {
+    evEl.partFormError.textContent = 'Lost track of this pin\u2019s position \u2014 please close and click the diagram again.';
+    return;
+  }
+
+  const data = {
+    equipmentId: evEquipment.id,
+    name,
+    modelNumber: evEl.partModel.value.trim(),
+    serialNumber: evEl.partSerial.value.trim(),
+    image: evEl.partImage.value.trim(),
+    function: evEl.partFunction.value.trim(),
+    x: evPendingPin.x,
+    y: evPendingPin.y,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  evEl.partSaveBtn.disabled = true;
+  evEl.partSaveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    if (evEditingPartId) {
+      await db.collection('equipmentParts').doc(evEditingPartId).update(data);
+    } else {
+      await db.collection('equipmentParts').add(data);
+    }
+    evEl.partForm.style.display = 'none';
+    evEditingPartId = null;
+    evPendingPin = null;
+    loadExplodedViewParts();
+  } catch (err) {
+    console.error('Failed to save part', err);
+    evEl.partFormError.textContent = 'Could not save this part. Please try again.';
+  } finally {
+    evEl.partSaveBtn.disabled = false;
+    evEl.partSaveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Part';
+  }
+});
+
+async function deleteExplodedViewPart(partId) {
+  if (!confirm('Delete this part?')) return;
+  try {
+    await db.collection('equipmentParts').doc(partId).delete();
+    evEl.partForm.style.display = 'none';
+    evEditingPartId = null;
+    evPendingPin = null;
+    loadExplodedViewParts();
+  } catch (err) {
+    console.error('Failed to delete part', err);
+    alert('Could not delete this part. Please try again.');
+  }
+}
+evEl.partDeleteBtn.addEventListener('click', () => { if (evEditingPartId) deleteExplodedViewPart(evEditingPartId); });
+
+async function loadExplodedViewParts() {
+  evEl.partsListContainer.innerHTML = '<p class="loading-text">Loading parts…</p>';
+  try {
+    const snap = await db.collection('equipmentParts').where('equipmentId', '==', evEquipment.id).get();
+    evParts = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderEvPins();
+    renderEvPartsList();
+  } catch (err) {
+    console.error('Failed to load parts', err);
+    evEl.partsListContainer.innerHTML = '<p class="empty-state">Could not load parts. Check your connection and try again.</p>';
+  }
+}
+
+function renderEvPins() {
+  evEl.canvasWrap.querySelectorAll('.ev-pin').forEach((p) => p.remove());
+  evParts.forEach((part, i) => {
+    const pin = document.createElement('div');
+    pin.className = 'ev-pin';
+    pin.style.left = `${part.x}%`;
+    pin.style.top = `${part.y}%`;
+    pin.textContent = i + 1;
+    pin.title = part.name || '';
+    pin.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openPartForm(part, null);
+    });
+    evEl.canvasWrap.appendChild(pin);
+  });
+}
+
+function renderEvPartsList() {
+  if (!evParts.length) {
+    evEl.partsListContainer.innerHTML = '<p class="empty-state">No parts placed yet. Click the diagram above to add one.</p>';
+    return;
+  }
+  evEl.partsListContainer.innerHTML = evParts.map((part, i) => `
+    <div class="ev-part-row">
+      <div class="ev-part-num">${i + 1}</div>
+      <div class="ev-part-main">
+        <strong>${escapeHtml(part.name || '')}</strong>
+        <span>${escapeHtml(part.modelNumber || '—')} • Serial: ${escapeHtml(part.serialNumber || '—')}</span>
+      </div>
+      <button type="button" class="row-icon-btn" title="Edit" data-edit-part="${part.id}"><i class="fa-solid fa-pen"></i></button>
+      <button type="button" class="row-icon-btn danger" title="Delete" data-delete-part="${part.id}"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+  evEl.partsListContainer.querySelectorAll('[data-edit-part]').forEach((btn) => {
+    btn.addEventListener('click', () => openPartForm(evParts.find((p) => p.id === btn.dataset.editPart), null));
+  });
+  evEl.partsListContainer.querySelectorAll('[data-delete-part]').forEach((btn) => {
+    btn.addEventListener('click', () => deleteExplodedViewPart(btn.dataset.deletePart));
+  });
+}
 
 // ---------- Import legacy equipment.json ----------
 
