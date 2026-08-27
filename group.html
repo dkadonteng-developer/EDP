@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>InfoPort</title>
+<title>InfoPort — Equipment Group</title>
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#006937">
@@ -841,239 +841,50 @@ font-size:16px;
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <nav>
-
 <div class="logo">
-
 <img src="assets/logo.png">
-
 <h2>InfoPort</h2>
-
 </div>
-
 <div>
-
-<a href="inventory.html" class="nav-link" title="Spare Parts Inventory" aria-label="Spare Parts Inventory"><i class="fa-solid fa-warehouse"></i> Spare Parts Inventory</a>
-
+<a href="index.html" class="nav-link" title="Back to Dashboard" aria-label="Back to Dashboard"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
 </div>
-
 </nav>
 
 <section class="hero">
-
 <div>
-
-<h1>InfoPort</h1>
-
-<p>Search • Troubleshoot • Access Equipment Information Instantly</p>
-
+<h1 id="groupTitle">Equipment Group</h1>
+<p id="groupSubtitle">Equipment in this group</p>
 </div>
-
 </section>
 
-<div class="quick-actions-bar">
-  <div class="quick-action-group">
-    <div class="quick-action-icon"><i class="fa-solid fa-clipboard-list"></i></div>
-    <div class="quick-action-info">
-      <span class="quick-action-label">Take Five</span>
-      <span class="quick-action-meta" id="t5BannerMeta">Loading…</span>
-    </div>
-    <div class="quick-action-btns">
-      <button type="button" class="quick-action-btn" id="t5OpenBtn">
-        <i class="fa-solid fa-clipboard-check"></i> Start
-      </button>
-      <button type="button" class="quick-action-btn outline" id="t5HistoryBtn">
-        <i class="fa-solid fa-clock-rotate-left"></i> History
-      </button>
-    </div>
-  </div>
-
-  <div class="quick-action-divider"></div>
-
-  <div class="quick-action-group">
-    <div class="quick-action-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
-    <div class="quick-action-info">
-      <span class="quick-action-label">Offline Access</span>
-      <span class="quick-action-meta" id="offlineDlStatus">Checking status…</span>
-      <div class="qa-progress-wrap" id="offlineDlProgressWrap">
-        <div class="qa-progress-label" id="offlineDlProgressLabel">Starting…</div>
-        <div class="qa-progress-track"><div class="qa-progress-fill" id="offlineDlProgressFill"></div></div>
-      </div>
-    </div>
-    <div class="quick-action-btns">
-      <button type="button" class="quick-action-btn" id="offlineDlBtn">
-        <i class="fa-solid fa-cloud-arrow-down"></i> Download
-      </button>
-    </div>
-  </div>
-</div>
-
 <div class="controls">
-
 <div class="controls-left">
-
 <div class="search-box">
-
 <i class="fa-solid fa-magnifying-glass"></i>
-
-<input type="text" id="searchInput" placeholder="Search by group or equipment name…">
-
+<input type="text" id="searchInput" placeholder="Search by name, ID, or manufacturer…">
 </div>
-
 <div class="sort-box">
-
 <select id="sortSelect">
-
 <option value="name-asc">Sort: Name (A–Z)</option>
-
 <option value="name-desc">Sort: Name (Z–A)</option>
-
+<option value="id-asc">Sort: ID (A–Z)</option>
+<option value="id-desc">Sort: ID (Z–A)</option>
 </select>
-
 </div>
-
 </div>
-
-<div class="filter-chips" id="filterChips">
-
-<button class="filter-chip active" data-filter="all">All</button>
-
-<button class="filter-chip" data-filter="packing-plant">Packing Plant</button>
-
-<button class="filter-chip" data-filter="milling">Milling</button>
-
-<button class="filter-chip" data-filter="material-transport">Material Transport</button>
-
-<button class="filter-chip" data-filter="others">Others</button>
-
-</div>
-
 </div>
 
 <p class="results-count" id="resultsCount"></p>
 
 <div class="container">
-
-<h2 class="section-title">
-
-Equipment Groups
-
-</h2>
-
 <div class="cards" id="cardsGrid"><p class="loading-text" style="padding:30px;color:#888;grid-column:1/-1;text-align:center;">Loading equipment…</p></div>
-
 </div>
 
 <footer>
-
 GHACEM LTD © 2026
-
 <br>
-
 Engineering Documentation Portal
-
 </footer>
-
-<div id="t5Overlay">
-  <div class="t5-modal">
-    <div class="t5-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-clipboard-check"></i> Take Five — Pre-Task Risk Assessment</h3>
-        <p>Stop. Think. Assess every hazard before you start.</p>
-      </div>
-      <button type="button" class="t5-modal-close" id="t5CloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="t5-modal-body">
-      <form id="t5Form">
-        <div class="t5-field-row">
-          <div class="t5-field">
-            <label for="t5Date">Date</label>
-            <input type="date" id="t5Date" required>
-          </div>
-          <div class="t5-field">
-            <label for="t5Task">Task</label>
-            <input type="text" id="t5Task" placeholder="e.g. Replace bucket elevator chain" required>
-          </div>
-        </div>
-        <div class="t5-field-row">
-          <div class="t5-field">
-            <label for="t5Location">Location</label>
-            <input type="text" id="t5Location" placeholder="e.g. Packing Plant — Bucket Elevator BE1" required>
-          </div>
-          <div class="t5-field">
-            <label for="t5Names">Names of people involved</label>
-            <input type="text" id="t5Names" placeholder="e.g. Kwame Mensah, Ama Boateng" required>
-          </div>
-        </div>
-
-        <div class="t5-progress-wrap">
-          <div class="t5-progress-label" id="t5ProgressLabel">0 of 27 hazards addressed</div>
-          <div class="t5-progress-track"><div class="t5-progress-fill" id="t5ProgressFill"></div></div>
-        </div>
-
-        <div class="t5-overall-banner" id="t5OverallBanner"></div>
-
-        <div id="t5ItemsContainer"></div>
-
-        <div class="t5-error" id="t5FormError"></div>
-        <button type="submit" class="t5-submit-btn" id="t5SubmitBtn" disabled>
-          <i class="fa-solid fa-signature"></i> Complete &amp; Save Assessment
-        </button>
-      </form>
-
-      <div class="t5-success" id="t5Success">
-        <i class="fa-solid fa-circle-check"></i>
-        <h4>Take Five Recorded</h4>
-        <p id="t5SuccessDetail"></p>
-        <div class="t5-success-actions">
-          <button type="button" id="t5ViewHistoryBtn" class="t5-secondary-btn"><i class="fa-solid fa-clock-rotate-left"></i> View Take Five History</button>
-          <button type="button" id="t5NewBtn">Start Another Take Five</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="t5HistoryOverlay">
-  <div class="t5-modal t5-history-modal">
-    <div class="t5-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-clock-rotate-left"></i> Take Five History</h3>
-        <p>Assessments logged in the last 7 days.</p>
-      </div>
-      <button type="button" class="t5-modal-close" id="t5HistoryCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="t5-modal-body">
-      <div class="t5-history-toolbar">
-        <label class="t5-select-all">
-          <input type="checkbox" id="t5SelectAllCheckbox"> Select all
-        </label>
-        <span id="t5SelectedCount">None selected</span>
-        <button type="button" id="t5ExportSelectedBtn" class="t5-export-btn" disabled>
-          <i class="fa-solid fa-file-pdf"></i> Export Selected as PDF
-        </button>
-      </div>
-      <div id="t5HistoryList"><p class="t5-history-empty">Loading…</p></div>
-    </div>
-  </div>
-</div>
-
-<div id="pwaInstallOverlay">
-  <div class="t5-modal pwa-install-modal">
-    <div class="t5-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-mobile-screen-button"></i> Install InfoPort</h3>
-        <p>Add it to your home screen for one-tap access — even offline.</p>
-      </div>
-      <button type="button" class="t5-modal-close" id="pwaInstallCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="t5-modal-body">
-      <div id="pwaInstallContent"></div>
-      <label class="pwa-dont-show">
-        <input type="checkbox" id="pwaDontShowAgain"> Don't show this again on this device
-      </label>
-    </div>
-  </div>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
@@ -1104,123 +915,101 @@ function escapeHtmlCard(str) {
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
 }
+</script>
+
+<script>
+(function () {
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
+  document.getElementById('groupTitle').textContent = groupName || 'Equipment Group';
+  document.getElementById('groupSubtitle').textContent = groupName
+    ? `All equipment listed under "${groupName}"`
+    : 'No group specified';
+  document.title = groupName ? `InfoPort — ${groupName}` : 'InfoPort — Equipment Group';
+})();
 
 (async function () {
   const cardsGrid = document.getElementById('cardsGrid');
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
-  const filterChips = document.querySelectorAll('.filter-chip');
   const resultsCount = document.getElementById('resultsCount');
 
-  const DEPARTMENT_MAP = {
-    'packing plant': 'packing-plant',
-    'milling': 'milling',
-    'material transport': 'material-transport'
-  };
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
 
-  // ---------- Load equipment + groups from Firestore (editable via admin.html) ----------
+  if (!groupName) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No group specified. Go back to the dashboard and tap a group tile.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
+    return;
+  }
+
+  // ---------- Load equipment from Firestore, filtered to this group ----------
+  // "Ungrouped" is the dashboard's fallback bucket for equipment with no
+  // Group field set, so match that the same way here.
   let equipmentData = [];
-  let groupPictures = {};
   try {
-    const [equipSnap, groupsSnap] = await Promise.all([
+    const [equipSnap, groupQuery] = await Promise.all([
       db.collection('equipment').orderBy('name').get(),
-      db.collection('groups').get(),
+      db.collection('groups').where('name', '==', groupName).limit(1).get().catch(() => null),
     ]);
-    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    groupsSnap.docs.forEach((doc) => {
-      const g = doc.data();
-      if (g.name && g.image) groupPictures[g.name] = g.image;
-    });
+    const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    equipmentData = all.filter((e) => ((e.group && e.group.trim()) || 'Ungrouped') === groupName);
+
+    const groupImage = groupQuery && !groupQuery.empty ? groupQuery.docs[0].data().image : '';
+    if (groupImage) {
+      document.querySelector('.hero').style.cssText += `background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('${groupImage}');background-size:cover;background-position:center;`;
+    }
   } catch (err) {
-    console.error('Failed to load equipment/groups list', err);
+    console.error('Failed to load equipment list', err);
   }
 
   if (!equipmentData.length) {
     cardsGrid.innerHTML = `
       <div class="no-results">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <p>No equipment found. If this is unexpected, check your connection and try again.</p>
+        <p>No equipment found in this group.</p>
       </div>
     `;
-    resultsCount.textContent = 'Showing 0 of 0 groups';
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
     return;
   }
 
-  // ---------- Group equipment by the admin-set "Group" field ----------
-  // Equipment with no group set falls back into its own "Ungrouped" tile so
-  // nothing goes missing from the dashboard. Each tile shows the group's own
-  // picture if the admin set one (Groups tab in admin.html), otherwise falls
-  // back to one of its equipment's photos — plus how many pieces of
-  // equipment sit inside it, and the department most of its equipment
-  // belongs to (used for the existing department filter chips).
-  const groupMap = new Map();
-  equipmentData.forEach((e) => {
-    const groupName = (e.group && e.group.trim()) || 'Ungrouped';
-    if (!groupMap.has(groupName)) groupMap.set(groupName, []);
-    groupMap.get(groupName).push(e);
-  });
-
-  const groups = Array.from(groupMap.entries()).map(([name, items]) => {
-    const deptCounts = {};
-    items.forEach((e) => {
-      const d = (e.department || '').trim();
-      if (d) deptCounts[d] = (deptCounts[d] || 0) + 1;
-    });
-    const topDepartment = Object.keys(deptCounts).sort((a, b) => deptCounts[b] - deptCounts[a])[0] || '';
-    const departmentKey = DEPARTMENT_MAP[topDepartment.toLowerCase()] || 'others';
-    const image = groupPictures[name] || (items.find((e) => e.image) || {}).image || '';
-
-    return {
-      name,
-      items,
-      count: items.length,
-      department: topDepartment,
-      departmentKey,
-      image,
-      searchText: `${name} ${items.map((e) => `${e.name || ''} ${e.id || ''}`).join(' ')}`.toLowerCase(),
-    };
-  });
-
-  cardsGrid.innerHTML = groups.map((g) => `
+  cardsGrid.innerHTML = equipmentData.map((e) => `
     <div class="card">
-      <img src="${escapeHtmlCard(g.image)}" alt="${escapeHtmlCard(g.name)}" onerror="this.style.display='none'">
+      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
       <div class="card-content">
-        <span class="badge">${g.count} equipment</span>
-        <h3>${escapeHtmlCard(g.name)}</h3>
-        <p><strong>Location:</strong> ${escapeHtmlCard(g.department || '—')}</p>
-        <a href="group.html?group=${encodeURIComponent(g.name)}">View Equipment</a>
+        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
+        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
+        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
+        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
+        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
+        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
       </div>
     </div>
   `).join('');
 
-  // ---------- Search / sort / filter ----------
   const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
     el,
-    name: groups[i].name,
-    searchText: groups[i].searchText,
-    department: groups[i].departmentKey,
+    name: (equipmentData[i].name || equipmentData[i].id || '').toLowerCase(),
+    id: (equipmentData[i].id || '').toLowerCase(),
+    searchText: `${equipmentData[i].name || ''} ${equipmentData[i].id || ''} ${equipmentData[i].manufacturer || ''}`.toLowerCase(),
   }));
-
-  let currentFilter = 'all';
 
   function applyFiltersAndSort() {
     const query = searchInput.value.trim().toLowerCase();
+    const visible = cards.filter(c => !query || c.searchText.includes(query));
 
-    const visible = cards.filter(c =>
-      (currentFilter === 'all' || c.department === currentFilter) &&
-      (!query || c.searchText.includes(query))
-    );
-
-    const [, dir] = sortSelect.value.split('-');
+    const [key, dir] = sortSelect.value.split('-');
     visible.sort((a, b) => {
-      const av = a.name.toLowerCase();
-      const bv = b.name.toLowerCase();
+      const av = key === 'id' ? a.id : a.name;
+      const bv = key === 'id' ? b.id : b.name;
       const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
       return dir === 'desc' ? -cmp : cmp;
     });
 
-    // Hide everything, then re-append the visible set in sorted order —
-    // CSS grid re-flows automatically, no layout math needed.
     cards.forEach(c => { c.el.style.display = 'none'; });
     const existingEmptyState = cardsGrid.querySelector('.no-results');
     if (existingEmptyState) existingEmptyState.remove();
@@ -1229,7 +1018,7 @@ function escapeHtmlCard(str) {
       cardsGrid.insertAdjacentHTML('beforeend', `
         <div class="no-results">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <p>No groups match your search/filter.</p>
+          <p>No equipment matches your search.</p>
         </div>
       `);
     } else {
@@ -1239,841 +1028,15 @@ function escapeHtmlCard(str) {
       });
     }
 
-    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} groups`;
+    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} equipment`;
   }
 
   searchInput.addEventListener('input', applyFiltersAndSort);
   sortSelect.addEventListener('change', applyFiltersAndSort);
 
-  filterChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      filterChips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentFilter = chip.dataset.filter;
-      applyFiltersAndSort();
-    });
-  });
-
   applyFiltersAndSort();
 })();
 </script>
 
-
-<script>
-// ================= Take Five — Pre-Task Risk Assessment =================
-//
-// Firestore collection: takeFiveAssessments/{autoId}
-//   date, task, location, namesInvolved, hazards[], overallRisk,
-//   createdAt (serverTimestamp), authorUid
-//
-// Entries only ever show for 7 days: the display/count queries only pull
-// the last 7 days, and a best-effort sweep deletes anything older whenever
-// someone loads this page. For a guarantee that doesn't depend on someone
-// visiting the page, also set a Firestore TTL policy in the console (see
-// the notes given alongside this file).
-
-const t5db = db; // Firebase is already initialized earlier (see the equipment-cards script above)
-const t5auth = firebase.auth();
-
-let t5AuthorUid = null;
-const t5AuthReady = new Promise((resolve) => {
-  t5auth.onAuthStateChanged((user) => {
-    if (user) { t5AuthorUid = user.uid; resolve(user.uid); }
-  });
-  t5auth.signInAnonymously().catch((err) => console.error('Take Five anonymous sign-in failed', err));
-});
-
-function t5EscapeHtml(str) {
-  return String(str || '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
-const T5_HAZARD_GROUPS = [
-  {
-    title: 'Site & Access',
-    items: ['Access and Egress', 'Weather Conditions', 'Visibility (Lighting, Fog, Dust)',
-      'Other People & Other Activities', 'Vehicles (Impact / Overturn)', 'Manual Handling']
-  },
-  {
-    title: 'Physical & Process Hazards',
-    items: ['Slip / Trip / Fall', 'Trapped Hands or Fingers', 'Struck by Object (Flying, Falling, Toppling & Moving)',
-      'Temperature', 'Noise or Vibration', 'COSHH (Dust, Fumes, Vapour, Chemicals & Asbestos)',
-      'Fire or Explosion', 'Height Work', 'Spillage (Liquid and Solid)', 'Dust Release',
-      'Waste & Resource Usage', 'Wildlife Disturbance']
-  },
-  {
-    title: 'High-Risk & Permit-Type Hazards',
-    items: ['Confined Space', 'Lifting (Equipment & Operations)', 'Electricity', 'Pressure (System, Release & Build-Up)',
-      'Remove a Machinery Guard', 'Remove a Handrail or Floor Plate', 'Excavation (Underground Cables & Pipes)',
-      'Radiation', 'Other Significant Hazards']
-  }
-];
-const T5_TOTAL_HAZARDS = T5_HAZARD_GROUPS.reduce((n, g) => n + g.items.length, 0);
-
-const t5El = {
-  bannerMeta: document.getElementById('t5BannerMeta'),
-  openBtn: document.getElementById('t5OpenBtn'),
-  historyBtn: document.getElementById('t5HistoryBtn'),
-
-  overlay: document.getElementById('t5Overlay'),
-  closeX: document.getElementById('t5CloseX'),
-  form: document.getElementById('t5Form'),
-  date: document.getElementById('t5Date'),
-  task: document.getElementById('t5Task'),
-  location: document.getElementById('t5Location'),
-  names: document.getElementById('t5Names'),
-  itemsContainer: document.getElementById('t5ItemsContainer'),
-  progressLabel: document.getElementById('t5ProgressLabel'),
-  progressFill: document.getElementById('t5ProgressFill'),
-  overallBanner: document.getElementById('t5OverallBanner'),
-  submitBtn: document.getElementById('t5SubmitBtn'),
-  formError: document.getElementById('t5FormError'),
-  success: document.getElementById('t5Success'),
-  successDetail: document.getElementById('t5SuccessDetail'),
-  viewHistoryBtn: document.getElementById('t5ViewHistoryBtn'),
-  newBtn: document.getElementById('t5NewBtn'),
-
-  historyOverlay: document.getElementById('t5HistoryOverlay'),
-  historyCloseX: document.getElementById('t5HistoryCloseX'),
-  historyList: document.getElementById('t5HistoryList'),
-  selectAllCheckbox: document.getElementById('t5SelectAllCheckbox'),
-  selectedCount: document.getElementById('t5SelectedCount'),
-  exportSelectedBtn: document.getElementById('t5ExportSelectedBtn'),
-};
-
-let t5State = {}; // hazardId -> { name, answer: 'yes'|'no'|null, description, controls, risk }
-
-function t5HazardId(groupIndex, itemIndex) { return `g${groupIndex}i${itemIndex}`; }
-
-function t5BuildForm() {
-  t5State = {};
-  t5El.itemsContainer.innerHTML = T5_HAZARD_GROUPS.map((group, gi) => `
-    <div class="t5-category">
-      <div class="t5-category-title">${t5EscapeHtml(group.title)}</div>
-      ${group.items.map((name, ii) => {
-        const id = t5HazardId(gi, ii);
-        t5State[id] = { name, answer: null, description: '', controls: '', risk: null };
-        return `
-          <div class="t5-hazard-row" data-id="${id}">
-            <div class="t5-hazard-head">
-              <div class="t5-hazard-name">${t5EscapeHtml(name)}</div>
-              <div class="t5-yn">
-                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="yes">Yes</button>
-                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="no">No</button>
-              </div>
-            </div>
-            <div class="t5-hazard-detail" id="detail-${id}">
-              <textarea placeholder="Describe the hazard…" data-id="${id}" data-field="description"></textarea>
-              <textarea placeholder="How will you make it safe?" data-id="${id}" data-field="controls"></textarea>
-              <div class="t5-risk-select">
-                <button type="button" data-id="${id}" data-risk="zero">Zero Harm</button>
-                <button type="button" data-id="${id}" data-risk="amber">Amber Risk</button>
-                <button type="button" data-id="${id}" data-risk="red">Red Risk</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `).join('');
-
-  t5El.itemsContainer.querySelectorAll('.t5-yn-btn').forEach(btn => {
-    btn.addEventListener('click', () => t5SetAnswer(btn.dataset.id, btn.dataset.answer));
-  });
-  t5El.itemsContainer.querySelectorAll('textarea').forEach(ta => {
-    ta.addEventListener('input', () => {
-      t5State[ta.dataset.id][ta.dataset.field] = ta.value;
-      t5UpdateProgress();
-    });
-  });
-  t5El.itemsContainer.querySelectorAll('.t5-risk-select button').forEach(btn => {
-    btn.addEventListener('click', () => t5SetRisk(btn.dataset.id, btn.dataset.risk));
-  });
-
-  t5UpdateProgress();
-}
-
-function t5SetAnswer(id, answer) {
-  t5State[id].answer = answer;
-  if (answer === 'no') { t5State[id].description = ''; t5State[id].controls = ''; t5State[id].risk = null; }
-
-  const row = t5El.itemsContainer.querySelector(`.t5-hazard-row[data-id="${id}"]`);
-  row.classList.toggle('answered-yes', answer === 'yes');
-  row.classList.toggle('answered-no', answer === 'no');
-  row.querySelectorAll('.t5-yn-btn').forEach(b => {
-    b.classList.toggle('active-yes', b.dataset.answer === 'yes' && answer === 'yes');
-    b.classList.toggle('active-no', b.dataset.answer === 'no' && answer === 'no');
-  });
-
-  const detail = document.getElementById(`detail-${id}`);
-  detail.classList.toggle('is-open', answer === 'yes');
-  if (answer === 'no') {
-    detail.querySelectorAll('textarea').forEach(t => t.value = '');
-    detail.querySelectorAll('.t5-risk-select button').forEach(b => b.classList.remove('selected'));
-  }
-
-  t5UpdateProgress();
-}
-
-function t5SetRisk(id, risk) {
-  t5State[id].risk = risk;
-  const row = t5El.itemsContainer.querySelector(`.t5-hazard-row[data-id="${id}"]`);
-  row.querySelectorAll('.t5-risk-select button').forEach(b => {
-    b.classList.toggle('selected', b.dataset.risk === risk);
-  });
-  t5UpdateProgress();
-}
-
-function t5ComputeOverallRisk() {
-  const applicable = Object.values(t5State).filter(h => h.answer === 'yes');
-  if (applicable.some(h => h.risk === 'red')) return 'red';
-  if (applicable.some(h => h.risk === 'amber')) return 'amber';
-  return 'zero';
-}
-
-function t5UpdateProgress() {
-  const entries = Object.values(t5State);
-  const answered = entries.filter(h => h.answer !== null).length;
-  const allAnswered = answered === T5_TOTAL_HAZARDS;
-  const yesEntries = entries.filter(h => h.answer === 'yes');
-  const yesComplete = yesEntries.every(h => h.description.trim() && h.controls.trim() && h.risk);
-
-  t5El.progressLabel.textContent = `${answered} of ${T5_TOTAL_HAZARDS} hazards addressed`;
-  t5El.progressFill.style.width = `${Math.round((answered / T5_TOTAL_HAZARDS) * 100)}%`;
-
-  const overall = t5ComputeOverallRisk();
-  if (yesEntries.length && allAnswered && yesComplete) {
-    t5El.overallBanner.className = `t5-overall-banner show ${overall}`;
-    t5El.overallBanner.innerHTML = overall === 'red'
-      ? '<i class="fa-solid fa-triangle-exclamation"></i> RED RISK — Do NOT proceed. Reassess and identify further controls before starting.'
-      : overall === 'amber'
-        ? '<i class="fa-solid fa-triangle-exclamation"></i> AMBER RISK — Proceed with caution. Make sure controls are in place.'
-        : '<i class="fa-solid fa-circle-check"></i> Zero Harm — safe to proceed.';
-  } else {
-    t5El.overallBanner.className = 't5-overall-banner';
-  }
-
-  const basicsFilled = t5El.task.value.trim() && t5El.location.value.trim() && t5El.names.value.trim() && t5El.date.value;
-  t5El.submitBtn.disabled = !(allAnswered && yesComplete && basicsFilled);
-}
-
-[t5El.task, t5El.location, t5El.names, t5El.date].forEach(f => f && f.addEventListener('input', t5UpdateProgress));
-
-function t5OpenModal() {
-  t5El.date.value = new Date().toISOString().slice(0, 10);
-  t5El.task.value = '';
-  t5El.location.value = '';
-  t5El.names.value = '';
-  t5El.form.style.display = 'block';
-  t5El.success.classList.remove('show');
-  t5El.formError.textContent = '';
-  t5BuildForm();
-  t5El.overlay.classList.add('is-open');
-  document.body.style.overflow = 'hidden';
-}
-function t5CloseModal() {
-  t5El.overlay.classList.remove('is-open');
-  document.body.style.overflow = '';
-}
-
-t5El.openBtn.addEventListener('click', t5OpenModal);
-t5El.closeX.addEventListener('click', t5CloseModal);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && t5El.overlay.classList.contains('is-open')) t5CloseModal();
-});
-
-// ---------- PDF export (manual, from Take Five History — supports multiple at once) ----------
-
-function t5RiskLabelFull(risk) {
-  return risk === 'red' ? 'RED RISK' : risk === 'amber' ? 'AMBER RISK' : 'ZERO HARM';
-}
-
-function t5DrawRecordPage(doc, record) {
-  const riskColors = { zero: [0, 166, 81], amber: [245, 158, 11], red: [217, 45, 32] };
-  const overallColor = riskColors[record.overallRisk] || riskColors.zero;
-
-  doc.setFillColor(0, 105, 55);
-  doc.rect(0, 0, 595, 56, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.text('Take Five — Pre-Task Risk Assessment', 40, 34);
-
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  const y = 78;
-  doc.text(`Date: ${record.date}`, 40, y);
-  doc.text(`Task: ${record.task}`, 40, y + 16);
-  doc.text(`Location: ${record.location}`, 40, y + 32);
-  doc.text(`Names of people involved: ${record.namesInvolved}`, 40, y + 48);
-
-  doc.setFillColor(overallColor[0], overallColor[1], overallColor[2]);
-  doc.roundedRect(40, y + 62, 170, 22, 4, 4, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.text(`OVERALL: ${t5RiskLabelFull(record.overallRisk)}`, 48, y + 77);
-
-  const hazards = record.hazards || [];
-  const body = hazards.map((h, i) => [
-    String(i + 1),
-    h.name,
-    h.answer === 'yes' ? 'Yes' : 'No',
-    h.answer === 'yes' ? h.description : '—',
-    h.answer === 'yes' ? h.controls : '—',
-    h.answer === 'yes' ? t5RiskLabelFull(h.risk) : '—'
-  ]);
-
-  doc.autoTable({
-    startY: y + 96,
-    head: [['#', 'Hazard', 'Y/N', 'Describe the Hazard', 'How Made Safe', 'Risk']],
-    body,
-    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
-    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 90 }, 2: { cellWidth: 22 }, 5: { cellWidth: 55 } },
-    margin: { left: 40, right: 40 },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.column.index === 5) {
-        const risk = hazards[data.row.index] ? hazards[data.row.index].risk : null;
-        if (risk === 'red') { data.cell.styles.textColor = [217, 45, 32]; data.cell.styles.fontStyle = 'bold'; }
-        else if (risk === 'amber') { data.cell.styles.textColor = [180, 110, 0]; data.cell.styles.fontStyle = 'bold'; }
-      }
-    }
-  });
-
-  const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (y + 96);
-  doc.setFontSize(8);
-  doc.setTextColor(140, 140, 140);
-  doc.text(`Generated ${new Date().toLocaleString()} — InfoPort`, 40, Math.min(finalY + 20, 810));
-}
-
-function t5GeneratePdfBatch(records) {
-  if (typeof window.jspdf === 'undefined') {
-    alert('The PDF export library failed to load. Check your connection and try again.');
-    return false;
-  }
-  if (!records.length) return false;
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    records.forEach((record, i) => {
-      if (i > 0) doc.addPage();
-      t5DrawRecordPage(doc, record);
-    });
-
-    let filename;
-    if (records.length === 1) {
-      const r = records[0];
-      const safeTask = (r.task || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
-      filename = `take-five-${r.date}-${safeTask}.pdf`;
-    } else {
-      const today = new Date().toISOString().slice(0, 10);
-      filename = `take-five-batch-${today}-${records.length}-assessments.pdf`;
-    }
-    doc.save(filename);
-    return true;
-  } catch (err) {
-    console.error('Failed to generate Take Five PDF', err);
-    alert('Could not generate the PDF. Please try again.');
-    return false;
-  }
-}
-
-t5El.form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  t5El.formError.textContent = '';
-
-  const entries = Object.values(t5State);
-  if (!entries.every(h => h.answer !== null)) {
-    t5El.formError.textContent = 'Please mark Yes or No for every hazard.';
-    return;
-  }
-  const applicable = entries.filter(h => h.answer === 'yes');
-  if (applicable.some(h => !h.description.trim() || !h.controls.trim() || !h.risk)) {
-    t5El.formError.textContent = 'Please complete the description, controls, and risk level for every hazard marked Yes.';
-    return;
-  }
-
-  t5El.submitBtn.disabled = true;
-  t5El.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
-
-  try {
-    const uid = await t5AuthReady;
-    const overallRisk = t5ComputeOverallRisk();
-    const record = {
-      date: t5El.date.value,
-      task: t5El.task.value.trim(),
-      location: t5El.location.value.trim(),
-      namesInvolved: t5El.names.value.trim(),
-      hazards: entries.map(h => ({
-        name: h.name, answer: h.answer,
-        description: h.description.trim(), controls: h.controls.trim(), risk: h.risk
-      })),
-      overallRisk,
-      authorUid: uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await t5db.collection('takeFiveAssessments').add(record);
-
-    t5El.form.style.display = 'none';
-    t5El.success.classList.add('show');
-    const riskLabel = overallRisk === 'red' ? 'Red Risk' : overallRisk === 'amber' ? 'Amber Risk' : 'Zero Harm';
-    t5El.successDetail.textContent = `${record.task} — ${record.location} (${riskLabel})`;
-
-    t5RefreshBannerMeta();
-  } catch (err) {
-    console.error('Failed to save Take Five assessment', err);
-    t5El.formError.textContent = 'Could not save this assessment right now. Please try again.';
-  } finally {
-    t5El.submitBtn.disabled = false;
-    t5El.submitBtn.innerHTML = '<i class="fa-solid fa-signature"></i> Complete &amp; Save Assessment';
-  }
-});
-
-t5El.newBtn.addEventListener('click', t5OpenModal);
-
-t5El.viewHistoryBtn.addEventListener('click', () => {
-  t5CloseModal();
-  t5OpenHistoryModal();
-});
-
-// ---------- History modal (last 7 days only) ----------
-
-function t5SevenDaysAgo() {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d;
-}
-
-function t5RiskLabel(risk) {
-  return risk === 'red' ? 'Red Risk' : risk === 'amber' ? 'Amber Risk' : 'Zero Harm';
-}
-
-async function t5RefreshBannerMeta() {
-  try {
-    await t5AuthReady;
-    const cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
-    const snap = await t5db.collection('takeFiveAssessments').where('createdAt', '>=', cutoff).get();
-    const n = snap.size;
-    t5El.bannerMeta.textContent = n
-      ? `${n} assessment${n === 1 ? '' : 's'} logged in the last 7 days`
-      : 'No assessments logged in the last 7 days';
-  } catch (err) {
-    console.error('Failed to refresh Take Five banner meta', err);
-    t5El.bannerMeta.textContent = '';
-  }
-}
-
-let t5HistoryDocs = [];
-let t5SelectedIds = new Set();
-
-function t5OpenHistoryModal() {
-  t5El.historyOverlay.classList.add('is-open');
-  document.body.style.overflow = 'hidden';
-  t5LoadHistory();
-}
-function t5CloseHistoryModal() {
-  t5El.historyOverlay.classList.remove('is-open');
-  document.body.style.overflow = '';
-}
-
-async function t5LoadHistory() {
-  t5El.historyList.innerHTML = '<p class="t5-history-empty">Loading…</p>';
-  t5SelectedIds.clear();
-  t5UpdateSelectionUI();
-  try {
-    await t5AuthReady;
-    const cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
-    const snap = await t5db.collection('takeFiveAssessments').where('createdAt', '>=', cutoff).get();
-    const docs = [];
-    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
-    docs.sort((a, b) => {
-      const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
-      const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
-      return tb - ta;
-    });
-    t5HistoryDocs = docs;
-    t5RenderHistoryList();
-  } catch (err) {
-    console.error('Failed to load Take Five history', err);
-    t5El.historyList.innerHTML = '<p class="t5-history-empty">Could not load recent assessments right now.</p>';
-  }
-}
-
-function t5RenderHistoryList() {
-  if (!t5HistoryDocs.length) {
-    t5El.historyList.innerHTML = '<p class="t5-history-empty">No assessments logged in the last 7 days.</p>';
-    return;
-  }
-
-  t5El.historyList.innerHTML = t5HistoryDocs.map(r => {
-    const yesHazards = (r.hazards || []).filter(h => h.answer === 'yes');
-    const detailHtml = yesHazards.length
-      ? yesHazards.map(h => `
-          <div class="t5-history-hazard">
-            <div class="t5-history-hazard-name">
-              <span>${t5EscapeHtml(h.name)}</span>
-              <span class="t5-risk-chip ${h.risk || 'zero'}">${t5RiskLabel(h.risk)}</span>
-            </div>
-            <div class="t5-history-hazard-text"><b>Hazard:</b> ${t5EscapeHtml(h.description || '—')}</div>
-            <div class="t5-history-hazard-text"><b>Controls:</b> ${t5EscapeHtml(h.controls || '—')}</div>
-          </div>
-        `).join('')
-      : '<p class="t5-history-no-hazards">No hazards were marked applicable — Zero Harm.</p>';
-
-    return `
-      <div class="t5-history-card" data-id="${r.id}">
-        <div class="t5-history-card-head">
-          <input type="checkbox" class="t5-history-checkbox" data-id="${r.id}">
-          <div class="t5-history-card-main">
-            <strong>${t5EscapeHtml(r.task || 'Untitled task')}</strong>
-            <span>${t5EscapeHtml(r.location || '')} • ${t5EscapeHtml(r.namesInvolved || '')} • ${t5EscapeHtml(r.date || '')}</span>
-          </div>
-          <span class="t5-risk-chip ${r.overallRisk || 'zero'}">${t5RiskLabel(r.overallRisk)}</span>
-          <i class="fa-solid fa-chevron-down t5-history-card-chevron"></i>
-        </div>
-        <div class="t5-history-card-detail">${detailHtml}</div>
-      </div>
-    `;
-  }).join('');
-
-  t5El.historyList.querySelectorAll('.t5-history-card-head').forEach(head => {
-    head.addEventListener('click', (e) => {
-      if (e.target.classList.contains('t5-history-checkbox')) return;
-      head.closest('.t5-history-card').classList.toggle('is-open');
-    });
-  });
-  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
-    cb.addEventListener('click', (e) => e.stopPropagation());
-    cb.addEventListener('change', () => {
-      if (cb.checked) t5SelectedIds.add(cb.dataset.id);
-      else t5SelectedIds.delete(cb.dataset.id);
-      t5UpdateSelectionUI();
-    });
-  });
-}
-
-function t5UpdateSelectionUI() {
-  const n = t5SelectedIds.size;
-  t5El.selectedCount.textContent = n === 0 ? 'None selected' : `${n} selected`;
-  t5El.exportSelectedBtn.disabled = n === 0;
-  t5El.selectAllCheckbox.checked = t5HistoryDocs.length > 0 && n === t5HistoryDocs.length;
-}
-
-t5El.selectAllCheckbox.addEventListener('change', () => {
-  if (t5El.selectAllCheckbox.checked) {
-    t5HistoryDocs.forEach(r => t5SelectedIds.add(r.id));
-  } else {
-    t5SelectedIds.clear();
-  }
-  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
-    cb.checked = t5SelectedIds.has(cb.dataset.id);
-  });
-  t5UpdateSelectionUI();
-});
-
-t5El.exportSelectedBtn.addEventListener('click', () => {
-  const selected = t5HistoryDocs.filter(r => t5SelectedIds.has(r.id));
-  if (selected.length) t5GeneratePdfBatch(selected);
-});
-
-t5El.historyBtn.addEventListener('click', t5OpenHistoryModal);
-t5El.historyCloseX.addEventListener('click', t5CloseHistoryModal);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && t5El.historyOverlay.classList.contains('is-open')) t5CloseHistoryModal();
-});
-
-// ---------- Best-effort cleanup: delete assessments older than 7 days ----------
-// Runs once whenever someone loads the home page, so the collection
-// doesn't grow forever even without server-side automation. For a
-// guarantee that doesn't depend on someone visiting the page, also set a
-// Firestore TTL policy on this collection (see the notes given alongside
-// this file).
-
-async function t5CleanupOldAssessments() {
-  try {
-    await t5AuthReady;
-    const cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
-    const snap = await t5db.collection('takeFiveAssessments').where('createdAt', '<', cutoff).get();
-    if (snap.empty) return;
-    const batch = t5db.batch();
-    snap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
-    console.log(`Take Five cleanup: removed ${snap.size} assessment(s) older than 7 days.`);
-  } catch (err) {
-    console.error('Take Five cleanup failed', err);
-  }
-}
-
-t5RefreshBannerMeta();
-t5CleanupOldAssessments();
-
-function t5UpdateOfflineBanner() {
-  const banner = document.getElementById('offlineBanner');
-  if (banner) banner.classList.toggle('show', !navigator.onLine);
-}
-window.addEventListener('online', t5UpdateOfflineBanner);
-window.addEventListener('offline', t5UpdateOfflineBanner);
-t5UpdateOfflineBanner();
-
-// ================= Offline Access — Download Everything =================
-//
-// Normal offline caching only happens opportunistically, as things are
-// viewed. This button proactively fetches the equipment list from
-// Firestore, every equipment image and manual PDF, and the Firestore data each page needs (spare
-// parts, safety checklists, recent logs, recent Take Five records) so a
-// technician can prep before heading somewhere with no signal.
-
-(function () {
-  const dlBtn = document.getElementById('offlineDlBtn');
-  const dlStatus = document.getElementById('offlineDlStatus');
-  const progressWrap = document.getElementById('offlineDlProgressWrap');
-  const progressLabel = document.getElementById('offlineDlProgressLabel');
-  const progressFill = document.getElementById('offlineDlProgressFill');
-  const LAST_DL_KEY = 'infoport_offline_download_ts';
-
-  function formatLastDownload() {
-    const ts = localStorage.getItem(LAST_DL_KEY);
-    if (!ts) return "Not downloaded yet — recommended before heading somewhere with no signal.";
-    const date = new Date(parseInt(ts, 10));
-    return `Last downloaded: ${date.toLocaleString()}`;
-  }
-  dlStatus.textContent = formatLastDownload();
-
-  // Simple concurrency-limited queue so we don't fire 60+ requests at once
-  // on a slow connection.
-  async function runQueue(tasks, concurrency, onProgress) {
-    let index = 0;
-    let completed = 0;
-    let failed = 0;
-    async function worker() {
-      while (index < tasks.length) {
-        const i = index++;
-        try {
-          await tasks[i]();
-        } catch (err) {
-          failed++;
-          console.warn('Offline download: an item failed', err);
-        }
-        completed++;
-        onProgress(completed, tasks.length);
-      }
-    }
-    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, worker);
-    await Promise.all(workers);
-    return { failed };
-  }
-
-  async function fetchAndCache(url) {
-    const res = await fetch(url, { cache: 'reload' });
-    if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-    return res;
-  }
-
-  dlBtn.addEventListener('click', async () => {
-    if (!navigator.onLine) {
-      alert('You need an internet connection to download content for offline use.');
-      return;
-    }
-
-    dlBtn.disabled = true;
-    dlBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading…';
-    progressWrap.classList.add('show');
-    progressLabel.textContent = 'Starting…';
-    progressFill.style.width = '0%';
-
-    try {
-      const eqSnap = await t5db.collection('equipment').get({ source: 'server' });
-      const equipmentList = eqSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-      const tasks = [];
-
-      equipmentList.forEach((e) => {
-        if (e.image) tasks.push(() => fetchAndCache(e.image));
-        (e.documents || []).forEach((d) => {
-          if (d.file) tasks.push(() => fetchAndCache(encodeURI(d.file)));
-        });
-      });
-
-      tasks.push(() => t5db.collection('spareParts').get({ source: 'server' }));
-      equipmentList.forEach((e) => {
-        tasks.push(() => t5db.collection('safetyChecklists').doc(e.id).get({ source: 'server' }));
-        tasks.push(() => t5db.collection('equipmentLogs').where('equipmentId', '==', e.id).get({ source: 'server' }));
-      });
-      const t5Cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
-      tasks.push(() => t5db.collection('takeFiveAssessments').where('createdAt', '>=', t5Cutoff).get({ source: 'server' }));
-
-      const { failed } = await runQueue(tasks, 4, (done, total) => {
-        progressLabel.textContent = `Downloading… ${done} of ${total}`;
-        progressFill.style.width = `${Math.round((done / total) * 100)}%`;
-      });
-
-      localStorage.setItem(LAST_DL_KEY, String(Date.now()));
-      dlStatus.textContent = formatLastDownload();
-      progressLabel.textContent = failed
-        ? `Done — ${failed} item${failed === 1 ? '' : 's'} couldn't be downloaded. Try again on a better connection if something's missing offline.`
-        : 'Done — everything is available offline.';
-    } catch (err) {
-      console.error('Offline download failed', err);
-      progressLabel.textContent = 'Something went wrong. Please check your connection and try again.';
-    } finally {
-      dlBtn.disabled = false;
-      dlBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Download Everything for Offline Use';
-    }
-  });
-})();
-
-// ================= PWA Install Prompt =================
-//
-// Shows a one-time (per device) "how to install" prompt, tailored to the
-// visitor's actual phone/browser. Never shows once the site is genuinely
-// installed (detected via standalone display-mode, the browser's
-// appinstalled event, or navigator.standalone on iOS). Dismissing without
-// checking the box just snoozes it for 7 days; checking the box opts out
-// permanently on this device.
-
-const PWA_INSTALLED_KEY = 'infoport_pwa_installed';
-const PWA_OPTOUT_KEY = 'infoport_pwa_optout';
-const PWA_DISMISS_UNTIL_KEY = 'infoport_pwa_dismiss_until';
-
-let pwaDeferredPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  pwaDeferredPrompt = e;
-});
-
-window.addEventListener('appinstalled', () => {
-  localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-  pwaCloseModal();
-});
-
-function pwaIsStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-
-function pwaDetectPlatform() {
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isIPadOS13 = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  const isAndroid = /Android/.test(ua);
-  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
-  if (isIOS || isIPadOS13) return isSafari ? 'ios-safari' : 'ios-other';
-  if (isAndroid) return 'android';
-  return 'desktop';
-}
-
-const pwaEl = {
-  overlay: document.getElementById('pwaInstallOverlay'),
-  closeX: document.getElementById('pwaInstallCloseX'),
-  content: document.getElementById('pwaInstallContent'),
-  dontShowAgain: document.getElementById('pwaDontShowAgain'),
-};
-
-function pwaStep(num, icon, html) {
-  return `
-    <div class="pwa-step">
-      <div class="pwa-step-num">${num}</div>
-      <div class="pwa-step-icon"><i class="fa-solid ${icon}"></i></div>
-      <div class="pwa-step-text">${html}</div>
-    </div>
-  `;
-}
-
-function pwaRenderContent(platform) {
-  if (platform === 'ios-safari') {
-    pwaEl.content.innerHTML =
-      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
-      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
-      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
-    return;
-  }
-  if (platform === 'ios-other') {
-    pwaEl.content.innerHTML =
-      '<div class="pwa-note"><i class="fa-solid fa-triangle-exclamation"></i> "Add to Home Screen" works best in Safari on iPhone/iPad. Open this page in Safari, then:</div>' +
-      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
-      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
-      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
-    return;
-  }
-  if (platform === 'android') {
-    if (pwaDeferredPrompt) {
-      pwaEl.content.innerHTML = `
-        <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Tap below and confirm — Chrome will add InfoPort straight to your home screen.</p>
-        <button type="button" class="pwa-install-native-btn" id="pwaNativeInstallBtn">
-          <i class="fa-solid fa-download"></i> Install App
-        </button>
-      `;
-      document.getElementById('pwaNativeInstallBtn').addEventListener('click', async () => {
-        if (!pwaDeferredPrompt) return;
-        pwaDeferredPrompt.prompt();
-        const { outcome } = await pwaDeferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-          pwaCloseModal();
-        }
-        pwaDeferredPrompt = null;
-      });
-    } else {
-      pwaEl.content.innerHTML =
-        pwaStep(1, 'fa-ellipsis-vertical', 'Tap the <b>menu</b> (⋮) in the top right of Chrome.') +
-        pwaStep(2, 'fa-square-plus', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>).') +
-        pwaStep(3, 'fa-check', 'Tap <b>Install</b> to confirm.');
-    }
-    return;
-  }
-}
-
-function pwaCloseModal() {
-  pwaEl.overlay.classList.remove('is-open');
-  document.body.style.overflow = '';
-}
-
-function pwaDismiss() {
-  if (pwaEl.dontShowAgain.checked) {
-    localStorage.setItem(PWA_OPTOUT_KEY, 'true');
-  } else {
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    localStorage.setItem(PWA_DISMISS_UNTIL_KEY, String(Date.now() + sevenDays));
-  }
-  pwaCloseModal();
-}
-
-pwaEl.closeX.addEventListener('click', pwaDismiss);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && pwaEl.overlay.classList.contains('is-open')) pwaDismiss();
-});
-
-function pwaMaybeShowPrompt() {
-  if (pwaIsStandalone()) {
-    localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-    return;
-  }
-  if (localStorage.getItem(PWA_INSTALLED_KEY) === 'true') return;
-  if (localStorage.getItem(PWA_OPTOUT_KEY) === 'true') return;
-
-  const dismissUntil = parseInt(localStorage.getItem(PWA_DISMISS_UNTIL_KEY) || '0', 10);
-  if (Date.now() < dismissUntil) return;
-
-  const platform = pwaDetectPlatform();
-  if (platform === 'desktop') return; // phone-only prompt
-
-  setTimeout(() => {
-    pwaRenderContent(platform);
-    pwaEl.overlay.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }, 1800);
-}
-
-pwaMaybeShowPrompt();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .catch((err) => console.warn('Service worker registration failed:', err));
-  });
-}
-</script>
-
 </body>
-
 </html>
