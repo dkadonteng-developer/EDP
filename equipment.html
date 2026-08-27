@@ -121,23 +121,24 @@
 
   /* ---------- Major Maintenance Safety Checklist (prominent banner) ---------- */
   .safety-checklist-section{
-    background:#fff5f4;border:1px solid #f3c6c1;
+    background:#fff5f4;border:1px solid #f3c6c1;padding:14px 18px;
   }
-  .safety-checklist-banner{display:flex;align-items:flex-start;gap:16px}
-  .safety-checklist-banner-icon{
-    flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:var(--danger);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:1.3rem;
-  }
-  .safety-checklist-banner-text h2{margin:0 0 6px;font-size:1.15rem;color:#7a1c14}
-  .safety-checklist-banner-text p{margin:0;font-size:.88rem;color:#7a1c14;line-height:1.5}
-  .safety-checklist-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+  .safety-checklist-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .safety-checklist-bar-label{display:flex;align-items:center;gap:10px;color:#7a1c14;font-weight:600;font-size:.92rem}
+  .safety-checklist-bar-label i{color:var(--danger);font-size:1.1rem;flex:0 0 auto}
+  .safety-checklist-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0}
   .safety-checklist-btn-primary{
-    display:flex;align-items:center;gap:9px;background:var(--danger);color:#fff;border:none;
-    border-radius:10px;padding:13px 22px;font-family:inherit;font-size:.95rem;font-weight:700;
-    cursor:pointer;transition:.15s;
+    display:flex;align-items:center;gap:8px;background:var(--danger);color:#fff;border:none;
+    border-radius:8px;padding:9px 16px;font-family:inherit;font-size:.86rem;font-weight:700;
+    cursor:pointer;transition:.15s;white-space:nowrap;
   }
   .safety-checklist-btn-primary:hover{background:#b8241a}
-  .safety-checklist-signoff-count{font-size:.82rem;color:#7a1c14}
+  .safety-checklist-signoff-count{font-size:.78rem;color:#7a1c14}
+
+  @media (max-width:480px){
+    .safety-checklist-section{padding:12px 14px}
+    .safety-checklist-bar-label span{font-size:.85rem}
+  }
 
   /* ---------- Safety checklist sign-off modal ---------- */
   #checklistOverlay{
@@ -300,10 +301,12 @@
   h1#name{margin:14px 0 6px;font-size:1.5rem;font-weight:600}
   p#description{color:var(--muted);line-height:1.5;margin:0 0 16px}
 
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-  .item{background:#f7f8fa;border:1px solid var(--border);padding:10px 12px;border-radius:8px}
-  .item b{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:4px}
-  .item span{font-size:.92rem;font-weight:500}
+  .grid{display:flex;flex-direction:column;margin-top:6px;border-top:1px solid var(--border)}
+  .item{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--border)}
+  .item b{font-size:.78rem;font-weight:500;color:var(--muted);flex:0 0 auto}
+  .item span{font-size:.92rem;font-weight:600;text-align:right;word-break:break-word}
+  .item span a{color:var(--brand);text-decoration:none}
+  .item span a:hover{text-decoration:underline}
 
   .doc-list{display:flex;flex-direction:column;gap:8px}
   .doc{
@@ -740,8 +743,8 @@
     .section h2{font-size:1rem}
     .image-wrap{height:220px}
     h1#name{font-size:1.25rem}
-    .grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-    .item{padding:8px 10px}
+    .item{padding:9px 2px}
+    .item b,.item span{font-size:.85rem}
     .doc{padding:10px 12px}
     .pdf-toolbar button{padding:6px 8px;font-size:.8rem}
     .pdf-toolbar .page-info{font-size:.8rem}
@@ -755,7 +758,6 @@
   }
 
   @media (max-width:360px){
-    .grid{grid-template-columns:1fr 1fr}
     .badge{font-size:.72rem;padding:5px 10px}
   }
 
@@ -1106,18 +1108,17 @@
   </div>
 
   <div class="section safety-checklist-section">
-    <div class="safety-checklist-banner">
-      <div class="safety-checklist-banner-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <div class="safety-checklist-banner-text">
-        <h2>Major Maintenance Safety Checklist</h2>
-        <p>Required isolation, lockout, and verification steps to check off and sign before starting any major or high-risk maintenance work on this equipment — this is not optional pre-reading, it's a sign-off record.</p>
+    <div class="safety-checklist-bar">
+      <div class="safety-checklist-bar-label">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Major Maintenance Safety Checklist</span>
       </div>
-    </div>
-    <div class="safety-checklist-actions">
-      <button type="button" id="openSafetyChecklistBtn" class="safety-checklist-btn-primary">
-        <i class="fa-solid fa-clipboard-check"></i> Open Safety Checklist
-      </button>
-      <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
+      <div class="safety-checklist-actions">
+        <button type="button" id="openSafetyChecklistBtn" class="safety-checklist-btn-primary">
+          <i class="fa-solid fa-clipboard-check"></i> Open Checklist
+        </button>
+        <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
+      </div>
     </div>
   </div>
 
