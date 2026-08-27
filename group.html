@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>InfoPort — Equipment Group</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#006937">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="InfoPort">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Poppins,sans-serif;
+background:#f5f7fa;
+color:#333;
+overflow-x:hidden;
+}
+
+/* NAVBAR */
+
+nav{
+background:#006937;
+padding:15px 40px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+color:white;
+position:sticky;
+top:0;
+z-index:999;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.logo img{
+width:50px;
+height:50px;
+border-radius:50%;
+background:rgb(218, 203, 4);
+object-fit:cover;
+}
+
+.logo h2{
+font-size:22px;
+}
+
+.nav-link{
+display:flex;
+align-items:center;
+gap:8px;
+color:white;
+text-decoration:none;
+font-size:14px;
+font-weight:600;
+background:rgba(255,255,255,.14);
+padding:10px 18px;
+border-radius:20px;
+transition:background .15s ease;
+white-space:nowrap;
+}
+
+.nav-link:hover{
+background:rgba(255,255,255,.26);
+}
+
+/* HERO */
+
+.hero{
+
+height:420px;
+
+background:
+
+linear-gradient(rgba(0,70,40,.75),
+
+rgba(0,70,40,.75)),
+
+url("assets/ghacem-banner.jpeg");
+
+background-size:cover;
+
+background-position:center;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+text-align:center;
+
+color:white;
+
+padding:30px;
+
+}
+
+.hero h1{
+
+font-size:48px;
+
+margin-bottom:20px;
+
+}
+
+.hero p{
+
+font-size:20px;
+
+opacity:.9;
+
+}
+
+/* CONTROLS: search, sort, filter */
+
+.controls{
+
+max-width:1200px;
+
+margin:40px auto 0;
+
+padding:0 20px;
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:16px;
+
+align-items:center;
+
+justify-content:space-between;
+
+}
+
+.controls-left{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:12px;
+
+flex:1;
+
+min-width:260px;
+
+}
+
+.search-box{
+
+position:relative;
+
+flex:1;
+
+min-width:0;
+
+max-width:360px;
+
+}
+
+.search-box i{
+
+position:absolute;
+
+left:16px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+color:#999;
+
+}
+
+.search-box input{
+
+width:100%;
+
+padding:12px 14px 12px 42px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:16px;
+
+outline:none;
+
+background:white;
+
+transition:.2s;
+
+}
+
+.search-box input:focus{
+
+border-color:#006937;
+
+box-shadow:0 0 0 3px rgba(0,105,55,.12);
+
+}
+
+.sort-box select{
+
+padding:12px 16px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:16px;
+
+background:white;
+
+color:#333;
+
+outline:none;
+
+cursor:pointer;
+
+}
+
+.sort-box select:focus{
+
+border-color:#006937;
+
+}
+
+.filter-chips{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:10px;
+
+}
+
+.filter-chip{
+
+padding:10px 18px;
+
+border-radius:30px;
+
+border:1px solid #ddd;
+
+background:white;
+
+color:#555;
+
+font-family:inherit;
+
+font-size:13px;
+
+font-weight:500;
+
+cursor:pointer;
+
+transition:.2s;
+
+white-space:nowrap;
+
+}
+
+.filter-chip:hover{
+
+border-color:#006937;
+
+color:#006937;
+
+}
+
+.filter-chip.active{
+
+background:#006937;
+
+border-color:#006937;
+
+color:white;
+
+}
+
+.results-count{
+
+max-width:1200px;
+
+margin:18px auto 0;
+
+padding:0 20px;
+
+color:#777;
+
+font-size:14px;
+
+}
+
+.no-results{
+
+grid-column:1/-1;
+
+text-align:center;
+
+padding:60px 20px;
+
+color:#888;
+
+}
+
+.no-results i{
+
+font-size:40px;
+
+color:#ccc;
+
+margin-bottom:14px;
+
+display:block;
+
+}
+
+@media(max-width:600px){
+
+.controls{
+
+flex-direction:column;
+
+align-items:stretch;
+
+}
+
+.search-box,.sort-box select{
+
+max-width:none;
+
+}
+
+}
+
+/* EQUIPMENT */
+
+.container{
+
+max-width:1200px;
+
+margin:50px auto;
+
+padding:20px;
+
+}
+
+.section-title{
+
+font-size:32px;
+
+margin-bottom:30px;
+
+color:#006937;
+
+}
+
+.cards{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+
+gap:30px;
+
+}
+
+.card{
+
+background:white;
+
+border-radius:18px;
+
+overflow:hidden;
+
+box-shadow:0 10px 20px rgba(0,0,0,.08);
+
+transition:.3s;
+
+}
+
+.card:hover{
+
+transform: translateY(-8px) scale(1.02);
+box-shadow: 0 18px 35px rgba(0,0,0,.15);
+
+}
+
+.card img{
+
+width:100%;
+
+height:220px;
+
+object-fit:cover;
+
+background:#ddd;
+
+}
+
+.card-content{
+
+padding:22px;
+
+}
+
+.badge{
+display:inline-block;
+background:#00a651;
+color:white;
+padding:7px 14px;
+border-radius:30px;
+font-size:12px;
+font-weight:600;
+margin-bottom:12px;
+}
+
+.card h3{
+
+margin-bottom:10px;
+
+}
+
+.card p{
+
+margin:6px 0;
+
+color:#666;
+
+}
+
+.card a{
+
+display:inline-block;
+
+margin-top:20px;
+
+text-decoration:none;
+
+background:#006937;
+
+color:white;
+
+padding:12px 20px;
+
+border-radius:8px;
+
+}
+
+/* FOOTER */
+
+footer{
+
+background:#006937;
+
+color:white;
+
+padding:20px;
+
+text-align:center;
+
+margin-top:60px;
+
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.hero h1{
+
+font-size:32px;
+
+}
+
+nav{
+
+padding:15px;
+
+}
+
+.logo h2{
+
+font-size:18px;
+
+}
+
+.nav-link{
+
+font-size:0;
+
+padding:10px 12px;
+
+gap:0;
+
+}
+
+.nav-link i{
+
+font-size:16px;
+
+}
+
+}
+
+
+/* ================= QUICK ACTIONS BAR — Take Five + Offline Access ================= */
+/* One compact toolbar replaces what used to be two full-height cards. */
+
+.quick-actions-bar{
+  max-width:1200px;margin:20px auto 0;padding:10px 16px;
+  background:#fff;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.05);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+
+.quick-action-group{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:260px;padding:4px 0;
+}
+
+.quick-action-icon{
+  width:32px;height:32px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;
+}
+
+.quick-action-info{display:flex;flex-direction:column;flex:1;min-width:0;gap:1px;}
+.quick-action-label{font-size:13px;font-weight:700;color:#333;}
+.quick-action-meta{font-size:11px;color:#888;line-height:1.3;}
+
+.quick-action-btns{display:flex;gap:6px;flex-shrink:0;}
+.quick-action-btn{
+  background:#006937;color:#fff;border:1.5px solid #006937;padding:8px 14px;border-radius:20px;
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;transition:.2s;
+}
+.quick-action-btn:hover{background:#00552c;border-color:#00552c;}
+.quick-action-btn.outline{background:#fff;color:#006937;}
+.quick-action-btn.outline:hover{background:#f0f9f4;}
+.quick-action-btn:disabled{background:#ccc;border-color:#ccc;cursor:not-allowed;}
+
+.quick-action-divider{width:1px;align-self:stretch;background:#eee;margin:2px 4px;}
+
+.qa-progress-wrap{width:100%;margin-top:6px;display:none;}
+.qa-progress-wrap.show{display:block;}
+.qa-progress-label{font-size:11px;color:#666;margin-bottom:4px;}
+.qa-progress-track{background:#eee;border-radius:20px;height:6px;overflow:hidden;}
+.qa-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+@media(max-width:700px){
+  .quick-actions-bar{flex-direction:column;align-items:stretch;padding:12px 14px;}
+  .quick-action-divider{display:none;height:1px;width:100%;margin:4px 0;}
+}
+@media(max-width:420px){
+  .quick-action-group{flex-wrap:wrap;}
+  .quick-action-btns{width:100%;}
+  .quick-action-btn{flex:1;justify-content:center;}
+}
+
+.t5-risk-chip{
+  padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;
+  text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;
+}
+.t5-risk-chip.zero{background:#00a651;}
+.t5-risk-chip.amber{background:#f59e0b;}
+.t5-risk-chip.red{background:#d92d20;}
+.t5-history-empty{color:#888;font-size:14px;padding:10px 0;}
+
+/* Take Five History modal */
+.t5-history-modal{max-width:820px;}
+.t5-history-toolbar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding-bottom:14px;margin-bottom:14px;border-bottom:2px solid #eee;
+}
+.t5-select-all{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#444;font-weight:600;cursor:pointer;}
+.t5-select-all input{width:18px;height:18px;cursor:pointer;}
+#t5SelectedCount{font-size:13px;color:#888;flex:1;}
+.t5-export-btn{
+  background:#006937;color:#fff;border:none;padding:11px 20px;border-radius:24px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;transition:.2s;
+}
+.t5-export-btn:disabled{background:#ccc;cursor:not-allowed;}
+.t5-export-btn:not(:disabled):hover{background:#00552c;}
+
+.t5-history-card{border:1px solid #eee;border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.t5-history-card-head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:#fff;
+}
+.t5-history-card-head input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;cursor:pointer;}
+.t5-history-card-main{flex:1;min-width:0;}
+.t5-history-card-main strong{display:block;color:#333;font-size:14px;}
+.t5-history-card-main span{color:#888;font-size:12.5px;}
+.t5-history-card-chevron{color:#999;transition:transform .2s;flex-shrink:0;}
+.t5-history-card.is-open .t5-history-card-chevron{transform:rotate(180deg);}
+
+.t5-history-card-detail{display:none;padding:0 16px 16px;border-top:1px dashed #eee;}
+.t5-history-card.is-open .t5-history-card-detail{display:block;padding-top:14px;}
+.t5-history-hazard{padding:10px 0;border-bottom:1px solid #f2f2f2;}
+.t5-history-hazard:last-child{border-bottom:none;}
+.t5-history-hazard-name{font-weight:600;font-size:13.5px;color:#333;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.t5-history-hazard-text{font-size:12.5px;color:#666;margin-top:4px;line-height:1.5;}
+.t5-history-hazard-text b{color:#444;}
+.t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0;}
+
+/* ================= PWA INSTALL PROMPT ================= */
+
+#pwaInstallOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2500;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#pwaInstallOverlay.is-open{display:flex;}
+
+.pwa-install-modal{max-width:440px;}
+
+.pwa-step{
+  display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;
+  padding:14px;background:#f8faf9;border-radius:12px;
+}
+.pwa-step-num{
+  width:28px;height:28px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;
+}
+.pwa-step-icon{
+  width:36px;height:36px;flex-shrink:0;background:#e7f3ec;color:#006937;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.pwa-step-text{flex:1;font-size:14px;color:#444;line-height:1.5;padding-top:4px;}
+.pwa-step-text b{color:#222;}
+
+.pwa-install-native-btn{
+  width:100%;background:#006937;color:#fff;border:none;padding:15px;
+  border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.2s;
+}
+.pwa-install-native-btn:hover{background:#00552c;}
+
+.pwa-note{
+  background:#fff6e5;color:#a05a00;font-size:13px;padding:12px 14px;
+  border-radius:10px;margin-bottom:14px;line-height:1.5;
+}
+
+.pwa-dont-show{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:#888;
+  margin-top:18px;cursor:pointer;
+}
+.pwa-dont-show input{width:16px;height:16px;cursor:pointer;flex-shrink:0;}
+
+#t5Overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2000;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#t5Overlay.is-open{display:flex;}
+
+#t5HistoryOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2000;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#t5HistoryOverlay.is-open{display:flex;}
+
+.t5-modal{
+  background:#fff;border-radius:18px;max-width:760px;width:100%;
+  overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);margin-bottom:30px;
+}
+.t5-modal-head{
+  background:#006937;color:#fff;padding:20px 24px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+}
+.t5-modal-head h3{font-size:19px;margin-bottom:4px;}
+.t5-modal-head p{font-size:13px;opacity:.9;margin:0;}
+.t5-modal-close{
+  background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
+}
+.t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;}
+
+.t5-field{margin-bottom:16px;}
+.t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;}
+.t5-field input{
+  width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;
+  font-family:inherit;font-size:16px;outline:none;transition:.2s;
+}
+.t5-field input:focus{border-color:#006937;box-shadow:0 0 0 3px rgba(0,105,55,.12);}
+.t5-field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.t5-field-row{grid-template-columns:1fr;}}
+
+.t5-progress-wrap{margin:18px 0;}
+.t5-progress-label{font-size:13px;color:#666;margin-bottom:6px;}
+.t5-progress-track{background:#eee;border-radius:20px;height:8px;overflow:hidden;}
+.t5-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+.t5-category{margin-bottom:22px;}
+.t5-category-title{
+  font-size:14px;font-weight:700;color:#006937;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #eee;
+}
+
+.t5-hazard-row{border:1px solid #eee;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:.2s;}
+.t5-hazard-row.answered-yes{border-color:#f59e0b;background:#fffaf0;}
+.t5-hazard-row.answered-no{border-color:#e6efe9;background:#fafffb;}
+
+.t5-hazard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.t5-hazard-name{font-weight:600;font-size:14.5px;color:#333;flex:1;min-width:160px;}
+
+.t5-yn{display:flex;gap:8px;}
+.t5-yn button{
+  border:1px solid #ddd;background:#fff;color:#666;padding:8px 16px;border-radius:20px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+}
+.t5-yn button.active-yes{background:#f59e0b;border-color:#f59e0b;color:#fff;}
+.t5-yn button.active-no{background:#e5e7eb;border-color:#e5e7eb;color:#333;}
+
+.t5-hazard-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed #ddd;}
+.t5-hazard-detail.is-open{display:block;}
+.t5-hazard-detail textarea{
+  width:100%;min-height:56px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;
+  font-family:inherit;font-size:16px;margin-bottom:10px;resize:vertical;
+}
+.t5-risk-select{display:flex;gap:8px;flex-wrap:wrap;}
+.t5-risk-select button{
+  flex:1;min-width:110px;border:2px solid #eee;background:#fff;padding:10px;border-radius:10px;
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;color:#666;
+}
+.t5-risk-select button[data-risk="zero"].selected{background:#00a651;border-color:#00a651;color:#fff;}
+.t5-risk-select button[data-risk="amber"].selected{background:#f59e0b;border-color:#f59e0b;color:#fff;}
+.t5-risk-select button[data-risk="red"].selected{background:#d92d20;border-color:#d92d20;color:#fff;}
+
+.t5-overall-banner{display:none;padding:14px 18px;border-radius:12px;margin:18px 0;align-items:center;gap:12px;font-size:14px;font-weight:600;}
+.t5-overall-banner.show{display:flex;}
+.t5-overall-banner.zero{background:#e7f8ee;color:#00733a;}
+.t5-overall-banner.amber{background:#fff6e5;color:#a05a00;}
+.t5-overall-banner.red{background:#fdeceb;color:#a0221a;}
+
+.t5-submit-btn{
+  width:100%;background:#006937;color:#fff;border:none;padding:15px;border-radius:12px;
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;transition:.2s;
+}
+.t5-submit-btn:disabled{background:#ccc;cursor:not-allowed;}
+.t5-submit-btn:not(:disabled):hover{background:#00552c;}
+
+.t5-error{color:#d92d20;font-size:13px;margin-top:10px;min-height:1em;}
+.t5-success{display:none;text-align:center;padding:30px 10px;}
+.t5-success.show{display:block;}
+.t5-success i{font-size:46px;color:#00a651;margin-bottom:14px;}
+.t5-success h4{color:#006937;margin-bottom:8px;}
+.t5-success p{color:#666;font-size:14px;}
+.t5-success-actions{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px;
+}
+.t5-success-actions button{
+  background:#006937;color:#fff;border:none;padding:12px 24px;
+  border-radius:30px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+}
+.t5-secondary-btn{background:#fff !important;color:#006937 !important;border:1.5px solid #006937 !important;}
+
+@media(max-width:600px){
+  #t5Overlay,#t5HistoryOverlay{padding:0;}
+  .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
+  .t5-modal-head{padding:16px 18px;}
+  .t5-modal-head h3{font-size:16px;}
+  .t5-modal-head p{font-size:12px;}
+  .t5-modal-body{padding:16px;max-height:none;}
+
+  .t5-hazard-row{padding:12px;}
+  .t5-hazard-name{font-size:14px;min-width:0;flex-basis:100%;}
+  .t5-yn{width:100%;}
+  .t5-yn button{flex:1;text-align:center;}
+
+  .t5-risk-select{flex-direction:column;}
+  .t5-risk-select button{min-width:0;width:100%;}
+
+  .t5-history-toolbar{flex-direction:column;align-items:stretch;gap:10px;}
+  .t5-export-btn{justify-content:center;}
+  .t5-history-card-head{flex-wrap:wrap;}
+  .t5-history-card-main{flex-basis:100%;order:1;}
+
+  /* Install prompt stays a small centered popup on phones — it's just a
+     few short steps, not the multi-page content the rule above is for. */
+  #pwaInstallOverlay{align-items:center;padding:16px;}
+  .pwa-install-modal{
+    max-width:400px;width:100%;min-height:0;border-radius:18px;margin-bottom:0;
+  }
+  .pwa-install-modal .t5-modal-head{border-radius:18px 18px 0 0;}
+}
+
+@media(max-width:400px){
+  .t5-modal-head{flex-wrap:wrap;}
+  .t5-modal-close{margin-left:auto;}
+}
+#offlineBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:#d92d20;color:#fff;text-align:center;
+  padding:9px 12px;font-family:'Poppins',Arial,sans-serif;font-size:13px;font-weight:600;
+}
+#offlineBanner.show{display:block;}
+</style>
+
+</head>
+
+<body>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
+
+<nav>
+<div class="logo">
+<img src="assets/logo.png">
+<h2>InfoPort</h2>
+</div>
+<div>
+<a href="index.html" class="nav-link" title="Back to Dashboard" aria-label="Back to Dashboard"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+</div>
+</nav>
+
+<section class="hero">
+<div>
+<h1 id="groupTitle">Equipment Group</h1>
+<p id="groupSubtitle">Equipment in this group</p>
+</div>
+</section>
+
+<div class="controls">
+<div class="controls-left">
+<div class="search-box">
+<i class="fa-solid fa-magnifying-glass"></i>
+<input type="text" id="searchInput" placeholder="Search by name, ID, or manufacturer…">
+</div>
+<div class="sort-box">
+<select id="sortSelect">
+<option value="name-asc">Sort: Name (A–Z)</option>
+<option value="name-desc">Sort: Name (Z–A)</option>
+<option value="id-asc">Sort: ID (A–Z)</option>
+<option value="id-desc">Sort: ID (Z–A)</option>
+</select>
+</div>
+</div>
+</div>
+
+<p class="results-count" id="resultsCount"></p>
+
+<div class="container">
+<div class="cards" id="cardsGrid"><p class="loading-text" style="padding:30px;color:#888;grid-column:1/-1;text-align:center;">Loading equipment…</p></div>
+</div>
+
+<footer>
+GHACEM LTD © 2026
+<br>
+Engineering Documentation Portal
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
+
+function escapeHtmlCard(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+</script>
+
+<script>
+(function () {
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
+  document.getElementById('groupTitle').textContent = groupName || 'Equipment Group';
+  document.getElementById('groupSubtitle').textContent = groupName
+    ? `All equipment listed under "${groupName}"`
+    : 'No group specified';
+  document.title = groupName ? `InfoPort — ${groupName}` : 'InfoPort — Equipment Group';
+})();
+
+(async function () {
+  const cardsGrid = document.getElementById('cardsGrid');
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const resultsCount = document.getElementById('resultsCount');
+
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
+
+  if (!groupName) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No group specified. Go back to the dashboard and tap a group tile.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
+    return;
+  }
+
+  // ---------- Load equipment from Firestore, filtered to this group ----------
+  // "Ungrouped" is the dashboard's fallback bucket for equipment with no
+  // Group field set, so match that the same way here.
+  let equipmentData = [];
+  try {
+    const snap = await db.collection('equipment').orderBy('name').get();
+    const all = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    equipmentData = all.filter((e) => ((e.group && e.group.trim()) || 'Ungrouped') === groupName);
+  } catch (err) {
+    console.error('Failed to load equipment list', err);
+  }
+
+  if (!equipmentData.length) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No equipment found in this group.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
+    return;
+  }
+
+  cardsGrid.innerHTML = equipmentData.map((e) => `
+    <div class="card">
+      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
+      <div class="card-content">
+        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
+        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
+        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
+        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
+        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
+        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
+      </div>
+    </div>
+  `).join('');
+
+  const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
+    el,
+    name: (equipmentData[i].name || equipmentData[i].id || '').toLowerCase(),
+    id: (equipmentData[i].id || '').toLowerCase(),
+    searchText: `${equipmentData[i].name || ''} ${equipmentData[i].id || ''} ${equipmentData[i].manufacturer || ''}`.toLowerCase(),
+  }));
+
+  function applyFiltersAndSort() {
+    const query = searchInput.value.trim().toLowerCase();
+    const visible = cards.filter(c => !query || c.searchText.includes(query));
+
+    const [key, dir] = sortSelect.value.split('-');
+    visible.sort((a, b) => {
+      const av = key === 'id' ? a.id : a.name;
+      const bv = key === 'id' ? b.id : b.name;
+      const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+      return dir === 'desc' ? -cmp : cmp;
+    });
+
+    cards.forEach(c => { c.el.style.display = 'none'; });
+    const existingEmptyState = cardsGrid.querySelector('.no-results');
+    if (existingEmptyState) existingEmptyState.remove();
+
+    if (visible.length === 0) {
+      cardsGrid.insertAdjacentHTML('beforeend', `
+        <div class="no-results">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <p>No equipment matches your search.</p>
+        </div>
+      `);
+    } else {
+      visible.forEach(c => {
+        c.el.style.display = '';
+        cardsGrid.appendChild(c.el);
+      });
+    }
+
+    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} equipment`;
+  }
+
+  searchInput.addEventListener('input', applyFiltersAndSort);
+  sortSelect.addEventListener('change', applyFiltersAndSort);
+
+  applyFiltersAndSort();
+})();
+</script>
+
+</body>
+</html>
