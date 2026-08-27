@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <style>
   :root{
@@ -257,6 +258,33 @@
   #partSubmitBtn:hover{background:#005229}
   #partSubmitBtn:disabled{opacity:.6;cursor:not-allowed}
 
+  .order-part-btn{
+    background:none;border:none;color:var(--brand);cursor:pointer;padding:5px 7px;border-radius:6px;font-size:.85rem;
+  }
+  .order-part-btn:hover{background:#eef4f1}
+
+  /* modal (order part) */
+  #orderFormOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #orderFormOverlay.is-open{display:flex}
+  .order-summary{
+    background:#eef4f1;border:1px solid #d7e6dc;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;
+  }
+  .order-summary .os-model{
+    display:inline-block;background:#fff;color:var(--brand);font-weight:700;font-size:.76rem;
+    padding:3px 9px;border-radius:6px;font-family:'Courier New',monospace;margin-bottom:4px;
+  }
+  .order-summary .os-name{font-weight:600;margin:2px 0}
+  .order-summary .os-meta{color:var(--muted);font-size:.8rem}
+  #orderFormSuccess{
+    display:none;text-align:center;padding:20px 10px;
+  }
+  #orderFormSuccess.show{display:block}
+  #orderFormSuccess i{font-size:2.2rem;color:var(--brand);margin-bottom:10px;display:block}
+  #orderFormSuccess p{color:var(--muted);font-size:.88rem;margin:6px 0 0}
+
   @media(max-width:680px){
     header h1{display:none}
     .header-spacer{display:none}
@@ -451,6 +479,72 @@
   </div>
 </div>
 
+<div id="orderFormOverlay">
+  <div class="part-form-modal">
+    <div class="part-form-modal-head">
+      <div>
+        <h3 id="orderFormTitle"><i class="fa-solid fa-cart-shopping"></i> Order Spare Part</h3>
+        <p>Sends the request to Stores and MCC — no login needed, just your Staff ID.</p>
+      </div>
+      <button type="button" class="part-form-modal-close" id="orderFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="part-form-modal-body">
+
+      <div id="orderFormSuccess">
+        <i class="fa-solid fa-circle-check"></i>
+        <strong>Order sent</strong>
+        <p>Stores and MCC have been emailed with the part specs. MCC will prepare a pick ticket on Infor EAM.</p>
+        <div class="pf-actions" style="justify-content:center;margin-top:16px">
+          <button type="button" id="orderFormDoneBtn" class="pf-btn-secondary">Done</button>
+        </div>
+      </div>
+
+      <form id="orderForm">
+        <input type="hidden" id="orderPartId" value="">
+
+        <div class="order-summary">
+          <span class="os-model" id="orderPartModel"></span>
+          <p class="os-name" id="orderPartName"></p>
+          <span class="os-meta" id="orderPartMeta"></span>
+        </div>
+
+        <div class="pf-row">
+          <div class="pf-field">
+            <label for="orderStaffId">Staff ID *</label>
+            <input type="text" id="orderStaffId" required maxlength="30" placeholder="e.g. GH-4021">
+          </div>
+          <div class="pf-field">
+            <label for="orderFullName">Full Name *</label>
+            <input type="text" id="orderFullName" required maxlength="100" placeholder="e.g. Kwame Mensah">
+          </div>
+        </div>
+
+        <div class="pf-row">
+          <div class="pf-field">
+            <label for="orderDepartment">Department</label>
+            <input type="text" id="orderDepartment" maxlength="100" placeholder="e.g. Mechanical Maintenance">
+          </div>
+          <div class="pf-field">
+            <label for="orderQty">Quantity Requested *</label>
+            <input type="number" id="orderQty" required min="1" step="1" value="1">
+          </div>
+        </div>
+
+        <div class="pf-field full" style="margin-bottom:6px">
+          <label for="orderNotes">Notes (optional)</label>
+          <textarea id="orderNotes" rows="2" maxlength="500" placeholder="Reason for request, urgency, equipment tag number…"></textarea>
+        </div>
+
+        <div class="pf-actions">
+          <span id="orderFormError" class="pf-error"></span>
+          <button type="button" id="orderCancelBtn" class="pf-btn-secondary">Cancel</button>
+          <button type="submit" id="orderSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---------- Firebase (shared with equipment.html) ----------
 const firebaseConfig = {
@@ -477,6 +571,21 @@ const authReady = new Promise((resolve) => {
   auth.onAuthStateChanged((user) => { if (user) resolve(user.uid); });
 });
 auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed', err));
+
+// ---------- EmailJS (shared account with equipment.html) ----------
+// Same EmailJS service/public key already used for maintenance-log
+// subscriber notifications. These two template IDs are NEW — they don't
+// exist yet. Create them in the EmailJS dashboard (emailjs.com > Email
+// Templates) and paste the real IDs in here; see the chat message for the
+// exact variable names each template should reference.
+const EMAILJS_SERVICE_ID = 'service_07ex199';
+const EMAILJS_TEMPLATE_ORDER_STORES = 'template_order_stores';   // TODO: replace with real template ID
+const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_order_mcc';      // TODO: replace with real template ID
+// Fill in real recipient addresses here (or set them as the fixed "To Email"
+// on each EmailJS template instead, and drop to_email from the payload below).
+const STORES_EMAIL = 'stores@ghacem.example.com';   // TODO: replace with real Stores email
+const MCC_EMAIL     = 'mcc@ghacem.example.com';     // TODO: replace with real MCC email
+emailjs.init({ publicKey: '-1qmTfV9pX6ycWzse' });
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -647,6 +756,26 @@ const formEl = {
 
 // Equipment checkboxes are populated once the Firestore fetch above resolves.
 
+const orderEl = {
+  overlay: document.getElementById('orderFormOverlay'),
+  closeX: document.getElementById('orderFormCloseX'),
+  form: document.getElementById('orderForm'),
+  success: document.getElementById('orderFormSuccess'),
+  doneBtn: document.getElementById('orderFormDoneBtn'),
+  partId: document.getElementById('orderPartId'),
+  partModel: document.getElementById('orderPartModel'),
+  partName: document.getElementById('orderPartName'),
+  partMeta: document.getElementById('orderPartMeta'),
+  staffId: document.getElementById('orderStaffId'),
+  fullName: document.getElementById('orderFullName'),
+  department: document.getElementById('orderDepartment'),
+  qty: document.getElementById('orderQty'),
+  notes: document.getElementById('orderNotes'),
+  error: document.getElementById('orderFormError'),
+  submitBtn: document.getElementById('orderSubmitBtn'),
+  cancelBtn: document.getElementById('orderCancelBtn'),
+};
+
 let allParts = [];
 
 // ---------- Stock status ----------
@@ -721,6 +850,7 @@ function renderParts() {
               <span class="part-category"><i class="fa-solid fa-tag"></i>${escapeHtml(p.category)}</span>
             </div>
             <div class="part-actions">
+              <button type="button" class="order-part-btn" data-id="${p.id}" title="Order this part from stores"><i class="fa-solid fa-cart-shopping"></i></button>
               ${adminUnlocked ? `
                 <button type="button" class="edit-part" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
                 <button type="button" class="del-part" data-id="${p.id}" data-name="${escapeHtml(p.partName)}" title="Delete"><i class="fa-solid fa-trash"></i></button>
@@ -814,6 +944,141 @@ function closePartForm() {
   document.body.style.overflow = '';
 }
 
+// ---------- Order Spare Part (Stores + MCC pick-ticket emails) ----------
+function openOrderModal(part) {
+  orderEl.form.reset();
+  orderEl.form.style.display = '';
+  orderEl.success.classList.remove('show');
+  orderEl.error.textContent = '';
+  orderEl.submitBtn.disabled = false;
+  orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order';
+
+  orderEl.partId.value = part.id;
+  orderEl.partModel.textContent = part.modelNumber;
+  orderEl.partName.textContent = part.partName;
+  orderEl.partMeta.textContent = `${part.category} · ${part.binLocation || 'Bin location not set'} · Current stock: ${part.currentQty} ${part.unit || ''}`;
+  orderEl.qty.value = 1;
+
+  orderEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  orderEl.staffId.focus();
+}
+
+function closeOrderModal() {
+  orderEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+orderEl.closeX.addEventListener('click', closeOrderModal);
+orderEl.cancelBtn.addEventListener('click', closeOrderModal);
+orderEl.doneBtn.addEventListener('click', closeOrderModal);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && orderEl.overlay.classList.contains('is-open')) closeOrderModal();
+});
+
+orderEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  orderEl.error.textContent = '';
+
+  const part = allParts.find(p => p.id === orderEl.partId.value);
+  if (!part) {
+    orderEl.error.textContent = 'This part could not be found — please close and try again.';
+    return;
+  }
+
+  const staffId = orderEl.staffId.value.trim();
+  const fullName = orderEl.fullName.value.trim();
+  const department = orderEl.department.value.trim();
+  const quantityRequested = Number(orderEl.qty.value);
+  const notes = orderEl.notes.value.trim();
+
+  if (!staffId || !fullName || !quantityRequested || quantityRequested < 1) {
+    orderEl.error.textContent = 'Staff ID, full name, and a valid quantity are required.';
+    return;
+  }
+
+  const equipmentContext = equipmentFilterId
+    ? (EQUIPMENT_NAME_BY_ID[equipmentFilterId] || equipmentFilterId)
+    : '';
+  const compatEquipNames = (part.compatibleEquipment || [])
+    .map(id => EQUIPMENT_NAME_BY_ID[id] || id)
+    .join(', ');
+  const submittedAt = new Date().toLocaleString();
+
+  orderEl.submitBtn.disabled = true;
+  orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
+
+  const orderData = {
+    partId: part.id,
+    modelNumber: part.modelNumber,
+    partName: part.partName,
+    category: part.category,
+    unit: part.unit || '',
+    binLocation: part.binLocation || '',
+    compatibleEquipment: part.compatibleEquipment || [],
+    equipmentContext,
+    quantityRequested,
+    staffId,
+    fullName,
+    department,
+    notes,
+    status: 'pending',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  try {
+    await authReady;
+
+    // 1) Log the order in Firestore so there's an auditable record even if
+    //    an email fails to send, and so admin.html can list/track orders.
+    await db.collection('partOrders').add(orderData);
+
+    // 2) Email Stores — full specs so they can prepare/pull the part.
+    const storesSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_STORES, {
+      to_email: STORES_EMAIL,
+      staff_id: staffId,
+      full_name: fullName,
+      department: department || '—',
+      model_number: part.modelNumber,
+      part_name: part.partName,
+      category: part.category,
+      unit: part.unit || '',
+      bin_location: part.binLocation || 'Not set',
+      quantity_requested: quantityRequested,
+      compatible_equipment: compatEquipNames || '—',
+      equipment_context: equipmentContext || '—',
+      notes: notes || '—',
+      submitted_at: submittedAt,
+    });
+
+    // 3) Email MCC — ask them to prepare a pick ticket on Infor EAM.
+    const mccSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_MCC, {
+      to_email: MCC_EMAIL,
+      staff_id: staffId,
+      full_name: fullName,
+      department: department || '—',
+      model_number: part.modelNumber,
+      part_name: part.partName,
+      quantity_requested: quantityRequested,
+      bin_location: part.binLocation || 'Not set',
+      equipment_context: equipmentContext || '—',
+      notes: notes || '—',
+      submitted_at: submittedAt,
+    });
+
+    await Promise.all([storesSend, mccSend]);
+
+    orderEl.form.style.display = 'none';
+    orderEl.success.classList.add('show');
+  } catch (err) {
+    console.error('Failed to submit spare part order', err);
+    orderEl.error.textContent = 'Could not send this order right now. Please try again, or contact Stores directly.';
+  } finally {
+    orderEl.submitBtn.disabled = false;
+    orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order';
+  }
+});
+
 el.addPartBtn.addEventListener('click', () => {
   if (!requireAdminUnlock()) return;
   openPartForm('new');
@@ -836,8 +1101,15 @@ document.addEventListener('keydown', (ev) => {
 });
 
 el.grid.addEventListener('click', (ev) => {
+  const orderBtn = ev.target.closest('.order-part-btn');
   const editBtn = ev.target.closest('.edit-part');
   const delBtn = ev.target.closest('.del-part');
+
+  if (orderBtn) {
+    const part = allParts.find(p => p.id === orderBtn.dataset.id);
+    if (part) openOrderModal(part);
+    return;
+  }
 
   if (editBtn) {
     if (!requireAdminUnlock()) return;
