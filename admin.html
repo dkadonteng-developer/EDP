@@ -134,6 +134,7 @@
   .row-icon-btn.danger:hover{background:#fdeceb;}
 
   .empty-state{color:var(--muted);font-size:.88rem;padding:24px;text-align:center;background:#fff;border-radius:14px;}
+  .panel-hint{color:var(--muted);font-size:.82rem;margin:-10px 0 16px;}
 
   /* ---------- Equipment form modal ---------- */
   #equipFormOverlay{
@@ -141,6 +142,12 @@
     display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;
   }
   #equipFormOverlay.is-open{display:flex;}
+  #groupFormOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
+    display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;
+  }
+  #groupFormOverlay.is-open{display:flex;}
+  .group-row img{width:56px;height:56px;object-fit:cover;border-radius:10px;background:#eee;flex-shrink:0;}
   .equip-form-modal{
     background:#fff;border-radius:16px;max-width:640px;width:100%;margin-bottom:24px;overflow:hidden;
     box-shadow:0 20px 50px rgba(0,0,0,.3);
@@ -320,6 +327,9 @@
       <button type="button" class="admin-tab-btn active" data-tab="equipmentPanel">
         <i class="fa-solid fa-toolbox"></i> Equipment
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="groupsPanel">
+        <i class="fa-solid fa-layer-group"></i> Groups
+      </button>
       <button type="button" class="admin-tab-btn" data-tab="historyPanel">
         <i class="fa-solid fa-clock-rotate-left"></i> Maintenance History
       </button>
@@ -345,6 +355,20 @@
         </div>
       </div>
       <div id="equipListContainer"><p class="loading-text">Loading equipment…</p></div>
+    </div>
+
+    <!-- ---- Groups panel ---- -->
+    <div class="admin-panel" id="groupsPanel">
+      <div class="panel-toolbar">
+        <h2>Equipment Groups</h2>
+        <div class="btns">
+          <button type="button" class="toolbar-btn" id="addGroupBtn">
+            <i class="fa-solid fa-plus"></i> Add Group
+          </button>
+        </div>
+      </div>
+      <p class="panel-hint">Groups appear as tiles on the dashboard (e.g. "Packer 1"). Set a picture for each one, then assign equipment to it from the Equipment tab.</p>
+      <div id="groupListContainer"><p class="loading-text">Loading groups…</p></div>
     </div>
 
     <!-- ---- Maintenance history panel ---- -->
@@ -426,10 +450,12 @@
         <div class="ef-row">
           <div class="ef-field">
             <label for="efGroup">Group</label>
-            <input type="text" id="efGroup" placeholder="e.g. Packer 1">
+            <select id="efGroup">
+              <option value="">— No group —</option>
+            </select>
           </div>
         </div>
-        <div class="ef-hint">Equipment sharing the same Group (e.g. "Packer 1") appear together under one tile on the dashboard.</div>
+        <div class="ef-hint">Equipment sharing the same Group (e.g. "Packer 1") appear together under one tile on the dashboard. Don't see the group you need? Add it from the <strong>Groups</strong> tab first.</div>
 
         <div class="ef-row">
           <div class="ef-field">
@@ -508,6 +534,44 @@
   </div>
 </div>
 
+<!-- ---- Group form overlay ---- -->
+<div id="groupFormOverlay">
+  <div class="equip-form-modal">
+    <div class="equip-form-head">
+      <div>
+        <h3 id="groupFormTitle"><i class="fa-solid fa-layer-group"></i> Add Group</h3>
+        <p>This picture and name appear on the dashboard tile.</p>
+      </div>
+      <button type="button" class="equip-form-close" id="groupFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="equip-form-body">
+      <form id="groupForm">
+        <div class="ef-field">
+          <label for="gfName">Group Name *</label>
+          <input type="text" id="gfName" required placeholder="e.g. Packer 1">
+        </div>
+        <div class="ef-hint">This exact name is what you'll pick from the dropdown when assigning equipment to this group.</div>
+
+        <div class="ef-field">
+          <label for="gfImage">Group Picture</label>
+          <input type="text" id="gfImage" placeholder="e.g. assets/equipment/packer1.jpg — or upload one below">
+          <label class="ef-upload-btn">
+            <i class="fa-solid fa-upload"></i> Upload Picture
+            <input type="file" accept="image/*" id="gfImageFile" hidden>
+          </label>
+          <div class="ef-upload-progress" id="gfImageUploadProgress" style="display:none;"></div>
+        </div>
+        <div class="ef-hint">If left blank, the dashboard falls back to using one of the group's equipment photos instead.</div>
+
+        <div class="ef-error" id="groupFormError"></div>
+        <button type="submit" class="ef-save-btn" id="groupFormSaveBtn">
+          <i class="fa-solid fa-floppy-disk"></i> Save Group
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
@@ -563,7 +627,7 @@ function renderAuthState(user) {
     dashboard.classList.add('show');
     signOutBtn.classList.add('show');
     signedInAs.textContent = user.email;
-    loadEquipmentList();
+    loadEquipmentList().then(loadGroupsList);
     loadHistoryEquipmentOptions();
   } else {
     signInScreen.style.display = 'block';
@@ -658,6 +722,225 @@ function renderEquipmentList() {
     btn.addEventListener('click', () => deleteEquipment(btn.dataset.delete));
   });
 }
+
+// ================= Groups =================
+// Stored in a separate `groups` Firestore collection ({ name, image }, doc
+// ID = a slug of the name) so a group can have its own picture instead of
+// borrowing one from whichever equipment happens to be inside it. Equipment
+// still just stores the group's plain-text `name` in its own `group` field
+// (matching how the dashboard/group.html already look groups up) — the
+// dropdown below is what keeps that text consistent instead of everyone
+// typing it freehand.
+
+let groupsCache = [];
+
+function slugifyGroupName(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `group-${Date.now()}`;
+}
+
+async function loadGroupsList() {
+  const container = document.getElementById('groupListContainer');
+  container.innerHTML = '<p class="loading-text">Loading groups…</p>';
+  try {
+    const snap = await db.collection('groups').orderBy('name').get();
+    groupsCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderGroupList();
+    populateGroupSelect();
+  } catch (err) {
+    console.error('Failed to load groups', err);
+    container.innerHTML = '<p class="empty-state">Could not load groups. Check your connection and try again.</p>';
+  }
+}
+
+function renderGroupList() {
+  const container = document.getElementById('groupListContainer');
+  if (!groupsCache.length) {
+    container.innerHTML = '<p class="empty-state">No groups yet. Add one (e.g. "Packer 1") so you can start tagging equipment into it.</p>';
+    return;
+  }
+  const equipCountFor = (name) => equipmentCache.filter((e) => e.group === name).length;
+  container.innerHTML = groupsCache.map((g) => `
+    <div class="equip-row group-row">
+      <img src="${escapeHtml(g.image || '')}" alt="" onerror="this.style.display='none'">
+      <div class="equip-row-main">
+        <strong>${escapeHtml(g.name)}</strong>
+        <span>${equipCountFor(g.name)} equipment assigned</span>
+      </div>
+      <div class="equip-row-btns">
+        <button type="button" class="row-icon-btn" title="Edit" data-edit-group="${g.id}"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="row-icon-btn danger" title="Delete" data-delete-group="${g.id}"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-edit-group]').forEach((btn) => {
+    btn.addEventListener('click', () => openGroupForm(groupsCache.find((g) => g.id === btn.dataset.editGroup)));
+  });
+  container.querySelectorAll('[data-delete-group]').forEach((btn) => {
+    btn.addEventListener('click', () => deleteGroup(btn.dataset.deleteGroup));
+  });
+}
+
+// Fills the equipment form's Group dropdown from groupsCache, keeping
+// whatever was previously selected (or, when editing existing equipment
+// whose group predates this dropdown, adding it as a one-off extra option
+// so nothing silently gets unassigned).
+function populateGroupSelect(selected) {
+  const select = document.getElementById('efGroup');
+  const keep = selected !== undefined ? selected : select.value;
+  const names = groupsCache.map((g) => g.name);
+  if (keep && !names.includes(keep)) names.push(keep);
+  select.innerHTML = '<option value="">— No group —</option>' +
+    names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') +
+    '<option value="__add_new__">+ Add new group…</option>';
+  select.value = keep || '';
+}
+
+document.getElementById('efGroup').addEventListener('change', (e) => {
+  if (e.target.value === '__add_new__') {
+    e.target.value = '';
+    openGroupForm(null);
+  }
+});
+
+async function deleteGroup(id) {
+  const g = groupsCache.find((x) => x.id === id);
+  if (!g) return;
+  const count = equipmentCache.filter((e) => e.group === g.name).length;
+  const extra = count ? ` ${count} piece(s) of equipment tagged with it will become ungrouped (their own data isn't touched).` : '';
+  if (!confirm(`Delete group "${g.name}"?${extra}`)) return;
+  try {
+    await db.collection('groups').doc(id).delete();
+    loadGroupsList();
+  } catch (err) {
+    console.error('Failed to delete group', err);
+    alert('Could not delete this group. Please try again.');
+  }
+}
+
+const gfEl = {
+  overlay: document.getElementById('groupFormOverlay'),
+  closeX: document.getElementById('groupFormCloseX'),
+  form: document.getElementById('groupForm'),
+  title: document.getElementById('groupFormTitle'),
+  name: document.getElementById('gfName'),
+  image: document.getElementById('gfImage'),
+  error: document.getElementById('groupFormError'),
+  saveBtn: document.getElementById('groupFormSaveBtn'),
+};
+let editingGroupId = null;
+
+function openGroupForm(existing) {
+  editingGroupId = existing ? existing.id : null;
+  gfEl.error.textContent = '';
+  gfEl.form.reset();
+  if (existing) {
+    gfEl.title.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Group';
+    gfEl.name.value = existing.name || '';
+    gfEl.image.value = existing.image || '';
+  } else {
+    gfEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Group';
+  }
+  gfEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGroupForm() {
+  gfEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('addGroupBtn').addEventListener('click', () => openGroupForm(null));
+gfEl.closeX.addEventListener('click', closeGroupForm);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && gfEl.overlay.classList.contains('is-open')) closeGroupForm();
+});
+
+gfEl.form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  gfEl.error.textContent = '';
+
+  const name = gfEl.name.value.trim();
+  if (!name) {
+    gfEl.error.textContent = 'Group name is required.';
+    return;
+  }
+  const duplicate = groupsCache.some((g) => g.name.toLowerCase() === name.toLowerCase() && g.id !== editingGroupId);
+  if (duplicate) {
+    gfEl.error.textContent = 'A group with this name already exists.';
+    return;
+  }
+
+  const id = editingGroupId || slugifyGroupName(name);
+  const oldName = editingGroupId ? (groupsCache.find((g) => g.id === editingGroupId) || {}).name : null;
+  const data = { name, image: gfEl.image.value.trim() };
+
+  gfEl.saveBtn.disabled = true;
+  gfEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    await db.collection('groups').doc(id).set(data);
+
+    // Renaming a group: re-tag every piece of equipment that pointed at
+    // the old name so nothing falls out of the group silently.
+    if (oldName && oldName !== name) {
+      const affected = equipmentCache.filter((e) => e.group === oldName);
+      if (affected.length) {
+        const batch = db.batch();
+        affected.forEach((e) => batch.update(db.collection('equipment').doc(e.id), { group: name }));
+        await batch.commit();
+      }
+    }
+
+    closeGroupForm();
+    await loadEquipmentList();
+    await loadGroupsList();
+    populateGroupSelect();
+  } catch (err) {
+    console.error('Failed to save group', err);
+    gfEl.error.textContent = 'Could not save this group. Please try again.';
+  } finally {
+    gfEl.saveBtn.disabled = false;
+    gfEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Group';
+  }
+});
+
+// Group picture upload — keyed by the group name typed so far rather than
+// efEl.id (which wireFileUpload expects), since groups don't share that ID
+// field.
+document.getElementById('gfImageFile').addEventListener('change', async () => {
+  const fileInput = document.getElementById('gfImageFile');
+  const progressEl = document.getElementById('gfImageUploadProgress');
+  const file = fileInput.files[0];
+  if (!file) return;
+  const name = gfEl.name.value.trim();
+  if (!name) {
+    alert('Enter a Group Name first.');
+    fileInput.value = '';
+    return;
+  }
+  progressEl.style.display = 'block';
+  progressEl.textContent = 'Uploading… 0%';
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `group-images/${slugifyGroupName(name)}/${Date.now()}-${safeName}`;
+    const task = storage.ref().child(path).put(file);
+    await new Promise((resolve, reject) => {
+      task.on('state_changed',
+        (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
+        reject,
+        resolve
+      );
+    });
+    gfEl.image.value = await task.snapshot.ref.getDownloadURL();
+    progressEl.textContent = 'Uploaded ✓';
+    setTimeout(() => { progressEl.style.display = 'none'; }, 1800);
+  } catch (err) {
+    console.error('Group image upload failed', err);
+    progressEl.textContent = 'Upload failed — please check your connection and try again.';
+  } finally {
+    fileInput.value = '';
+  }
+});
 
 // Deletes every doc a query returns, in Firestore-batch-safe chunks of 400.
 // Returns how many were deleted.
@@ -851,7 +1134,7 @@ function openEquipForm(existing) {
     efEl.name.value = existing.name || '';
     efEl.status.value = existing.status || 'Operational';
     efEl.department.value = existing.department || '';
-    efEl.group.value = existing.group || '';
+    populateGroupSelect(existing.group || '');
     efEl.manufacturer.value = existing.manufacturer || '';
     efEl.model.value = existing.model || '';
     efEl.serial.value = existing.serial || '';
@@ -863,6 +1146,7 @@ function openEquipForm(existing) {
   } else {
     efEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Equipment';
     efEl.id.disabled = false;
+    populateGroupSelect('');
   }
 
   if (!efEl.documentsRows.children.length) addDocumentRow();
@@ -882,12 +1166,52 @@ document.getElementById('addEquipBtn').addEventListener('click', () => openEquip
 // library to load. Each code encodes the absolute URL to that equipment's
 // info page, derived from this page's own location so it works regardless
 // of where the site ends up hosted (custom domain, GitHub Pages subpath, etc).
+//
+// The on-screen preview is just the raw QR image (fast). The *download* is
+// built on a canvas with the equipment's name and ID printed underneath —
+// so a printed/downloaded code is still identifiable once it's off this
+// screen and taped to a machine. Falls back to a plain, unlabeled download
+// if the QR host doesn't allow canvas access to the loaded image (CORS).
 const qrOverlay = document.getElementById('qrOverlay');
 const qrGrid = document.getElementById('qrGrid');
 
 function equipmentPageUrl(id) {
   const base = window.location.href.replace(/admin\.html.*$/, '');
   return `${base}equipment.html?id=${encodeURIComponent(id)}`;
+}
+
+function buildLabeledQrDataUrl(qrImgUrl, title, subtitle) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const qrSize = img.width;
+        const padding = 24;
+        const titleH = 34;
+        const subtitleH = 24;
+        const canvas = document.createElement('canvas');
+        canvas.width = qrSize + padding * 2;
+        canvas.height = qrSize + padding * 2 + titleH + subtitleH;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, padding, padding, qrSize, qrSize);
+        ctx.fillStyle = '#1f2a24';
+        ctx.textAlign = 'center';
+        ctx.font = '600 20px Arial, sans-serif';
+        ctx.fillText(title, canvas.width / 2, padding + qrSize + titleH - 4, canvas.width - padding);
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '14px Arial, sans-serif';
+        ctx.fillText(subtitle, canvas.width / 2, padding + qrSize + titleH + subtitleH - 6, canvas.width - padding);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = reject;
+    img.src = qrImgUrl;
+  });
 }
 
 function renderQrGrid() {
@@ -899,14 +1223,42 @@ function renderQrGrid() {
     const url = equipmentPageUrl(e.id);
     const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
     return `
-      <div class="qr-card">
+      <div class="qr-card" data-qr-id="${escapeHtml(e.id)}" data-qr-name="${escapeHtml(e.name || e.id)}" data-qr-src="${qrImg}">
         <img src="${qrImg}" alt="QR code for ${escapeHtml(e.name || e.id)}">
         <strong>${escapeHtml(e.name || e.id)}</strong>
         <span>ID: ${escapeHtml(e.id)}</span>
-        <a href="${qrImg}" download="qr-${escapeHtml(e.id)}.png" target="_blank" rel="noopener"><i class="fa-solid fa-download"></i> Download</a>
+        <a href="#" class="qr-download-link" data-id="${escapeHtml(e.id)}"><i class="fa-solid fa-download"></i> Download</a>
       </div>
     `;
   }).join('');
+
+  qrGrid.querySelectorAll('.qr-download-link').forEach((link) => {
+    link.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const card = link.closest('.qr-card');
+      const id = card.dataset.qrId;
+      const name = card.dataset.qrName;
+      const originalHtml = link.innerHTML;
+      link.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing…';
+      try {
+        const dataUrl = await buildLabeledQrDataUrl(card.dataset.qrSrc, name, `ID: ${id}`);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `qr-${id}-${name.replace(/[^a-zA-Z0-9]+/g, '-')}.png`;
+        a.click();
+      } catch (err) {
+        console.warn('Could not label QR image (CORS?) — downloading plain code instead.', err);
+        const a = document.createElement('a');
+        a.href = card.dataset.qrSrc;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.download = `qr-${id}.png`;
+        a.click();
+      } finally {
+        link.innerHTML = originalHtml;
+      }
+    });
+  });
 }
 
 document.getElementById('genQrBtn').addEventListener('click', () => {
@@ -923,6 +1275,7 @@ efEl.closeX.addEventListener('click', closeEquipForm);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && efEl.overlay.classList.contains('is-open')) closeEquipForm();
 });
+
 
 efEl.form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -951,7 +1304,7 @@ efEl.form.addEventListener('submit', async (e) => {
     name: efEl.name.value.trim(),
     status: efEl.status.value,
     department: efEl.department.value.trim(),
-    group: efEl.group.value.trim(),
+    group: efEl.group.value === '__add_new__' ? '' : efEl.group.value.trim(),
     manufacturer: efEl.manufacturer.value.trim(),
     model: efEl.model.value.trim(),
     serial: efEl.serial.value.trim(),
