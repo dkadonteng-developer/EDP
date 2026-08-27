@@ -166,6 +166,43 @@
   }
   .seed-bar button:hover{background:#005229}
 
+  /* admin sign-in */
+  #adminSignInOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #adminSignInOverlay.is-open{display:flex}
+  .admin-modal{
+    background:#fff;border-radius:16px;max-width:380px;width:100%;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .admin-modal-head{
+    background:var(--brand);color:#fff;padding:18px 20px;position:relative;
+  }
+  .admin-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .admin-modal-head p{margin:0;font-size:.82rem;opacity:.92}
+  .admin-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;
+  }
+  .admin-modal-close:hover{background:rgba(255,255,255,.35)}
+  .admin-modal-body{padding:20px}
+  .admin-modal-body form{display:flex;flex-direction:column;gap:14px}
+  .admin-modal-body label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;font-weight:600;color:#444}
+  .admin-modal-body input{
+    font-family:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;
+  }
+  .admin-modal-body input:focus{outline:none;border-color:var(--brand)}
+  .admin-signin-error{color:var(--danger);font-size:.82rem;min-height:1em}
+  .admin-signin-btn{
+    background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
+    font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .admin-signin-btn:hover{background:#005229}
+  .admin-signin-btn:disabled{background:#ccc;cursor:not-allowed}
+  #adminSignInStatus{font-size:.78rem;color:var(--muted);margin-top:6px;display:block;}
+
   /* modal (part add/edit form) */
   #partFormOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
@@ -304,6 +341,33 @@
 
 </div>
 
+<div id="adminSignInOverlay">
+  <div class="admin-modal">
+    <div class="admin-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-user-shield"></i> Admin Sign In</h3>
+        <p>Sign in with your admin account to manage spare parts.</p>
+      </div>
+      <button type="button" class="admin-modal-close" id="adminSignInCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="adminSignInForm">
+        <label>Email
+          <input type="email" id="adminEmailInput" required autocomplete="username">
+        </label>
+        <label>Password
+          <input type="password" id="adminPasswordInput" required autocomplete="current-password">
+        </label>
+        <div class="admin-signin-error" id="adminSignInError"></div>
+        <button type="submit" class="admin-signin-btn" id="adminSignInSubmitBtn">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
+        <span id="adminSignInStatus"></span>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div id="partFormOverlay">
   <div class="part-form-modal">
     <div class="part-form-modal-head">
@@ -421,30 +485,48 @@ function escapeHtml(str) {
 }
 
 // ---------- Known equipment (for compatibility tags + admin checkboxes) ----------
-// Keep this in sync with the cards on index.html.
-const EQUIPMENT_LIST = [
-  { id: 'rt-01', name: 'Rotor Packer 1' },
-  { id: 'rt-02', name: 'Rotor Packer 2' },
-  { id: 'rt-04', name: 'Rotor Packer 4' },
-  { id: 'rt-06', name: 'Rotor Packer 6' },
-  { id: 'be1',   name: 'Bucket Elevator (Packer 1 & 2)' },
-  { id: 'be4',   name: 'Bucket Elevator (Packer 4)' },
-  { id: 'be6',   name: 'Bucket Elevator (Packer 6)' },
-  { id: 'vs1',   name: 'Vibrating Screen (Packer 1 & 2)' },
-  { id: 'vs2',   name: 'Vibrating Screen (Packer 4)' },
-];
-const EQUIPMENT_NAME_BY_ID = Object.fromEntries(EQUIPMENT_LIST.map(e => [e.id, e.name]));
+// Source of truth is now the `equipment` Firestore collection (editable via
+// admin.html) instead of a hardcoded array that had to be kept in sync by
+// hand.
+let EQUIPMENT_LIST = [];
+let EQUIPMENT_NAME_BY_ID = {};
 
-// ---------- Admin gate (shared password with equipment.html's subscriber removal) ----------
-const ADMIN_PASSWORD = 'ghacem2026'; // keep this in sync with equipment.html
+db.collection('equipment').get().then((snap) => {
+  EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, name: doc.data().name || doc.id }));
+  EQUIPMENT_NAME_BY_ID = Object.fromEntries(EQUIPMENT_LIST.map((e) => [e.id, e.name]));
+  formEl.equipChecks.innerHTML = EQUIPMENT_LIST.map(e => `
+    <label><input type="checkbox" value="${e.id}"> ${escapeHtml(e.name)}</label>
+  `).join('');
+  renderParts(); // refresh so equipment tags/names resolve now that data has loaded
+}).catch((err) => console.error('Failed to load equipment list', err));
+
+// ---------- Real admin authentication ----------
+// Admin access requires a genuine Firebase Auth sign-in (email/password)
+// AND a matching document in the `admins` Firestore collection — there is
+// no password stored in this file anymore. Admin accounts are created via
+// the Firebase Console (Authentication tab); granting admin rights means
+// adding a document at admins/{uid} for that account.
+
 let adminUnlocked = false;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user && !user.isAnonymous) {
+    try {
+      const doc = await db.collection('admins').doc(user.uid).get();
+      adminUnlocked = doc.exists;
+    } catch (err) {
+      console.error('Admin membership check failed', err);
+      adminUnlocked = false;
+    }
+  } else {
+    adminUnlocked = false;
+  }
+  setAdminUI(adminUnlocked);
+});
 
 function requireAdminUnlock() {
   if (adminUnlocked) return true;
-  const entered = window.prompt('Enter admin code to manage spare parts:');
-  if (entered === null) return false;
-  if (entered === ADMIN_PASSWORD) { adminUnlocked = true; setAdminUI(true); return true; }
-  alert('Incorrect admin code.');
+  openAdminSignInModal();
   return false;
 }
 
@@ -455,8 +537,66 @@ function setAdminUI(unlocked) {
     ? '<i class="fa-solid fa-unlock"></i> Admin Mode'
     : '<i class="fa-solid fa-lock"></i> Admin Login';
   document.getElementById('adminToggleBtn').classList.toggle('is-unlocked', unlocked);
+  const statusEl = document.getElementById('adminSignInStatus');
+  if (statusEl) {
+    statusEl.textContent = unlocked && auth.currentUser ? `Signed in as ${auth.currentUser.email}` : '';
+  }
   renderParts(); // re-render so edit/delete icons on cards show or hide
 }
+
+function openAdminSignInModal() {
+  const overlay = document.getElementById('adminSignInOverlay');
+  const errorEl = document.getElementById('adminSignInError');
+  if (errorEl) errorEl.textContent = '';
+  if (overlay) overlay.classList.add('is-open');
+}
+
+function closeAdminSignInModal() {
+  const overlay = document.getElementById('adminSignInOverlay');
+  if (overlay) overlay.classList.remove('is-open');
+}
+
+(function setUpAdminSignInForm() {
+  const form = document.getElementById('adminSignInForm');
+  const closeX = document.getElementById('adminSignInCloseX');
+  const errorEl = document.getElementById('adminSignInError');
+  const submitBtn = document.getElementById('adminSignInSubmitBtn');
+  if (!form) return;
+
+  closeX.addEventListener('click', closeAdminSignInModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('adminSignInOverlay').classList.contains('is-open')) {
+      closeAdminSignInModal();
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.textContent = '';
+    const email = document.getElementById('adminEmailInput').value.trim();
+    const password = document.getElementById('adminPasswordInput').value;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+    try {
+      const cred = await auth.signInWithEmailAndPassword(email, password);
+      const adminDoc = await db.collection('admins').doc(cred.user.uid).get();
+      if (!adminDoc.exists) {
+        await auth.signOut();
+        errorEl.textContent = 'This account is not authorized as an admin.';
+        return;
+      }
+      form.reset();
+      closeAdminSignInModal();
+    } catch (err) {
+      console.error('Admin sign-in failed', err);
+      errorEl.textContent = 'Incorrect email or password.';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+    }
+  });
+})();
 
 // ---------- Equipment context (?equipment=rt-01 pre-filters + shows banner) ----------
 const equipmentFilterId = new URLSearchParams(location.search).get('equipment');
@@ -505,10 +645,7 @@ const formEl = {
   cancelBtn: document.getElementById('partCancelBtn'),
 };
 
-// Build equipment checkboxes once
-formEl.equipChecks.innerHTML = EQUIPMENT_LIST.map(e => `
-  <label><input type="checkbox" value="${e.id}"> ${escapeHtml(e.name)}</label>
-`).join('');
+// Equipment checkboxes are populated once the Firestore fetch above resolves.
 
 let allParts = [];
 
@@ -684,9 +821,8 @@ el.addPartBtn.addEventListener('click', () => {
 
 document.getElementById('adminToggleBtn').addEventListener('click', () => {
   if (adminUnlocked) {
-    if (confirm('Log out of admin mode? You will need the admin code again to make changes.')) {
-      adminUnlocked = false;
-      setAdminUI(false);
+    if (confirm('Sign out of admin mode? You will need to sign in again to make changes.')) {
+      auth.signOut();
     }
     return;
   }
