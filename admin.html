@@ -231,11 +231,44 @@
   }
   .ev-uploader i{font-size:1.8rem;margin-bottom:10px;color:var(--brand-light);display:block;}
 
-  .ev-canvas-wrap{
-    position:relative;display:inline-block;max-width:100%;border-radius:10px;overflow:hidden;
-    border:1px solid var(--border);cursor:crosshair;background:#f0f2f4;
+  .ev-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .ev-tab{
+    display:flex;align-items:center;gap:6px;padding:7px 8px 7px 14px;border-radius:20px;
+    border:1px solid var(--border);background:#fff;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;
   }
-  .ev-canvas-wrap img{display:block;max-width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
+  .ev-tab:hover{border-color:var(--brand);color:var(--brand);}
+  .ev-tab.is-active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .ev-tab-label-input{
+    border:none;background:transparent;font:inherit;font-weight:600;color:inherit;width:90px;padding:0;
+  }
+  .ev-tab-label-input:focus{outline:none;}
+  .ev-tab-del{
+    width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.12);color:inherit;
+    display:flex;align-items:center;justify-content:center;font-size:.6rem;cursor:pointer;flex-shrink:0;
+  }
+  .ev-tab.is-active .ev-tab-del{background:rgba(255,255,255,.25);}
+  .ev-tab-add{
+    display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px dashed var(--border);
+    background:#fff;font-size:.8rem;font-weight:600;color:var(--brand);cursor:pointer;position:relative;overflow:hidden;
+  }
+  .ev-tab-add:hover{border-color:var(--brand);}
+  .ev-tab-add input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+  .ev-canvas-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .ev-zoom-btn{
+    width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .ev-zoom-btn:hover{border-color:var(--brand);color:var(--brand);}
+  .ev-zoom-level{font-size:.78rem;color:var(--muted);min-width:44px;text-align:center;}
+
+  .ev-canvas-wrap{
+    position:relative;border-radius:10px;overflow:auto;border:1px solid var(--border);background:#f0f2f4;
+    max-height:60vh;touch-action:none;cursor:grab;
+  }
+  .ev-canvas-wrap.is-panning{cursor:grabbing;}
+  .ev-canvas-stage{position:relative;display:inline-block;line-height:0;}
+  .ev-canvas-stage img{display:block;user-select:none;-webkit-user-drag:none;}
   .ev-pin{
     position:absolute;width:26px;height:26px;border-radius:50%;background:var(--danger);color:#fff;
     display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;
@@ -647,15 +680,24 @@
       </div>
 
       <div id="evCanvasSection" style="display:none;">
+        <div class="ev-tabs" id="evTabs"></div>
         <div class="ev-hint-row">
           <p class="ef-hint">Click anywhere on the diagram to add a part pin at that spot.</p>
           <label class="ev-replace-btn">
-            <i class="fa-solid fa-arrows-rotate"></i> Replace Diagram
+            <i class="fa-solid fa-arrows-rotate"></i> Replace This Diagram
             <input type="file" accept="image/*" id="evReplaceFile" hidden>
           </label>
         </div>
+        <div class="ev-canvas-toolbar">
+          <button type="button" class="ev-zoom-btn" id="evZoomOutBtn" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
+          <span class="ev-zoom-level" id="evZoomLevel">100%</span>
+          <button type="button" class="ev-zoom-btn" id="evZoomInBtn" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
+          <button type="button" class="ev-zoom-btn" id="evZoomResetBtn" title="Fit to screen"><i class="fa-solid fa-compress"></i></button>
+        </div>
         <div class="ev-canvas-wrap" id="evCanvasWrap">
-          <img id="evDiagramImg" alt="Exploded view diagram">
+          <div class="ev-canvas-stage" id="evCanvasStage">
+            <img id="evDiagramImg" alt="Exploded view diagram">
+          </div>
         </div>
 
         <div class="ev-part-form" id="evPartForm" style="display:none;">
@@ -1685,6 +1727,7 @@ efEl.form.addEventListener('submit', async (e) => {
     documents,
     safetyRequirements,
     explodedView: (existingRecord && existingRecord.explodedView) || '',
+    explodedViews: (existingRecord && existingRecord.explodedViews) || [],
   };
 
   efEl.saveBtn.disabled = true;
@@ -1711,9 +1754,14 @@ efEl.form.addEventListener('submit', async (e) => {
 // The diagram image itself lives on the equipment doc as `explodedView`.
 
 let evEquipment = null;
+let evViews = [];          // [{id, url, label}] — normalized, may hold several diagrams
+let evActiveViewId = null;
 let evParts = [];
 let evPendingPin = null;   // {x,y} percent — set while the part form is open
 let evEditingPartId = null;
+let evScale = 1;
+const EV_MIN_SCALE = 0.15;
+const EV_MAX_SCALE = 4;
 
 const evEl = {
   overlay: document.getElementById('explodedViewOverlay'),
@@ -1721,8 +1769,14 @@ const evEl = {
   title: document.getElementById('evTitle'),
   uploaderWrap: document.getElementById('evUploaderWrap'),
   canvasSection: document.getElementById('evCanvasSection'),
+  tabs: document.getElementById('evTabs'),
   canvasWrap: document.getElementById('evCanvasWrap'),
+  canvasStage: document.getElementById('evCanvasStage'),
   diagramImg: document.getElementById('evDiagramImg'),
+  zoomInBtn: document.getElementById('evZoomInBtn'),
+  zoomOutBtn: document.getElementById('evZoomOutBtn'),
+  zoomResetBtn: document.getElementById('evZoomResetBtn'),
+  zoomLevel: document.getElementById('evZoomLevel'),
   partForm: document.getElementById('evPartForm'),
   partFormTitle: document.getElementById('evPartFormTitle'),
   partName: document.getElementById('evPartName'),
@@ -1737,20 +1791,36 @@ const evEl = {
   partsListContainer: document.getElementById('evPartsListContainer'),
 };
 
+// Normalizes both the legacy single-`explodedView` field and the new
+// `explodedViews` array, so equipment created before multi-diagram support
+// keeps working.
+function normalizeExplodedViews(equipment) {
+  if (Array.isArray(equipment.explodedViews) && equipment.explodedViews.length) {
+    return equipment.explodedViews
+      .filter((v) => v && v.url)
+      .map((v, i) => ({ id: v.id || `view${i}`, url: v.url, label: v.label || '' }));
+  }
+  if (equipment.explodedView) {
+    return [{ id: 'default', url: equipment.explodedView, label: '' }];
+  }
+  return [];
+}
+
 function openExplodedViewOverlay(equipment) {
   if (!equipment) return;
   evEquipment = equipment;
+  evViews = normalizeExplodedViews(equipment);
   evParts = [];
   evPendingPin = null;
   evEditingPartId = null;
   evEl.title.innerHTML = `<i class="fa-solid fa-diagram-project"></i> Exploded View — ${escapeHtml(equipment.name || equipment.id)}`;
   evEl.partForm.style.display = 'none';
 
-  if (equipment.explodedView) {
+  if (evViews.length) {
     evEl.uploaderWrap.style.display = 'none';
     evEl.canvasSection.style.display = 'block';
-    evEl.diagramImg.src = equipment.explodedView;
-    loadExplodedViewParts();
+    renderEvTabs();
+    selectEvView(evViews[0].id);
   } else {
     evEl.uploaderWrap.style.display = 'block';
     evEl.canvasSection.style.display = 'none';
@@ -1769,18 +1839,216 @@ function closeExplodedViewOverlay() {
 }
 evEl.closeX.addEventListener('click', closeExplodedViewOverlay);
 
-async function saveDiagramUrl(url) {
-  await db.collection('equipment').doc(evEquipment.id).update({ explodedView: url });
-  evEquipment.explodedView = url;
+// Persists the current evViews array (and keeps the legacy explodedView
+// field pointed at the first diagram, in case anything old still reads it).
+async function persistEvViews() {
+  const data = {
+    explodedViews: evViews,
+    explodedView: evViews.length ? evViews[0].url : firebase.firestore.FieldValue.delete(),
+  };
+  await db.collection('equipment').doc(evEquipment.id).update(data);
+  evEquipment.explodedViews = evViews;
+  evEquipment.explodedView = evViews.length ? evViews[0].url : '';
   const cached = equipmentCache.find((e) => e.id === evEquipment.id);
-  if (cached) cached.explodedView = url;
-  evEl.uploaderWrap.style.display = 'none';
-  evEl.canvasSection.style.display = 'block';
-  evEl.diagramImg.src = url;
-  loadExplodedViewParts();
+  if (cached) {
+    cached.explodedViews = evViews;
+    cached.explodedView = evEquipment.explodedView;
+  }
 }
 
-function wireDiagramUpload(fileInput) {
+function renderEvTabs() {
+  evEl.tabs.innerHTML = evViews.map((v, i) => `
+    <div class="ev-tab${v.id === evActiveViewId ? ' is-active' : ''}" data-view-id="${escapeHtml(v.id)}">
+      <input class="ev-tab-label-input" data-rename="${escapeHtml(v.id)}" value="${escapeHtml(v.label || `Diagram ${i + 1}`)}" placeholder="Diagram ${i + 1}" size="1">
+      <button type="button" class="ev-tab-del" data-delete-view="${escapeHtml(v.id)}" title="Delete this diagram"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  `).join('') + `
+    <label class="ev-tab-add" title="Add another diagram">
+      <i class="fa-solid fa-plus"></i> Add Diagram
+      <input type="file" accept="image/*" id="evAddDiagramFile">
+    </label>
+  `;
+
+  evEl.tabs.querySelectorAll('.ev-tab').forEach((tabEl) => {
+    tabEl.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-delete-view]') || ev.target.closest('.ev-tab-label-input')) return;
+      selectEvView(tabEl.dataset.viewId);
+    });
+  });
+  evEl.tabs.querySelectorAll('[data-rename]').forEach((input) => {
+    input.addEventListener('click', (ev) => ev.stopPropagation());
+    input.addEventListener('change', async () => {
+      const view = evViews.find((v) => v.id === input.dataset.rename);
+      if (!view) return;
+      view.label = input.value.trim();
+      await persistEvViews();
+    });
+  });
+  evEl.tabs.querySelectorAll('[data-delete-view]').forEach((btn) => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (evViews.length <= 1) {
+        alert('This is the only diagram — delete the equipment\u2019s exploded view from its diagram list only after adding a replacement, or use the equipment form to remove it entirely.');
+        return;
+      }
+      if (!confirm('Delete this diagram and all parts pinned to it? This cannot be undone.')) return;
+      const viewId = btn.dataset.deleteView;
+      try {
+        const snap = await db.collection('equipmentParts')
+          .where('equipmentId', '==', evEquipment.id).get();
+        const batch = db.batch();
+        snap.docs.forEach((doc) => {
+          const p = doc.data();
+          if ((p.viewId || 'default') === viewId || (!p.viewId && viewId === evViews[0].id)) {
+            batch.delete(doc.ref);
+          }
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error('Failed to delete parts for diagram', err);
+      }
+      evViews = evViews.filter((v) => v.id !== viewId);
+      await persistEvViews();
+      if (evViews.length) {
+        renderEvTabs();
+        selectEvView(evViews[0].id);
+      } else {
+        evEl.uploaderWrap.style.display = 'block';
+        evEl.canvasSection.style.display = 'none';
+      }
+    });
+  });
+  wireDiagramUpload(document.getElementById('evAddDiagramFile'), 'add');
+}
+
+function selectEvView(viewId) {
+  const view = evViews.find((v) => v.id === viewId);
+  if (!view) return;
+  evActiveViewId = viewId;
+  evEl.partForm.style.display = 'none';
+  evEditingPartId = null;
+  evPendingPin = null;
+  evEl.tabs.querySelectorAll('.ev-tab').forEach((t) => t.classList.toggle('is-active', t.dataset.viewId === viewId));
+
+  evEl.diagramImg.onload = () => {
+    fitEvToWrap();
+    loadExplodedViewParts();
+  };
+  evEl.diagramImg.src = view.url;
+}
+
+// ---- Full-resolution pan & zoom, mirroring the equipment-page viewer, so
+// pins can be placed precisely without the diagram being squashed to fit.
+
+function setEvScale(scale, anchor) {
+  const img = evEl.diagramImg;
+  if (!img.naturalWidth) return;
+  const wrap = evEl.canvasWrap;
+  const newScale = Math.min(EV_MAX_SCALE, Math.max(EV_MIN_SCALE, scale));
+  const point = anchor || { x: wrap.clientWidth / 2, y: wrap.clientHeight / 2 };
+  const contentX = (wrap.scrollLeft + point.x) / evScale;
+  const contentY = (wrap.scrollTop + point.y) / evScale;
+
+  evScale = newScale;
+  const w = img.naturalWidth * evScale;
+  const h = img.naturalHeight * evScale;
+  img.style.width = `${w}px`;
+  img.style.height = `${h}px`;
+  evEl.canvasStage.style.width = `${w}px`;
+  evEl.canvasStage.style.height = `${h}px`;
+
+  wrap.scrollLeft = contentX * evScale - point.x;
+  wrap.scrollTop = contentY * evScale - point.y;
+  evEl.zoomLevel.textContent = `${Math.round(evScale * 100)}%`;
+}
+
+function fitEvToWrap() {
+  const img = evEl.diagramImg;
+  if (!img.naturalWidth) return;
+  const wrap = evEl.canvasWrap;
+  evScale = Math.min(1, (wrap.clientWidth || img.naturalWidth) / img.naturalWidth);
+  const w = img.naturalWidth * evScale;
+  const h = img.naturalHeight * evScale;
+  img.style.width = `${w}px`;
+  img.style.height = `${h}px`;
+  evEl.canvasStage.style.width = `${w}px`;
+  evEl.canvasStage.style.height = `${h}px`;
+  wrap.scrollLeft = 0;
+  wrap.scrollTop = 0;
+  evEl.zoomLevel.textContent = `${Math.round(evScale * 100)}%`;
+}
+
+evEl.zoomInBtn.addEventListener('click', () => setEvScale(evScale * 1.4));
+evEl.zoomOutBtn.addEventListener('click', () => setEvScale(evScale / 1.4));
+evEl.zoomResetBtn.addEventListener('click', fitEvToWrap);
+
+evEl.canvasWrap.addEventListener('wheel', (ev) => {
+  if (!evEl.diagramImg.naturalWidth) return;
+  ev.preventDefault();
+  const rect = evEl.canvasWrap.getBoundingClientRect();
+  setEvScale(evScale * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+}, { passive: false });
+
+let evPanState = null;
+evEl.canvasWrap.addEventListener('pointerdown', (ev) => {
+  if (ev.target.closest('.ev-pin')) return;
+  evPanState = {
+    startX: ev.clientX, startY: ev.clientY,
+    scrollLeft: evEl.canvasWrap.scrollLeft, scrollTop: evEl.canvasWrap.scrollTop,
+    moved: false, pointerId: ev.pointerId,
+  };
+  evEl.canvasWrap.setPointerCapture(ev.pointerId);
+});
+evEl.canvasWrap.addEventListener('pointermove', (ev) => {
+  if (!evPanState || ev.pointerId !== evPanState.pointerId) return;
+  const dx = ev.clientX - evPanState.startX;
+  const dy = ev.clientY - evPanState.startY;
+  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) evPanState.moved = true;
+  if (evPanState.moved) {
+    evEl.canvasWrap.classList.add('is-panning');
+    evEl.canvasWrap.scrollLeft = evPanState.scrollLeft - dx;
+    evEl.canvasWrap.scrollTop = evPanState.scrollTop - dy;
+  }
+});
+let evLastPanMoved = false;
+function endEvPan() {
+  evEl.canvasWrap.classList.remove('is-panning');
+  evLastPanMoved = !!(evPanState && evPanState.moved);
+  evPanState = null;
+}
+evEl.canvasWrap.addEventListener('pointerup', endEvPan);
+evEl.canvasWrap.addEventListener('pointercancel', endEvPan);
+
+async function saveDiagramUrl(url, mode) {
+  if (mode === 'add') {
+    const newView = { id: `view${Date.now()}`, url, label: '' };
+    evViews.push(newView);
+    await persistEvViews();
+    evEl.uploaderWrap.style.display = 'none';
+    evEl.canvasSection.style.display = 'block';
+    renderEvTabs();
+    selectEvView(newView.id);
+  } else {
+    // First diagram ever, or a replace of the active one.
+    if (!evViews.length) {
+      const newView = { id: 'default', url, label: '' };
+      evViews.push(newView);
+      await persistEvViews();
+      evEl.uploaderWrap.style.display = 'none';
+      evEl.canvasSection.style.display = 'block';
+      renderEvTabs();
+      selectEvView(newView.id);
+    } else {
+      const view = evViews.find((v) => v.id === evActiveViewId) || evViews[0];
+      view.url = url;
+      await persistEvViews();
+      evEl.diagramImg.onload = fitEvToWrap;
+      evEl.diagramImg.src = url;
+    }
+  }
+}
+
+function wireDiagramUpload(fileInput, mode) {
   const progressEl = document.getElementById('evUploadProgress');
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
@@ -1793,7 +2061,7 @@ function wireDiagramUpload(fileInput) {
       const dataUrl = await compressImageToDataUrl(file, { maxDim: 1800, maxBytes: 550 * 1024 });
       progressEl.textContent = 'Uploaded ✓';
       setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
-      await saveDiagramUrl(dataUrl);
+      await saveDiagramUrl(dataUrl, mode);
     } catch (err) {
       console.error('Diagram upload failed', err);
       progressEl.textContent = `Upload failed: ${err.message}`;
@@ -1802,8 +2070,12 @@ function wireDiagramUpload(fileInput) {
     }
   });
 }
-wireDiagramUpload(document.getElementById('evDiagramFile'));
-wireDiagramUpload(document.getElementById('evReplaceFile'));
+wireDiagramUpload(document.getElementById('evDiagramFile'), 'first');
+wireDiagramUpload(document.getElementById('evReplaceFile'), 'replace');
+
+window.addEventListener('resize', () => {
+  if (evEl.overlay.classList.contains('is-open')) fitEvToWrap();
+});
 
 function wireEvPartImageUpload(fileInput, targetInput) {
   const progressEl = document.getElementById('evPartImageUploadProgress');
@@ -1828,9 +2100,13 @@ wireEvPartImageUpload(document.getElementById('evPartImageFile'), evEl.partImage
 
 // Click anywhere on the diagram (not on an existing pin) to place a new part.
 evEl.canvasWrap.addEventListener('click', (ev) => {
-  const rect = evEl.canvasWrap.getBoundingClientRect();
+  if (ev.target.closest('.ev-pin')) return;
+  if (evLastPanMoved) { evLastPanMoved = false; return; } // was a drag-to-pan, not a tap
+  const rect = evEl.canvasStage.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
   const x = ((ev.clientX - rect.left) / rect.width) * 100;
   const y = ((ev.clientY - rect.top) / rect.height) * 100;
+  if (x < 0 || x > 100 || y < 0 || y > 100) return;
   openPartForm(null, { x, y });
 });
 
@@ -1871,6 +2147,7 @@ evEl.partSaveBtn.addEventListener('click', async () => {
 
   const data = {
     equipmentId: evEquipment.id,
+    viewId: evActiveViewId,
     name,
     modelNumber: evEl.partModel.value.trim(),
     serialNumber: evEl.partSerial.value.trim(),
@@ -1921,7 +2198,10 @@ async function loadExplodedViewParts() {
   evEl.partsListContainer.innerHTML = '<p class="loading-text">Loading parts…</p>';
   try {
     const snap = await db.collection('equipmentParts').where('equipmentId', '==', evEquipment.id).get();
-    evParts = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const allParts = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    // Parts saved before multi-diagram support have no viewId — treat them
+    // as belonging to the first/default diagram.
+    evParts = allParts.filter((p) => (p.viewId || 'default') === evActiveViewId || (!p.viewId && evActiveViewId === evViews[0].id));
     renderEvPins();
     renderEvPartsList();
   } catch (err) {
@@ -1931,7 +2211,7 @@ async function loadExplodedViewParts() {
 }
 
 function renderEvPins() {
-  evEl.canvasWrap.querySelectorAll('.ev-pin').forEach((p) => p.remove());
+  evEl.canvasStage.querySelectorAll('.ev-pin').forEach((p) => p.remove());
   evParts.forEach((part, i) => {
     const pin = document.createElement('div');
     pin.className = 'ev-pin';
@@ -1943,7 +2223,7 @@ function renderEvPins() {
       ev.stopPropagation();
       openPartForm(part, null);
     });
-    evEl.canvasWrap.appendChild(pin);
+    evEl.canvasStage.appendChild(pin);
   });
 }
 
