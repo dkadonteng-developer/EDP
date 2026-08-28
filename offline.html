@@ -4,33 +4,66 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>InfoPort — Offline</title>
+<script>
+(function(){
+  try{
+    var saved = localStorage.getItem('infoport-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){}
+})();
+</script>
 <style>
+  :root{
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --brand:#006937;
+    --brand-hover:#00552c;
+    --text:#333333;
+    --muted:#666666;
+  }
+  [data-theme="dark"]{
+    --bg:#11151a;
+    --card:#1a2027;
+    --brand:#17c46b;
+    --brand-hover:#0fa057;
+    --text:#e7ebee;
+    --muted:#98a3af;
+  }
   *{margin:0;box-sizing:border-box;}
   body{
     font-family:'Poppins',Arial,sans-serif;
-    background:#f5f7fa;color:#333;
+    background:var(--bg);color:var(--text);
     min-height:100vh;display:flex;align-items:center;justify-content:center;
     padding:24px;text-align:center;
+    transition:background-color .2s ease,color .2s ease;
+  }
+  .theme-toggle-btn{
+    position:fixed;top:16px;right:16px;width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--card);border:1px solid var(--muted);border-radius:50%;color:var(--text);
+    cursor:pointer;font-size:1rem;
   }
   .card{
-    background:#fff;border-radius:18px;padding:40px 32px;max-width:420px;
+    background:var(--card);border-radius:18px;padding:40px 32px;max-width:420px;
     box-shadow:0 10px 30px rgba(0,0,0,.08);
   }
   .icon{
-    width:64px;height:64px;border-radius:50%;background:#006937;color:#fff;
+    width:64px;height:64px;border-radius:50%;background:var(--brand);color:#fff;
     display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;
   }
-  h1{color:#006937;font-size:20px;margin-bottom:10px;}
-  p{color:#666;font-size:14px;line-height:1.6;margin-bottom:24px;}
+  h1{color:var(--brand);font-size:20px;margin-bottom:10px;}
+  p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:24px;}
   button{
-    background:#006937;color:#fff;border:none;padding:13px 28px;border-radius:30px;
+    background:var(--brand);color:#fff;border:none;padding:13px 28px;border-radius:30px;
     font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
   }
-  button:hover{background:#00552c;}
-  a{color:#006937;font-weight:600;text-decoration:none;}
+  button:hover{background:var(--brand-hover);}
+  a{color:var(--brand);font-weight:600;text-decoration:none;}
 </style>
 </head>
 <body>
+  <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Toggle dark mode">&#9789;</button>
   <div class="card">
     <div class="icon">&#9888;</div>
     <h1>You're offline</h1>
@@ -38,5 +71,22 @@
     <button onclick="location.reload()">Try Again</button>
     <p style="margin-top:16px;margin-bottom:0;"><a href="/index.html">Back to Home</a></p>
   </div>
+  <script>
+  (function(){
+    var THEME_KEY = 'infoport-theme';
+    var toggleBtn = document.getElementById('themeToggleBtn');
+    function applyIcon(theme) {
+      toggleBtn.innerHTML = theme === 'dark' ? '&#9728;' : '&#9789;';
+    }
+    applyIcon(document.documentElement.getAttribute('data-theme') || 'light');
+    toggleBtn.addEventListener('click', function() {
+      var current = document.documentElement.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem(THEME_KEY, next); } catch(e) {}
+      applyIcon(next);
+    });
+  })();
+  </script>
 </body>
 </html>
