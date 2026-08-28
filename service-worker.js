@@ -2,7 +2,7 @@
 //
 // Bump CACHE_VERSION whenever the HTML/CSS/JS in this site changes.
 // Old caches from previous versions are deleted automatically on activate.
-const CACHE_VERSION = 'infoport-v3';
+const CACHE_VERSION = 'infoport-v4';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -65,6 +65,28 @@ const LIVE_API_HOSTS = [
   'securetoken.googleapis.com',
   'firebaseinstallations.googleapis.com'
 ];
+
+// Explicit "download everything for offline" support (see index.html).
+// The page hands us URLs one at a time over a MessageChannel; we fetch
+// each one fresh from the network (bypassing any HTTP cache) and store it
+// straight into RUNTIME_CACHE, then confirm success/failure back on the
+// port. This is deliberately separate from the fetch handler below, which
+// is cache-first and would otherwise just hand back a stale cached copy
+// instead of actually refreshing it.
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'CACHE_URL' || !data.url) return;
+  const port = event.ports && event.ports[0];
+  event.waitUntil(
+    fetch(data.url, { cache: 'reload' })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return caches.open(RUNTIME_CACHE).then((cache) => cache.put(data.url, response.clone()));
+      })
+      .then(() => { if (port) port.postMessage({ ok: true }); })
+      .catch((err) => { if (port) port.postMessage({ ok: false, error: err.message }); })
+  );
+});
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
