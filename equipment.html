@@ -2135,12 +2135,15 @@ function renderEquipment(e) {
   el.name.textContent = e.name || '—';
   el.description.textContent = e.description || 'No description available.';
   el.equipmentId.textContent = e.id || '—';
-  if (e.group) {
-    el.group.innerHTML = `<a href="group.html?group=${encodeURIComponent(e.group)}">${escapeHtml(e.group)}</a>`;
+  const equipGroups = Array.isArray(e.groups) && e.groups.length ? e.groups : (e.group ? [e.group] : []);
+  if (equipGroups.length) {
+    el.group.innerHTML = equipGroups
+      .map((g) => `<a href="group.html?group=${encodeURIComponent(g)}">${escapeHtml(g)}</a>`)
+      .join(', ');
   } else {
     el.group.textContent = '—';
   }
-  updateHeaderBackLink(e.group);
+  updateHeaderBackLink(equipGroups[0] || null);
   el.department.textContent = e.department || '—';
   el.manufacturer.textContent = e.manufacturer || '—';
   el.model.textContent = e.model || '—';
