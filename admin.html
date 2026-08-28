@@ -17,7 +17,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 
 <style>
   :root{
@@ -761,7 +760,81 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-const storage = firebase.storage();
+
+// ================= GitHub-backed file storage =================
+//
+// Cloud Storage for Firebase requires the paid Blaze plan to work at all
+// (even within the free-tier usage limits), so it's not usable here.
+// Instead, uploads go straight into this GitHub repo via the Contents API
+// — the same place assets/equipment/* and docs/* already live — using a
+// personal access token the admin pastes in once. The token never leaves
+// the browser; it's kept in localStorage, not written to any file.
+const GITHUB_OWNER = 'dkadonteng-developer';
+const GITHUB_REPO = 'EDP';
+const GITHUB_BRANCH = 'main';
+const GITHUB_TOKEN_KEY = 'infoport_github_pat';
+
+function getGithubToken() {
+  let token = localStorage.getItem(GITHUB_TOKEN_KEY);
+  if (token) return token;
+  token = prompt(
+    'To upload images, paste a GitHub personal access token with write access ' +
+    `to ${GITHUB_OWNER}/${GITHUB_REPO} (Settings → Developer settings → ` +
+    'Fine-grained tokens → this repo only → Contents: Read and write).\n\n' +
+    'It is saved only in this browser and used to commit uploaded files ' +
+    'directly into the repo instead of paid cloud storage.'
+  );
+  if (token) {
+    token = token.trim();
+    localStorage.setItem(GITHUB_TOKEN_KEY, token);
+  }
+  return token || null;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => reject(new Error('Could not read the selected file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Commits `file` into the repo under `folder/` and returns the relative
+// path (e.g. "assets/exploded-views/rt-01/169900-diagram.png"). Because
+// this site is served straight from the repo, that same relative path is
+// immediately usable as the image's src/url — no separate hosting step.
+async function uploadFileToGithub(file, folder) {
+  const token = getGithubToken();
+  if (!token) throw new Error('A GitHub token is required to upload files.');
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${folder}/${Date.now()}-${safeName}`;
+  const content = await fileToBase64(file);
+
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+      },
+      body: JSON.stringify({
+        message: `Upload ${path}`,
+        content,
+        branch: GITHUB_BRANCH,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) localStorage.removeItem(GITHUB_TOKEN_KEY); // bad/expired — ask again next time
+    throw new Error(body.message || `GitHub upload failed (HTTP ${res.status})`);
+  }
+  return path;
+}
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -1167,24 +1240,15 @@ document.getElementById('gfImageFile').addEventListener('change', async () => {
     return;
   }
   progressEl.style.display = 'block';
-  progressEl.textContent = 'Uploading… 0%';
+  progressEl.textContent = 'Uploading…';
   try {
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `group-images/${slugifyGroupName(name)}/${Date.now()}-${safeName}`;
-    const task = storage.ref().child(path).put(file);
-    await new Promise((resolve, reject) => {
-      task.on('state_changed',
-        (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
-        reject,
-        resolve
-      );
-    });
-    gfEl.image.value = await task.snapshot.ref.getDownloadURL();
-    progressEl.textContent = 'Uploaded ✓';
-    setTimeout(() => { progressEl.style.display = 'none'; }, 1800);
+    const path = await uploadFileToGithub(file, `assets/groups/${slugifyGroupName(name)}`);
+    gfEl.image.value = path;
+    progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+    setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
   } catch (err) {
     console.error('Group image upload failed', err);
-    progressEl.textContent = 'Upload failed — please check your connection and try again.';
+    progressEl.textContent = `Upload failed: ${err.message}`;
   } finally {
     fileInput.value = '';
   }
@@ -1278,10 +1342,11 @@ const efEl = {
 
 let editingEquipmentId = null;
 
-// ---------- File uploads (Firebase Storage) ----------
-// Uploads go to equipment-images/{id}/... or equipment-documents/{id}/...
-// and the resulting download URL is written into the same text field the
-// admin could otherwise type a GitHub-repo path into — either works.
+// ---------- File uploads (GitHub-backed, see uploadFileToGithub above) ----------
+// Uploads go to assets/equipment/{id}/... or docs/{id}/... — the same
+// folders the repo already uses for manually-added images and manuals —
+// and the resulting relative path is written into the same text field the
+// admin could otherwise type a path into directly; either works.
 
 function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
   fileInput.addEventListener('change', async () => {
@@ -1294,28 +1359,16 @@ function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
       return;
     }
     progressEl.style.display = 'block';
-    progressEl.textContent = 'Uploading… 0%';
+    progressEl.textContent = 'Uploading…';
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `equipment-${kind}/${id}/${Date.now()}-${safeName}`;
-      const task = storage.ref().child(path).put(file);
-      await new Promise((resolve, reject) => {
-        task.on('state_changed',
-          (snap) => {
-            const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-            progressEl.textContent = `Uploading… ${pct}%`;
-          },
-          reject,
-          resolve
-        );
-      });
-      const url = await task.snapshot.ref.getDownloadURL();
-      targetTextInput.value = url;
-      progressEl.textContent = 'Uploaded ✓';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 1800);
+      const folder = kind === 'documents' ? `docs/${id}` : `assets/equipment/${id}`;
+      const path = await uploadFileToGithub(file, folder);
+      targetTextInput.value = path;
+      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
     } catch (err) {
       console.error('Upload failed', err);
-      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+      progressEl.textContent = `Upload failed: ${err.message}`;
     } finally {
       fileInput.value = '';
     }
@@ -1670,25 +1723,15 @@ function wireDiagramUpload(fileInput) {
     const file = fileInput.files[0];
     if (!file || !evEquipment) return;
     progressEl.style.display = 'block';
-    progressEl.textContent = 'Uploading… 0%';
+    progressEl.textContent = 'Uploading…';
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `equipment-exploded-view/${evEquipment.id}/${Date.now()}-${safeName}`;
-      const task = storage.ref().child(path).put(file);
-      await new Promise((resolve, reject) => {
-        task.on('state_changed',
-          (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
-          reject,
-          resolve
-        );
-      });
-      const url = await task.snapshot.ref.getDownloadURL();
-      progressEl.textContent = 'Uploaded ✓';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
-      await saveDiagramUrl(url);
+      const path = await uploadFileToGithub(file, `assets/exploded-views/${evEquipment.id}`);
+      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
+      await saveDiagramUrl(path);
     } catch (err) {
       console.error('Diagram upload failed', err);
-      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+      progressEl.textContent = `Upload failed: ${err.message}`;
     } finally {
       fileInput.value = '';
     }
@@ -1703,25 +1746,15 @@ function wireEvPartImageUpload(fileInput, targetInput) {
     const file = fileInput.files[0];
     if (!file || !evEquipment) return;
     progressEl.style.display = 'block';
-    progressEl.textContent = 'Uploading… 0%';
+    progressEl.textContent = 'Uploading…';
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `equipment-part-photos/${evEquipment.id}/${Date.now()}-${safeName}`;
-      const task = storage.ref().child(path).put(file);
-      await new Promise((resolve, reject) => {
-        task.on('state_changed',
-          (snap) => { progressEl.textContent = `Uploading… ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`; },
-          reject,
-          resolve
-        );
-      });
-      const url = await task.snapshot.ref.getDownloadURL();
-      targetInput.value = url;
-      progressEl.textContent = 'Uploaded ✓';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+      const path = await uploadFileToGithub(file, `assets/exploded-views/${evEquipment.id}/parts`);
+      targetInput.value = path;
+      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
     } catch (err) {
       console.error('Part photo upload failed', err);
-      progressEl.textContent = 'Upload failed — please check your connection and try again.';
+      progressEl.textContent = `Upload failed: ${err.message}`;
     } finally {
       fileInput.value = '';
     }
