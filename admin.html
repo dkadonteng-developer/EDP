@@ -836,6 +836,65 @@ async function uploadFileToGithub(file, folder) {
   return path;
 }
 
+// ================= Image uploads (Firestore, not GitHub) =================
+//
+// Images (equipment photos, exploded-view diagrams, part photos, group
+// pictures) are stored as compressed base64 data straight in Firestore
+// instead of the GitHub repo. Two reasons: (1) a public repo means those
+// pictures are publicly fetchable by anyone with the URL, and switching
+// the repo to private breaks Vercel's deploy access unless its GitHub App
+// is re-granted permission to that repo; and (2) even when that's sorted
+// out, a freshly-committed image only becomes visible once Vercel finishes
+// a new deploy — so it wouldn't show immediately after upload, which is
+// exactly what's needed to click-and-place parts on a diagram right after
+// uploading it. Firestore reads are private-by-default (governed by your
+// Firestore security rules, same as everything else in this app) and show
+// up instantly with no deploy involved. PDFs still go through GitHub
+// (uploadFileToGithub above) since manuals are often too large to fit
+// Firestore's 1 MB per-document limit.
+//
+// Images are downsized/re-compressed client-side first, backing off
+// quality until they comfortably fit that 1 MB limit alongside an
+// equipment or group document's other fields.
+function compressImageToDataUrl(file, { maxDim = 1400, quality = 0.75, maxBytes = 350 * 1024 } = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+        let q = quality;
+        let dataUrl = canvas.toDataURL('image/jpeg', q);
+        let tries = 0;
+        while (dataUrl.length * 0.75 > maxBytes && q > 0.35 && tries < 6) {
+          q -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', q);
+          tries++;
+        }
+        if (dataUrl.length * 0.75 > maxBytes) {
+          reject(new Error('This image is too large even after compression — try a smaller photo.'));
+          return;
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('Could not read this image file.'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Could not read the selected file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str == null ? '' : String(str);
@@ -1242,10 +1301,9 @@ document.getElementById('gfImageFile').addEventListener('change', async () => {
   progressEl.style.display = 'block';
   progressEl.textContent = 'Uploading…';
   try {
-    const path = await uploadFileToGithub(file, `assets/groups/${slugifyGroupName(name)}`);
-    gfEl.image.value = path;
-    progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
-    setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
+    gfEl.image.value = await compressImageToDataUrl(file);
+    progressEl.textContent = 'Uploaded ✓';
+    setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
   } catch (err) {
     console.error('Group image upload failed', err);
     progressEl.textContent = `Upload failed: ${err.message}`;
@@ -1342,11 +1400,11 @@ const efEl = {
 
 let editingEquipmentId = null;
 
-// ---------- File uploads (GitHub-backed, see uploadFileToGithub above) ----------
-// Uploads go to assets/equipment/{id}/... or docs/{id}/... — the same
-// folders the repo already uses for manually-added images and manuals —
-// and the resulting relative path is written into the same text field the
-// admin could otherwise type a path into directly; either works.
+// ---------- File uploads ----------
+// Images use compressImageToDataUrl + Firestore (see above). PDFs still go
+// to assets/equipment/{id}/... or docs/{id}/... in the GitHub repo via
+// uploadFileToGithub. Either way the resulting value is written into the
+// same text field the admin could otherwise type a path/URL into directly.
 
 function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
   fileInput.addEventListener('change', async () => {
@@ -1361,11 +1419,16 @@ function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
     progressEl.style.display = 'block';
     progressEl.textContent = 'Uploading…';
     try {
-      const folder = kind === 'documents' ? `docs/${id}` : `assets/equipment/${id}`;
-      const path = await uploadFileToGithub(file, folder);
-      targetTextInput.value = path;
-      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
+      if (kind === 'images') {
+        targetTextInput.value = await compressImageToDataUrl(file);
+        progressEl.textContent = 'Uploaded ✓';
+        setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+      } else {
+        const path = await uploadFileToGithub(file, `docs/${id}`);
+        targetTextInput.value = path;
+        progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+        setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
+      }
     } catch (err) {
       console.error('Upload failed', err);
       progressEl.textContent = `Upload failed: ${err.message}`;
@@ -1725,10 +1788,12 @@ function wireDiagramUpload(fileInput) {
     progressEl.style.display = 'block';
     progressEl.textContent = 'Uploading…';
     try {
-      const path = await uploadFileToGithub(file, `assets/exploded-views/${evEquipment.id}`);
-      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
-      await saveDiagramUrl(path);
+      // A bit larger/sharper than other images since this is a technical
+      // diagram people need to zoom into to identify parts.
+      const dataUrl = await compressImageToDataUrl(file, { maxDim: 1800, maxBytes: 550 * 1024 });
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+      await saveDiagramUrl(dataUrl);
     } catch (err) {
       console.error('Diagram upload failed', err);
       progressEl.textContent = `Upload failed: ${err.message}`;
@@ -1748,10 +1813,9 @@ function wireEvPartImageUpload(fileInput, targetInput) {
     progressEl.style.display = 'block';
     progressEl.textContent = 'Uploading…';
     try {
-      const path = await uploadFileToGithub(file, `assets/exploded-views/${evEquipment.id}/parts`);
-      targetInput.value = path;
-      progressEl.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
-      setTimeout(() => { progressEl.style.display = 'none'; }, 2500);
+      targetInput.value = await compressImageToDataUrl(file);
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
     } catch (err) {
       console.error('Part photo upload failed', err);
       progressEl.textContent = `Upload failed: ${err.message}`;
