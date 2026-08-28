@@ -136,6 +136,19 @@
   .empty-state{color:var(--muted);font-size:.88rem;padding:24px;text-align:center;background:#fff;border-radius:14px;}
   .panel-hint{color:var(--muted);font-size:.82rem;margin:-10px 0 16px;}
 
+  .equip-group-section{margin-bottom:22px;}
+  .equip-group-heading{
+    display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.03em;color:var(--brand);margin:0 0 10px;
+  }
+  .equip-group-heading i{font-size:.8rem;}
+  .equip-group-count{
+    background:#e7f8ee;color:#00733a;font-size:.7rem;font-weight:700;
+    padding:2px 9px;border-radius:12px;
+  }
+  .equip-group-heading.is-ungrouped{color:var(--muted);}
+  .equip-group-heading.is-ungrouped .equip-group-count{background:#f2f4f3;color:var(--muted);}
+
   /* ---------- Equipment form modal ---------- */
   #equipFormOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
@@ -848,12 +861,28 @@ function renderEquipmentList() {
     container.innerHTML = '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
     return;
   }
-  container.innerHTML = equipmentCache.map((e) => `
+
+  // Group equipment by their assigned Group (the plain-text `group` field —
+  // see the Groups section below). Anything with no group lands in its own
+  // "Ungrouped" bucket, shown last. Equipment stays name-sorted within each
+  // bucket since equipmentCache already comes ordered that way from Firestore.
+  const buckets = new Map();
+  equipmentCache.forEach((e) => {
+    const key = e.group || '';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(e);
+  });
+  const groupNames = Array.from(buckets.keys())
+    .filter((name) => name !== '')
+    .sort((a, b) => a.localeCompare(b));
+  if (buckets.has('')) groupNames.push('');
+
+  const rowHtml = (e) => `
     <div class="equip-row">
       <img src="${escapeHtml(e.image || '')}" alt="" onerror="this.style.display='none'">
       <div class="equip-row-main">
         <strong>${escapeHtml(e.name || e.id)}</strong>
-        <span>ID: ${escapeHtml(e.id)} • ${escapeHtml(e.department || '—')} • ${escapeHtml(e.manufacturer || '—')}${e.group ? ` • Group: ${escapeHtml(e.group)}` : ''}</span>
+        <span>ID: ${escapeHtml(e.id)} • ${escapeHtml(e.department || '—')} • ${escapeHtml(e.manufacturer || '—')}</span>
       </div>
       <span class="equip-row-badge">${escapeHtml(e.status || 'Unknown')}</span>
       <div class="equip-row-btns">
@@ -861,6 +890,16 @@ function renderEquipmentList() {
         <button type="button" class="row-icon-btn" title="Edit" data-edit="${e.id}"><i class="fa-solid fa-pen"></i></button>
         <button type="button" class="row-icon-btn danger" title="Delete" data-delete="${e.id}"><i class="fa-solid fa-trash"></i></button>
       </div>
+    </div>
+  `;
+
+  container.innerHTML = groupNames.map((name) => `
+    <div class="equip-group-section">
+      <h3 class="equip-group-heading${name ? '' : ' is-ungrouped'}">
+        <i class="fa-solid fa-layer-group"></i> ${name ? escapeHtml(name) : 'Ungrouped'}
+        <span class="equip-group-count">${buckets.get(name).length}</span>
+      </h3>
+      ${buckets.get(name).map(rowHtml).join('')}
     </div>
   `).join('');
 
