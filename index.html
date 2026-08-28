@@ -1989,7 +1989,11 @@ t5UpdateOfflineBanner();
       const tasks = [];
 
       equipmentList.forEach((e) => {
-        if (e.image) tasks.push(() => fetchAndCache(e.image));
+        // Skip data: URIs — those are embedded straight in the Firestore
+        // doc already (see admin.html's image-upload flow) and are
+        // covered by Firestore's own offline persistence below, not this
+        // file-caching queue.
+        if (e.image && !e.image.startsWith('data:')) tasks.push(() => fetchAndCache(e.image));
         (e.documents || []).forEach((d) => {
           if (d.file) tasks.push(() => fetchAndCache(encodeURI(d.file)));
         });
