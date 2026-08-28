@@ -280,6 +280,22 @@
   .ef-field textarea{resize:vertical;min-height:60px;}
   .ef-hint{font-size:.72rem;color:var(--muted);margin-top:-8px;margin-bottom:14px;}
 
+  .ef-groups-list{
+    display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:1px solid var(--border);border-radius:9px;
+    max-height:160px;overflow-y:auto;
+  }
+  .ef-groups-list label{
+    display:flex;align-items:center;gap:6px;font-size:.82rem;color:#333;
+    background:#f6f8f7;padding:6px 10px;border-radius:16px;cursor:pointer;
+  }
+  .ef-groups-list label:has(input:checked){background:#e7f8ee;color:#00733a;font-weight:600;}
+  .ef-groups-list input{margin:0;}
+  .ef-groups-empty{font-size:.8rem;color:var(--muted);}
+  .ef-add-group-link{
+    background:none;border:none;color:var(--brand);font-size:.78rem;font-weight:600;
+    cursor:pointer;padding:8px 0 0;text-decoration:underline;
+  }
+
   .ef-subsection{margin:20px 0 14px;padding-top:14px;border-top:1px solid var(--border);}
   .ef-subsection h4{font-size:.85rem;color:var(--brand);margin:0 0 10px;}
   .ef-repeat-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
@@ -522,14 +538,13 @@
         </div>
 
         <div class="ef-row">
-          <div class="ef-field">
-            <label for="efGroup">Group</label>
-            <select id="efGroup">
-              <option value="">— No group —</option>
-            </select>
+          <div class="ef-field" style="grid-column:1/-1;">
+            <label>Groups</label>
+            <div id="efGroupsList" class="ef-groups-list"></div>
+            <button type="button" class="ef-add-group-link" id="efAddGroupLink">+ Add new group…</button>
           </div>
         </div>
-        <div class="ef-hint">Equipment sharing the same Group (e.g. "Packer 1") appear together under one tile on the dashboard. Don't see the group you need? Add it from the <strong>Groups</strong> tab first.</div>
+        <div class="ef-hint">Equipment can belong to multiple groups — check every group it should appear under (e.g. "Packer 1"). Each group appears as its own tile on the dashboard.</div>
 
         <div class="ef-row">
           <div class="ef-field">
@@ -842,6 +857,17 @@ document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
 
 let equipmentCache = [];
 
+// Equipment used to store a single group as a plain string (`group`). It
+// now supports multiple groups via a `groups` array. This helper reads
+// either shape so old records that haven't been re-saved yet still show up
+// correctly everywhere groups are used.
+function getEquipGroups(e) {
+  if (!e) return [];
+  if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+  if (e.group) return [e.group];
+  return [];
+}
+
 async function loadEquipmentList() {
   const container = document.getElementById('equipListContainer');
   container.innerHTML = '<p class="loading-text">Loading equipment…</p>';
@@ -862,15 +888,19 @@ function renderEquipmentList() {
     return;
   }
 
-  // Group equipment by their assigned Group (the plain-text `group` field —
-  // see the Groups section below). Anything with no group lands in its own
-  // "Ungrouped" bucket, shown last. Equipment stays name-sorted within each
-  // bucket since equipmentCache already comes ordered that way from Firestore.
+  // Group equipment by every Group it's assigned to (equipment can belong
+  // to more than one — see the Groups field in the form below). Anything
+  // with no group lands in its own "Ungrouped" bucket, shown last.
+  // Equipment stays name-sorted within each bucket since equipmentCache
+  // already comes ordered that way from Firestore.
   const buckets = new Map();
   equipmentCache.forEach((e) => {
-    const key = e.group || '';
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(e);
+    const names = getEquipGroups(e);
+    const keys = names.length ? names : [''];
+    keys.forEach((key) => {
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(e);
+    });
   });
   const groupNames = Array.from(buckets.keys())
     .filter((name) => name !== '')
@@ -937,7 +967,7 @@ async function loadGroupsList() {
     const snap = await db.collection('groups').orderBy('name').get();
     groupsCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     renderGroupList();
-    populateGroupSelect();
+    populateGroupCheckboxes();
   } catch (err) {
     console.error('Failed to load groups', err);
     container.innerHTML = '<p class="empty-state">Could not load groups. Check your connection and try again.</p>';
@@ -950,7 +980,7 @@ function renderGroupList() {
     container.innerHTML = '<p class="empty-state">No groups yet. Add one (e.g. "Packer 1") so you can start tagging equipment into it.</p>';
     return;
   }
-  const equipCountFor = (name) => equipmentCache.filter((e) => e.group === name).length;
+  const equipCountFor = (name) => equipmentCache.filter((e) => getEquipGroups(e).includes(name)).length;
   container.innerHTML = groupsCache.map((g) => `
     <div class="equip-row group-row">
       <img src="${escapeHtml(g.image || '')}" alt="" onerror="this.style.display='none'">
@@ -973,36 +1003,54 @@ function renderGroupList() {
   });
 }
 
-// Fills the equipment form's Group dropdown from groupsCache, keeping
-// whatever was previously selected (or, when editing existing equipment
-// whose group predates this dropdown, adding it as a one-off extra option
-// so nothing silently gets unassigned).
-function populateGroupSelect(selected) {
-  const select = document.getElementById('efGroup');
-  const keep = selected !== undefined ? selected : select.value;
+// Fills the equipment form's Groups checkbox list from groupsCache, keeping
+// whatever was previously checked (or, when editing existing equipment
+// whose group predates this list, adding it as a one-off extra checkbox so
+// nothing silently gets unassigned).
+function populateGroupCheckboxes(selectedNames) {
+  const container = document.getElementById('efGroupsList');
+  const keep = selectedNames !== undefined
+    ? selectedNames
+    : Array.from(container.querySelectorAll('input:checked')).map((cb) => cb.value);
   const names = groupsCache.map((g) => g.name);
-  if (keep && !names.includes(keep)) names.push(keep);
-  select.innerHTML = '<option value="">— No group —</option>' +
-    names.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') +
-    '<option value="__add_new__">+ Add new group…</option>';
-  select.value = keep || '';
+  keep.forEach((n) => { if (n && !names.includes(n)) names.push(n); });
+
+  if (!names.length) {
+    container.innerHTML = '<span class="ef-groups-empty">No groups yet — add one below.</span>';
+    return;
+  }
+  container.innerHTML = names.map((n) => `
+    <label>
+      <input type="checkbox" value="${escapeHtml(n)}" ${keep.includes(n) ? 'checked' : ''}>
+      ${escapeHtml(n)}
+    </label>
+  `).join('');
 }
 
-document.getElementById('efGroup').addEventListener('change', (e) => {
-  if (e.target.value === '__add_new__') {
-    e.target.value = '';
-    openGroupForm(null);
-  }
-});
+document.getElementById('efAddGroupLink').addEventListener('click', () => openGroupForm(null));
 
 async function deleteGroup(id) {
   const g = groupsCache.find((x) => x.id === id);
   if (!g) return;
-  const count = equipmentCache.filter((e) => e.group === g.name).length;
-  const extra = count ? ` ${count} piece(s) of equipment tagged with it will become ungrouped (their own data isn't touched).` : '';
+  const affected = equipmentCache.filter((e) => getEquipGroups(e).includes(g.name));
+  const extra = affected.length
+    ? ` ${affected.length} piece(s) of equipment will be un-tagged from it (their other groups, if any, are untouched).`
+    : '';
   if (!confirm(`Delete group "${g.name}"?${extra}`)) return;
   try {
     await db.collection('groups').doc(id).delete();
+    if (affected.length) {
+      const batch = db.batch();
+      affected.forEach((e) => {
+        const remaining = getEquipGroups(e).filter((n) => n !== g.name);
+        batch.update(db.collection('equipment').doc(e.id), {
+          groups: remaining,
+          group: firebase.firestore.FieldValue.delete(),
+        });
+      });
+      await batch.commit();
+    }
+    await loadEquipmentList();
     loadGroupsList();
   } catch (err) {
     console.error('Failed to delete group', err);
@@ -1072,13 +1120,21 @@ gfEl.form.addEventListener('submit', async (e) => {
   try {
     await db.collection('groups').doc(id).set(data);
 
-    // Renaming a group: re-tag every piece of equipment that pointed at
-    // the old name so nothing falls out of the group silently.
+    // Renaming a group: re-tag every piece of equipment that had it in
+    // their Groups list so nothing falls out of the group silently. This
+    // also migrates any equipment still using the old single `group`
+    // string field over to the new `groups` array as it touches them.
     if (oldName && oldName !== name) {
-      const affected = equipmentCache.filter((e) => e.group === oldName);
+      const affected = equipmentCache.filter((e) => getEquipGroups(e).includes(oldName));
       if (affected.length) {
         const batch = db.batch();
-        affected.forEach((e) => batch.update(db.collection('equipment').doc(e.id), { group: name }));
+        affected.forEach((e) => {
+          const newGroups = getEquipGroups(e).map((g) => (g === oldName ? name : g));
+          batch.update(db.collection('equipment').doc(e.id), {
+            groups: newGroups,
+            group: firebase.firestore.FieldValue.delete(),
+          });
+        });
         await batch.commit();
       }
     }
@@ -1086,7 +1142,7 @@ gfEl.form.addEventListener('submit', async (e) => {
     closeGroupForm();
     await loadEquipmentList();
     await loadGroupsList();
-    populateGroupSelect();
+    populateGroupCheckboxes();
   } catch (err) {
     console.error('Failed to save group', err);
     gfEl.error.textContent = 'Could not save this group. Please try again.';
@@ -1207,7 +1263,7 @@ const efEl = {
   name: document.getElementById('efName'),
   status: document.getElementById('efStatus'),
   department: document.getElementById('efDepartment'),
-  group: document.getElementById('efGroup'),
+  groupsList: document.getElementById('efGroupsList'),
   manufacturer: document.getElementById('efManufacturer'),
   model: document.getElementById('efModel'),
   serial: document.getElementById('efSerial'),
@@ -1326,7 +1382,7 @@ function openEquipForm(existing) {
     efEl.name.value = existing.name || '';
     efEl.status.value = existing.status || 'Operational';
     efEl.department.value = existing.department || '';
-    populateGroupSelect(existing.group || '');
+    populateGroupCheckboxes(getEquipGroups(existing));
     efEl.manufacturer.value = existing.manufacturer || '';
     efEl.model.value = existing.model || '';
     efEl.serial.value = existing.serial || '';
@@ -1338,7 +1394,7 @@ function openEquipForm(existing) {
   } else {
     efEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Equipment';
     efEl.id.disabled = false;
-    populateGroupSelect('');
+    populateGroupCheckboxes([]);
   }
 
   if (!efEl.documentsRows.children.length) addDocumentRow();
@@ -1497,11 +1553,13 @@ efEl.form.addEventListener('submit', async (e) => {
   // value forward or it would be silently wiped on every edit.
   const existingRecord = editingEquipmentId ? equipmentCache.find((x) => x.id === editingEquipmentId) : null;
 
+  const groups = Array.from(efEl.groupsList.querySelectorAll('input:checked')).map((cb) => cb.value);
+
   const data = {
     name: efEl.name.value.trim(),
     status: efEl.status.value,
     department: efEl.department.value.trim(),
-    group: efEl.group.value === '__add_new__' ? '' : efEl.group.value.trim(),
+    groups,
     manufacturer: efEl.manufacturer.value.trim(),
     model: efEl.model.value.trim(),
     serial: efEl.serial.value.trim(),
