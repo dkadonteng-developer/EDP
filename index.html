@@ -1171,18 +1171,26 @@ function escapeHtmlCard(str) {
     return;
   }
 
-  // ---------- Group equipment by the admin-set "Group" field ----------
-  // Equipment with no group set falls back into its own "Ungrouped" tile so
-  // nothing goes missing from the dashboard. Each tile shows the group's own
-  // picture if the admin set one (Groups tab in admin.html), otherwise falls
-  // back to one of its equipment's photos — plus how many pieces of
-  // equipment sit inside it, and the department most of its equipment
-  // belongs to (used for the existing department filter chips).
+  // ---------- Group equipment by the admin-set "Groups" field ----------
+  // Equipment can belong to more than one group, so it can appear on more
+  // than one tile. Equipment with no group set falls back into its own
+  // "Ungrouped" tile so nothing goes missing from the dashboard. Each tile
+  // shows the group's own picture if the admin set one (Groups tab in
+  // admin.html), otherwise falls back to one of its equipment's photos —
+  // plus how many pieces of equipment sit inside it, and the department
+  // most of its equipment belongs to (used for the existing department
+  // filter chips).
+  const getGroupNames = (e) => {
+    if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+    if (e.group && e.group.trim()) return [e.group.trim()];
+    return ['Ungrouped'];
+  };
   const groupMap = new Map();
   equipmentData.forEach((e) => {
-    const groupName = (e.group && e.group.trim()) || 'Ungrouped';
-    if (!groupMap.has(groupName)) groupMap.set(groupName, []);
-    groupMap.get(groupName).push(e);
+    getGroupNames(e).forEach((groupName) => {
+      if (!groupMap.has(groupName)) groupMap.set(groupName, []);
+      groupMap.get(groupName).push(e);
+    });
   });
 
   const groups = Array.from(groupMap.entries()).map(([name, items]) => {
