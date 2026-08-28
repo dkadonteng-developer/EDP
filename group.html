@@ -956,7 +956,12 @@ function escapeHtmlCard(str) {
       db.collection('groups').where('name', '==', groupName).limit(1).get().catch(() => null),
     ]);
     const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    equipmentData = all.filter((e) => ((e.group && e.group.trim()) || 'Ungrouped') === groupName);
+    const getGroupNames = (e) => {
+      if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+      if (e.group && e.group.trim()) return [e.group.trim()];
+      return ['Ungrouped'];
+    };
+    equipmentData = all.filter((e) => getGroupNames(e).includes(groupName));
 
     const groupImage = groupQuery && !groupQuery.empty ? groupQuery.docs[0].data().image : '';
     if (groupImage) {
