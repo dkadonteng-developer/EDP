@@ -525,16 +525,30 @@
       <div class="panel-toolbar">
         <h2>Internal Resources</h2>
       </div>
-      <p class="panel-hint">Manuals, terminology/procedure references, training videos, and any other in-house material. These show up in a shared "Internal Resources" card on every equipment's Documents tab.</p>
+      <p class="panel-hint">Manuals, procedures, CAD/2D drawings, training videos, and any other in-house material — scoped to one piece of equipment, and optionally linked to a specific part in its exploded view diagram.</p>
 
       <div class="ef-subsection">
+        <div class="ef-field" style="margin-bottom:8px">
+          <label for="resEquipmentSelect">Equipment *</label>
+          <select id="resEquipmentSelect">
+            <option value="">Select equipment…</option>
+          </select>
+        </div>
         <div class="ef-doc-row-top" style="margin-bottom:8px">
           <input type="text" id="resNameInput" placeholder="Resource name (e.g. Lubrication Glossary)">
           <select id="resCategoryInput">
             <option value="Manual">Manual</option>
             <option value="Procedure">Procedure</option>
+            <option value="CAD">CAD Drawing</option>
+            <option value="2D Drawing">2D Drawing</option>
             <option value="Video">Video</option>
             <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="ef-field" style="margin-bottom:8px">
+          <label for="resPartSelect">Link to part (optional)</label>
+          <select id="resPartSelect">
+            <option value="">Whole equipment (not part-specific)</option>
           </select>
         </div>
         <input type="text" id="resFileInput" placeholder="File path/URL, or paste a video link" style="width:100%;margin-bottom:8px">
@@ -548,6 +562,7 @@
           <i class="fa-solid fa-plus"></i> Add Resource
         </button>
       </div>
+      <p class="ef-hint" id="resSelectEquipmentHint">Select an equipment above to view or add its resources.</p>
 
       <div id="resourceListContainer" style="margin-top:20px"><p class="loading-text">Loading resources…</p></div>
     </div>
@@ -758,6 +773,16 @@
             </button>
             <button type="button" class="row-icon-btn danger" id="evPartDeleteBtn" style="display:none;" title="Delete part"><i class="fa-solid fa-trash"></i></button>
             <button type="button" class="ev-replace-btn" id="evPartCancelBtn">Cancel</button>
+          </div>
+
+          <div id="evPartResourcesSection" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+            <h5 style="margin:0 0 8px"><i class="fa-solid fa-book-open"></i> Linked Resources</h5>
+            <div id="evPartResourcesList"><p class="loading-text">Loading…</p></div>
+            <div class="ef-doc-row-top" style="margin-top:8px">
+              <select id="evPartLinkResourceSelect"><option value="">Select a resource to link…</option></select>
+              <button type="button" class="toolbar-btn" id="evPartLinkResourceBtn"><i class="fa-solid fa-link"></i> Link</button>
+            </div>
+            <p class="ef-hint">Add or manage resources for this equipment from the Resources tab, then link them to this part here.</p>
           </div>
         </div>
 
@@ -997,9 +1022,8 @@ function renderAuthState(user) {
     dashboard.classList.add('show');
     signOutBtn.classList.add('show');
     signedInAs.textContent = user.email;
-    loadEquipmentList().then(loadGroupsList);
+    loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect);
     loadHistoryEquipmentOptions();
-    loadResources();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
@@ -1540,19 +1564,23 @@ function addSafetyRow(text = '') {
 document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
 document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
 
-// ================= Internal Resources (global, admin-managed) =================
-// Shown as a shared "Internal Resources" card on every equipment's Documents
-// tab — manuals, procedure/terminology references, training videos, or any
-// other in-house material not tied to one specific machine.
+// ================= Internal Resources (per-equipment, admin-managed) =================
+// Manuals, procedures, CAD/2D drawings, training videos, or any other
+// in-house material — scoped to one equipment, optionally linked to a
+// specific part in that equipment's exploded view diagram.
 
 const RESOURCE_CATEGORY_ICON = {
   Manual: 'fa-book',
   Procedure: 'fa-list-check',
+  CAD: 'fa-cube',
+  '2D Drawing': 'fa-drafting-compass',
   Video: 'fa-video',
   Other: 'fa-circle-info'
 };
 
 const resEl = {
+  equipment: document.getElementById('resEquipmentSelect'),
+  part: document.getElementById('resPartSelect'),
   name: document.getElementById('resNameInput'),
   category: document.getElementById('resCategoryInput'),
   file: document.getElementById('resFileInput'),
@@ -1561,7 +1589,40 @@ const resEl = {
   addBtn: document.getElementById('addResourceBtn'),
   error: document.getElementById('resFormError'),
   list: document.getElementById('resourceListContainer'),
+  selectHint: document.getElementById('resSelectEquipmentHint'),
 };
+
+let resPartsCache = []; // parts for the currently-selected equipment
+
+function populateResourceEquipmentSelect() {
+  const current = resEl.equipment.value;
+  resEl.equipment.innerHTML = '<option value="">Select equipment…</option>' +
+    equipmentCache.map((e) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name || e.id)}</option>`).join('');
+  resEl.equipment.value = current;
+}
+
+async function onResourceEquipmentChange() {
+  const equipId = resEl.equipment.value;
+  resEl.part.innerHTML = '<option value="">Whole equipment (not part-specific)</option>';
+  resPartsCache = [];
+  if (!equipId) {
+    resEl.list.innerHTML = '';
+    resEl.selectHint.style.display = 'block';
+    return;
+  }
+  resEl.selectHint.style.display = 'none';
+  try {
+    const snap = await db.collection('equipmentParts').where('equipmentId', '==', equipId).get();
+    resPartsCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    resEl.part.innerHTML = '<option value="">Whole equipment (not part-specific)</option>' +
+      resPartsCache.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || 'Unnamed part')}</option>`).join('');
+  } catch (err) {
+    console.error('Failed to load parts for resource linking', err);
+  }
+  loadResources();
+}
+
+resEl.equipment.addEventListener('change', onResourceEquipmentChange);
 
 resEl.fileUpload.addEventListener('change', async () => {
   const file = resEl.fileUpload.files[0];
@@ -1569,7 +1630,7 @@ resEl.fileUpload.addEventListener('change', async () => {
   resEl.progress.style.display = 'block';
   resEl.progress.textContent = 'Uploading…';
   try {
-    const path = await uploadFileToGithub(file, 'docs/internal-resources');
+    const path = await uploadFileToGithub(file, `docs/internal-resources/${resEl.equipment.value || 'shared'}`);
     resEl.file.value = path;
     resEl.progress.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
     setTimeout(() => { resEl.progress.style.display = 'none'; }, 2500);
@@ -1582,10 +1643,16 @@ resEl.fileUpload.addEventListener('change', async () => {
 });
 
 resEl.addBtn.addEventListener('click', async () => {
+  const equipmentId = resEl.equipment.value;
+  const partId = resEl.part.value || null;
   const name = resEl.name.value.trim();
   const category = resEl.category.value;
   const url = resEl.file.value.trim();
   resEl.error.textContent = '';
+  if (!equipmentId) {
+    resEl.error.textContent = 'Select which equipment this resource belongs to.';
+    return;
+  }
   if (!name || !url) {
     resEl.error.textContent = 'Name and a file/link are required.';
     return;
@@ -1593,6 +1660,8 @@ resEl.addBtn.addEventListener('click', async () => {
   resEl.addBtn.disabled = true;
   try {
     await db.collection('internalResources').add({
+      equipmentId,
+      partId,
       name,
       category,
       url,
@@ -1600,6 +1669,7 @@ resEl.addBtn.addEventListener('click', async () => {
     });
     resEl.name.value = '';
     resEl.file.value = '';
+    resEl.part.value = '';
     loadResources();
   } catch (err) {
     console.error('Failed to add resource', err);
@@ -1609,23 +1679,32 @@ resEl.addBtn.addEventListener('click', async () => {
   }
 });
 
+function partNameFor(partId) {
+  const p = resPartsCache.find((x) => x.id === partId);
+  return p ? (p.name || 'Unnamed part') : null;
+}
+
 function renderResourceList(rows) {
   if (rows.length === 0) {
-    resEl.list.innerHTML = '<p class="empty-state">No internal resources added yet.</p>';
+    resEl.list.innerHTML = '<p class="empty-state">No internal resources added yet for this equipment.</p>';
     return;
   }
-  resEl.list.innerHTML = rows.map((r) => `
+  resEl.list.innerHTML = rows.map((r) => {
+    const linkedPart = r.partId ? partNameFor(r.partId) : null;
+    return `
     <div class="ef-repeat-row" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
       <span><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i>
         <strong>${escapeHtml(r.name)}</strong> —
         <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.category)}</a>
+        ${linkedPart ? ` <span style="color:var(--muted)">· linked to ${escapeHtml(linkedPart)}</span>` : ''}
       </span>
       <button type="button" class="ef-repeat-remove" data-res-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
     </div>
-  `).join('');
+  `;
+  }).join('');
   resEl.list.querySelectorAll('[data-res-id]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this resource? This removes it from every equipment page.')) return;
+      if (!confirm('Delete this resource?')) return;
       try {
         await db.collection('internalResources').doc(btn.dataset.resId).delete();
         loadResources();
@@ -1638,9 +1717,22 @@ function renderResourceList(rows) {
 }
 
 function loadResources() {
+  const equipId = resEl.equipment.value;
+  if (!equipId) {
+    resEl.list.innerHTML = '';
+    return;
+  }
   resEl.list.innerHTML = '<p class="loading-text">Loading resources…</p>';
-  db.collection('internalResources').orderBy('addedAt', 'desc').get()
-    .then((snap) => renderResourceList(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))
+  db.collection('internalResources').where('equipmentId', '==', equipId).get()
+    .then((snap) => {
+      const rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      rows.sort((a, b) => {
+        const ta = a.addedAt && typeof a.addedAt.toMillis === 'function' ? a.addedAt.toMillis() : 0;
+        const tb = b.addedAt && typeof b.addedAt.toMillis === 'function' ? b.addedAt.toMillis() : 0;
+        return tb - ta;
+      });
+      renderResourceList(rows);
+    })
     .catch((err) => {
       console.error('Failed to load resources', err);
       resEl.list.innerHTML = '<p class="empty-state">Could not load resources.</p>';
@@ -1910,6 +2002,10 @@ const evEl = {
   partDeleteBtn: document.getElementById('evPartDeleteBtn'),
   partCancelBtn: document.getElementById('evPartCancelBtn'),
   partsListContainer: document.getElementById('evPartsListContainer'),
+  partResourcesSection: document.getElementById('evPartResourcesSection'),
+  partResourcesList: document.getElementById('evPartResourcesList'),
+  partLinkResourceSelect: document.getElementById('evPartLinkResourceSelect'),
+  partLinkResourceBtn: document.getElementById('evPartLinkResourceBtn'),
 };
 
 // Normalizes both the legacy single-`explodedView` field and the new
@@ -2155,12 +2251,71 @@ function openPartForm(existingPart, pendingPos) {
   evEl.partDeleteBtn.style.display = existingPart ? 'flex' : 'none';
   evEl.partForm.style.display = 'block';
   evEl.partForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (existingPart) {
+    evEl.partResourcesSection.style.display = 'block';
+    loadEvPartResources(existingPart.id);
+  } else {
+    evEl.partResourcesSection.style.display = 'none';
+  }
 }
 
 evEl.partCancelBtn.addEventListener('click', () => {
   evEl.partForm.style.display = 'none';
   evEditingPartId = null;
   evPendingPin = null;
+});
+
+// Resources linked to whichever part is currently being edited, drawn from
+// the same `internalResources` collection managed on the Resources tab.
+async function loadEvPartResources(partId) {
+  evEl.partResourcesList.innerHTML = '<p class="loading-text">Loading…</p>';
+  evEl.partLinkResourceSelect.innerHTML = '<option value="">Select a resource to link…</option>';
+  try {
+    const snap = await db.collection('internalResources').where('equipmentId', '==', evEquipment.id).get();
+    const all = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const linked = all.filter((r) => r.partId === partId);
+    const unlinked = all.filter((r) => !r.partId);
+
+    evEl.partResourcesList.innerHTML = linked.length
+      ? linked.map((r) => `
+        <div class="ef-repeat-row" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+          <span><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i> ${escapeHtml(r.name)}</span>
+          <button type="button" class="ef-repeat-remove" data-unlink-res="${r.id}" title="Unlink"><i class="fa-solid fa-link-slash"></i></button>
+        </div>
+      `).join('')
+      : '<p class="empty-state">No resources linked to this part yet.</p>';
+
+    evEl.partResourcesList.querySelectorAll('[data-unlink-res]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          await db.collection('internalResources').doc(btn.dataset.unlinkRes).update({ partId: null });
+          loadEvPartResources(partId);
+        } catch (err) {
+          console.error('Failed to unlink resource', err);
+          alert('Could not unlink this resource. Please try again.');
+        }
+      });
+    });
+
+    evEl.partLinkResourceSelect.innerHTML = '<option value="">Select a resource to link…</option>' +
+      unlinked.map((r) => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} (${escapeHtml(r.category)})</option>`).join('');
+  } catch (err) {
+    console.error('Failed to load part resources', err);
+    evEl.partResourcesList.innerHTML = '<p class="empty-state">Could not load linked resources.</p>';
+  }
+}
+
+evEl.partLinkResourceBtn.addEventListener('click', async () => {
+  const resId = evEl.partLinkResourceSelect.value;
+  if (!resId || !evEditingPartId) return;
+  try {
+    await db.collection('internalResources').doc(resId).update({ partId: evEditingPartId });
+    loadEvPartResources(evEditingPartId);
+  } catch (err) {
+    console.error('Failed to link resource', err);
+    alert('Could not link this resource. Please try again.');
+  }
 });
 
 evEl.partSaveBtn.addEventListener('click', async () => {
@@ -2213,6 +2368,8 @@ async function deleteExplodedViewPart(partId) {
   if (!confirm('Delete this part?')) return;
   try {
     await db.collection('equipmentParts').doc(partId).delete();
+    const linkedRes = await db.collection('internalResources').where('partId', '==', partId).get();
+    await Promise.all(linkedRes.docs.map((doc) => doc.ref.update({ partId: null })));
     evEl.partForm.style.display = 'none';
     evEditingPartId = null;
     evPendingPin = null;
