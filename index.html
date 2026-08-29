@@ -575,23 +575,15 @@ font-size:16px;
 .qa-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
 
 .offline-fab{
-  position:fixed;right:20px;bottom:20px;z-index:1400;
+  position:fixed;right:20px;bottom:84px;z-index:1400;
   width:52px;height:52px;border-radius:50%;border:none;
   background:#006937;color:#fff;font-size:18px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
 }
 .offline-fab:hover{background:#00552c;transform:scale(1.06);}
-.inventory-fab{
-  position:fixed;right:20px;bottom:84px;z-index:1400;
-  width:52px;height:52px;border-radius:50%;border:none;
-  background:#006937;color:#fff;font-size:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;text-decoration:none;
-  box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
-}
-.inventory-fab:hover{background:#00552c;transform:scale(1.06);text-decoration:none;}
 .offline-fab-panel{
-  display:none;position:fixed;right:20px;bottom:84px;z-index:1400;
+  display:none;position:fixed;right:20px;bottom:148px;z-index:1400;
   width:270px;max-width:calc(100vw - 28px);background:#fff;border-radius:12px;
   box-shadow:0 8px 28px rgba(0,0,0,.22);padding:14px;
 }
@@ -601,10 +593,27 @@ font-size:16px;
 .offline-fab-close{background:none;border:none;cursor:pointer;color:#888;font-size:14px;padding:2px;}
 .offline-fab-close:hover{color:#333;}
 @media(max-width:640px){
-  .offline-fab{right:14px;bottom:14px;}
-  .inventory-fab{right:14px;bottom:78px;}
-  .offline-fab-panel{right:14px;bottom:78px;}
+  .offline-fab{right:14px;bottom:78px;}
+  .offline-fab-panel{right:14px;bottom:142px;}
 }
+
+/* ---------- Bottom tab bar: Main / Shop / Handover & Reports ---------- */
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+.home-tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:1500;
+  display:flex;background:#fff;border-top:1px solid #e6e9ec;
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  max-width:600px;margin:0 auto;
+}
+.home-tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:9px 4px 8px;border:none;background:none;font-family:inherit;text-decoration:none;
+  font-size:.68rem;font-weight:600;color:#6b7280;cursor:pointer;
+}
+.home-tab-btn i{font-size:1.15rem}
+.home-tab-btn:hover{color:#1f2a24;text-decoration:none}
+.home-tab-btn.is-active{color:#006937}
 
 @media(max-width:700px){
   .quick-actions-bar{flex-direction:column;align-items:stretch;padding:12px 14px;}
@@ -920,11 +929,6 @@ font-size:16px;
   </div>
 </div>
 
-<!-- Spare Parts Inventory — floating button, stacked above the Offline Access download button -->
-<a href="inventory.html" id="inventoryFabBtn" class="inventory-fab" title="Spare Parts Inventory" aria-label="Spare Parts Inventory">
-  <i class="fa-solid fa-cart-shopping"></i>
-</a>
-
 <!-- Offline Access — floating side button + panel (moved out of the quick actions bar) -->
 <button type="button" id="offlineFabBtn" class="offline-fab" title="Offline Access" aria-label="Offline Access">
   <i class="fa-solid fa-cloud-arrow-down"></i>
@@ -1171,7 +1175,7 @@ function escapeHtmlCard(str) {
       db.collection('equipment').orderBy('name').get(),
       db.collection('groups').get(),
     ]);
-    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
     groupsSnap.docs.forEach((doc) => {
       const g = doc.data();
       if (g.name && g.image) groupPictures[g.name] = g.image;
@@ -2194,6 +2198,12 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<div class="home-tabs">
+  <a href="index.html" class="home-tab-btn is-active"><i class="fa-solid fa-house"></i> Main</a>
+  <a href="inventory.html" class="home-tab-btn"><i class="fa-solid fa-cart-shopping"></i> Shop</a>
+  <a href="handover.html" class="home-tab-btn"><i class="fa-solid fa-clipboard-list"></i> Handover &amp; Reports</a>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 <script src="search.js" defer></script>
