@@ -486,6 +486,9 @@
       <div class="panel-toolbar">
         <h2>Equipment List</h2>
         <div class="btns">
+          <button type="button" class="toolbar-btn outline" id="equipShowArchivedBtn">
+            <i class="fa-solid fa-box-archive"></i> Show Archived
+          </button>
           <button type="button" class="toolbar-btn outline" id="importLegacyBtn">
             <i class="fa-solid fa-file-import"></i> Import Legacy Data
           </button>
@@ -518,6 +521,7 @@
     <div class="admin-panel" id="historyPanel">
       <div class="panel-toolbar">
         <h2>Maintenance History</h2>
+        <button type="button" class="toolbar-btn outline" id="historyShowArchivedBtn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
       </div>
       <div class="history-filter">
         <label for="historyEquipFilter">Filter by equipment</label>
@@ -590,6 +594,9 @@
         <div class="ef-error" id="resFormError"></div>
         <button type="button" class="toolbar-btn" id="addResourceBtn" style="margin-top:10px">
           <i class="fa-solid fa-plus"></i> Add Resource
+        </button>
+        <button type="button" class="toolbar-btn outline" id="resCancelEditBtn" style="margin-top:10px;display:none">
+          Cancel Edit
         </button>
       </div>
       <p class="ef-hint" id="resSelectEquipmentHint">Select an equipment above to view or add its resources.</p>
@@ -1130,10 +1137,24 @@ async function loadEquipmentList() {
   }
 }
 
+let equipShowArchived = false;
+document.getElementById('equipShowArchivedBtn').addEventListener('click', () => {
+  equipShowArchived = !equipShowArchived;
+  const btn = document.getElementById('equipShowArchivedBtn');
+  btn.innerHTML = equipShowArchived
+    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
+    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
+  btn.classList.toggle('outline', !equipShowArchived);
+  renderEquipmentList();
+});
+
 function renderEquipmentList() {
   const container = document.getElementById('equipListContainer');
-  if (!equipmentCache.length) {
-    container.innerHTML = '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
+  const visible = equipmentCache.filter((e) => !!e.archived === equipShowArchived);
+  if (!visible.length) {
+    container.innerHTML = equipShowArchived
+      ? '<p class="empty-state">No archived equipment.</p>'
+      : '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
     return;
   }
 
@@ -1143,7 +1164,7 @@ function renderEquipmentList() {
   // Equipment stays name-sorted within each bucket since equipmentCache
   // already comes ordered that way from Firestore.
   const buckets = new Map();
-  equipmentCache.forEach((e) => {
+  visible.forEach((e) => {
     const names = getEquipGroups(e);
     const keys = names.length ? names : [''];
     keys.forEach((key) => {
@@ -1165,9 +1186,14 @@ function renderEquipmentList() {
       </div>
       <span class="equip-row-badge">${escapeHtml(e.status || 'Unknown')}</span>
       <div class="equip-row-btns">
-        <button type="button" class="row-icon-btn" title="Exploded View" data-exploded="${e.id}"><i class="fa-solid fa-diagram-project"></i></button>
-        <button type="button" class="row-icon-btn" title="Edit" data-edit="${e.id}"><i class="fa-solid fa-pen"></i></button>
-        <button type="button" class="row-icon-btn danger" title="Delete" data-delete="${e.id}"><i class="fa-solid fa-trash"></i></button>
+        ${equipShowArchived ? `
+          <button type="button" class="row-icon-btn" title="Restore" data-restore-equip="${e.id}"><i class="fa-solid fa-rotate-left"></i></button>
+          <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete="${e.id}"><i class="fa-solid fa-trash"></i></button>
+        ` : `
+          <button type="button" class="row-icon-btn" title="Exploded View" data-exploded="${e.id}"><i class="fa-solid fa-diagram-project"></i></button>
+          <button type="button" class="row-icon-btn" title="Edit" data-edit="${e.id}"><i class="fa-solid fa-pen"></i></button>
+          <button type="button" class="row-icon-btn danger" title="Archive" data-archive-equip="${e.id}"><i class="fa-solid fa-box-archive"></i></button>
+        `}
       </div>
     </div>
   `;
@@ -1188,6 +1214,12 @@ function renderEquipmentList() {
 
   container.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openEquipForm(equipmentCache.find((e) => e.id === btn.dataset.edit)));
+  });
+  container.querySelectorAll('[data-archive-equip]').forEach((btn) => {
+    btn.addEventListener('click', () => archiveEquipment(btn.dataset.archiveEquip));
+  });
+  container.querySelectorAll('[data-restore-equip]').forEach((btn) => {
+    btn.addEventListener('click', () => restoreEquipment(btn.dataset.restoreEquip));
   });
   container.querySelectorAll('[data-delete]').forEach((btn) => {
     btn.addEventListener('click', () => deleteEquipment(btn.dataset.delete));
@@ -1472,9 +1504,39 @@ async function cascadeDeleteEquipment(id) {
   return results;
 }
 
+async function archiveEquipment(id) {
+  const e = equipmentCache.find((x) => x.id === id);
+  if (!confirm(`Archive "${e ? e.name : id}"? It will disappear from the dashboard and search but can be restored later from "Show Archived". Nothing else is deleted.`)) return;
+  try {
+    await db.collection('equipment').doc(id).update({
+      archived: true,
+      archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      archivedBy: auth.currentUser ? auth.currentUser.email : '',
+    });
+    loadEquipmentList();
+  } catch (err) {
+    console.error('Failed to archive equipment', err);
+    alert('Could not archive this equipment. Please try again.');
+  }
+}
+
+async function restoreEquipment(id) {
+  try {
+    await db.collection('equipment').doc(id).update({
+      archived: false,
+      archivedAt: firebase.firestore.FieldValue.delete(),
+      archivedBy: firebase.firestore.FieldValue.delete(),
+    });
+    loadEquipmentList();
+  } catch (err) {
+    console.error('Failed to restore equipment', err);
+    alert('Could not restore this equipment. Please try again.');
+  }
+}
+
 async function deleteEquipment(id) {
   const e = equipmentCache.find((x) => x.id === id);
-  if (!confirm(`Delete "${e ? e.name : id}"? This also permanently deletes its maintenance logs, safety checklist, sign-off history, and email subscribers, and untags it from any spare parts. This cannot be undone.`)) return;
+  if (!confirmPermanentDelete(`"${e ? e.name : id}" and its maintenance logs, safety checklist, sign-off history, and email subscribers (it will also be untagged from any spare parts)`)) return;
   try {
     const results = await cascadeDeleteEquipment(id);
     loadEquipmentList();
@@ -1620,12 +1682,15 @@ const resEl = {
   fileUpload: document.getElementById('resFileUploadInput'),
   progress: document.getElementById('resUploadProgress'),
   addBtn: document.getElementById('addResourceBtn'),
+  cancelEditBtn: document.getElementById('resCancelEditBtn'),
   error: document.getElementById('resFormError'),
   list: document.getElementById('resourceListContainer'),
   selectHint: document.getElementById('resSelectEquipmentHint'),
 };
 
 let resPartsCache = []; // parts for the currently-selected equipment
+let currentResourceRows = []; // resources currently rendered, for edit lookup
+let editingResourceId = null;
 
 function populateResourceEquipmentSelect() {
   const current = resEl.equipment.value;
@@ -1692,25 +1757,59 @@ resEl.addBtn.addEventListener('click', async () => {
   }
   resEl.addBtn.disabled = true;
   try {
-    await db.collection('internalResources').add({
-      equipmentId,
-      partId,
-      name,
-      category,
-      url,
-      addedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    resEl.name.value = '';
-    resEl.file.value = '';
-    resEl.part.value = '';
+    if (editingResourceId) {
+      await db.collection('internalResources').doc(editingResourceId).update({
+        equipmentId, partId, name, category, url,
+      });
+      cancelResourceEdit();
+    } else {
+      await db.collection('internalResources').add({
+        equipmentId,
+        partId,
+        name,
+        category,
+        url,
+        addedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      resEl.name.value = '';
+      resEl.file.value = '';
+      resEl.part.value = '';
+    }
     loadResources();
   } catch (err) {
-    console.error('Failed to add resource', err);
+    console.error('Failed to save resource', err);
     resEl.error.textContent = 'Could not save this resource. Please try again.';
   } finally {
     resEl.addBtn.disabled = false;
   }
 });
+
+function startResourceEdit(r) {
+  editingResourceId = r.id;
+  resEl.equipment.value = r.equipmentId;
+  onResourceEquipmentChange().then(() => {
+    resEl.part.value = r.partId || '';
+  });
+  resEl.name.value = r.name || '';
+  resEl.category.value = r.category || 'Other';
+  resEl.file.value = r.url || '';
+  resEl.error.textContent = '';
+  resEl.addBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Resource';
+  resEl.cancelEditBtn.style.display = 'inline-flex';
+  resEl.name.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelResourceEdit() {
+  editingResourceId = null;
+  resEl.name.value = '';
+  resEl.file.value = '';
+  resEl.part.value = '';
+  resEl.error.textContent = '';
+  resEl.addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Resource';
+  resEl.cancelEditBtn.style.display = 'none';
+}
+
+resEl.cancelEditBtn.addEventListener('click', cancelResourceEdit);
 
 function partNameFor(partId) {
   const p = resPartsCache.find((x) => x.id === partId);
@@ -1718,6 +1817,7 @@ function partNameFor(partId) {
 }
 
 function renderResourceList(rows) {
+  currentResourceRows = rows;
   if (rows.length === 0) {
     resEl.list.innerHTML = '<p class="empty-state">No internal resources added yet for this equipment.</p>';
     return;
@@ -1731,10 +1831,19 @@ function renderResourceList(rows) {
         <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.category)}</a>
         ${linkedPart ? ` <span style="color:var(--muted)">· linked to ${escapeHtml(linkedPart)}</span>` : ''}
       </span>
-      <button type="button" class="ef-repeat-remove" data-res-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      <span style="display:flex;gap:6px;flex-shrink:0">
+        <button type="button" class="row-icon-btn" data-res-edit-id="${r.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="ef-repeat-remove" data-res-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      </span>
     </div>
   `;
   }).join('');
+  resEl.list.querySelectorAll('[data-res-edit-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const r = currentResourceRows.find((x) => x.id === btn.dataset.resEditId);
+      if (r) startResourceEdit(r);
+    });
+  });
   resEl.list.querySelectorAll('[data-res-id]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       if (!confirm('Delete this resource?')) return;
@@ -2525,6 +2634,25 @@ function equipmentNameFor(id) {
   return e ? (e.name || e.id) : id;
 }
 
+// Extra deliberate step beyond normal admin access before a permanent,
+// unrecoverable delete goes through — being signed in as admin alone
+// isn't enough once an item is already safely archived.
+function confirmPermanentDelete(label) {
+  const typed = prompt(`This will permanently delete ${label}. This cannot be undone.\n\nType DELETE to confirm.`);
+  return typed === 'DELETE';
+}
+
+let historyShowArchived = false;
+document.getElementById('historyShowArchivedBtn').addEventListener('click', () => {
+  historyShowArchived = !historyShowArchived;
+  const btn = document.getElementById('historyShowArchivedBtn');
+  btn.innerHTML = historyShowArchived
+    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
+    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
+  btn.classList.toggle('outline', !historyShowArchived);
+  loadHistoryData();
+});
+
 async function loadLogsHistory(equipId) {
   const container = document.getElementById('logsHistoryContainer');
   container.innerHTML = '<p class="loading-text">Loading…</p>';
@@ -2539,12 +2667,17 @@ async function loadLogsHistory(equipId) {
     }
     const docs = snap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((d) => !!d.archived === historyShowArchived)
       .sort((a, b) => {
         const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
         const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
         return tb - ta;
       })
       .slice(0, 100);
+    if (docs.length === 0) {
+      container.innerHTML = `<p class="empty-state">No ${historyShowArchived ? 'archived' : ''} log entries found.</p>`;
+      return;
+    }
     container.innerHTML = docs.map((d) => {
       const date = d.timestamp && d.timestamp.toDate ? d.timestamp.toDate().toLocaleString() : '';
       return `
@@ -2554,15 +2687,56 @@ async function loadLogsHistory(equipId) {
             <div class="meta">${escapeHtml(d.department || '')} • ${escapeHtml(date)}</div>
             <div class="note">${escapeHtml(d.comment || '')}</div>
           </div>
-          <button type="button" class="row-icon-btn danger" title="Delete" data-log-id="${d.id}"><i class="fa-solid fa-trash"></i></button>
+          ${historyShowArchived ? `
+            <button type="button" class="row-icon-btn" title="Restore" data-restore-log-id="${d.id}"><i class="fa-solid fa-rotate-left"></i></button>
+            <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-log-id="${d.id}"><i class="fa-solid fa-trash"></i></button>
+          ` : `
+            <button type="button" class="row-icon-btn" title="Archive" data-archive-log-id="${d.id}"><i class="fa-solid fa-box-archive"></i></button>
+          `}
         </div>
       `;
     }).join('');
-    container.querySelectorAll('[data-log-id]').forEach((btn) => {
+    container.querySelectorAll('[data-archive-log-id]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Delete this log entry? This cannot be undone.')) return;
-        await db.collection('equipmentLogs').doc(btn.dataset.logId).delete();
-        loadLogsHistory(equipId);
+        if (!confirm('Archive this entry? It will be hidden from the log but can be restored later.')) return;
+        try {
+          await db.collection('equipmentLogs').doc(btn.dataset.archiveLogId).update({
+            archived: true,
+            archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            archivedBy: auth.currentUser ? auth.currentUser.email : '',
+          });
+          loadLogsHistory(equipId);
+        } catch (err) {
+          console.error('Failed to archive log entry', err);
+          alert('Could not archive this entry. Please try again.');
+        }
+      });
+    });
+    container.querySelectorAll('[data-restore-log-id]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try {
+          await db.collection('equipmentLogs').doc(btn.dataset.restoreLogId).update({
+            archived: false,
+            archivedAt: firebase.firestore.FieldValue.delete(),
+            archivedBy: firebase.firestore.FieldValue.delete(),
+          });
+          loadLogsHistory(equipId);
+        } catch (err) {
+          console.error('Failed to restore log entry', err);
+          alert('Could not restore this entry. Please try again.');
+        }
+      });
+    });
+    container.querySelectorAll('[data-delete-log-id]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirmPermanentDelete('this log entry')) return;
+        try {
+          await db.collection('equipmentLogs').doc(btn.dataset.deleteLogId).delete();
+          loadLogsHistory(equipId);
+        } catch (err) {
+          console.error('Failed to delete log entry', err);
+          alert('Could not delete this entry. Please try again.');
+        }
       });
     });
   } catch (err) {
