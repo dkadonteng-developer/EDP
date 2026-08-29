@@ -35,6 +35,20 @@
   }
   setTimeout(hideOverlay, SAFETY_TIMEOUT_MS);
 
+  // Back/forward navigation often restores the page from the browser's
+  // bfcache instead of reloading it — 'load' never fires again in that
+  // case, so without this the overlay stays stuck exactly as it was at
+  // the moment the person navigated away (which, thanks to the click
+  // handler below, was "visible"). Reset and re-hide whenever that happens.
+  window.addEventListener('pageshow', (ev) => {
+    if (ev.persisted) {
+      hidden = false;
+      overlay.style.display = '';
+      overlay.classList.remove('is-hidden');
+      hideOverlay();
+    }
+  });
+
   // Re-show the overlay when navigating to another page on this site, so
   // the gap between pages (a plain browser navigation, not an SPA route
   // change) doesn't read as a blank/broken moment.
