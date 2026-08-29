@@ -1160,6 +1160,10 @@
         <b>Function</b>
         <p id="partPanelFunction"></p>
       </div>
+      <div class="part-panel-function" id="partPanelResourcesSection" style="display:none;">
+        <b>Resources</b>
+        <div id="partPanelResources" class="doc-list"></div>
+      </div>
     </div>
   </div>
 
@@ -1444,6 +1448,8 @@
           <option value="">All types</option>
           <option value="Manual">Manual</option>
           <option value="Procedure">Procedure</option>
+          <option value="CAD">CAD Drawing</option>
+          <option value="2D Drawing">2D Drawing</option>
           <option value="Video">Video</option>
           <option value="Other">Other</option>
         </select>
@@ -1633,6 +1639,8 @@ const el = {
   partPanelModel: document.getElementById('partPanelModel'),
   partPanelSerial: document.getElementById('partPanelSerial'),
   partPanelFunction: document.getElementById('partPanelFunction'),
+  partPanelResourcesSection: document.getElementById('partPanelResourcesSection'),
+  partPanelResources: document.getElementById('partPanelResources'),
   documents: document.getElementById('documents'),
   viewerEmpty: document.getElementById('viewerEmpty'),
   pdfLoading: document.getElementById('pdfLoading'),
@@ -2259,6 +2267,7 @@ function renderEquipment(e) {
   loadSafetyChecklist(e.id);
   loadExplodedView(e);
   showSafetyModal(e);
+  loadInternalResources(e.id);
 
   el.documents.innerHTML = '';
   const docs = Array.isArray(e.documents) ? e.documents : [];
@@ -2277,11 +2286,16 @@ function renderEquipment(e) {
   });
 }
 
-// ---------- Internal Resources (global, admin-managed) ----------
-// Shared across every equipment's Documents tab — not tied to one machine.
+// ---------- Internal Resources (per-equipment, admin-managed) ----------
+// Manuals, procedures, CAD/2D drawings, training videos, or any other
+// in-house material, scoped to this specific equipment. Loaded once
+// per page view so both the Documents-tab list and any part popup
+// (which shows resources linked to that part) can use the same data.
 const RESOURCE_CATEGORY_ICON = {
   Manual: 'fa-book',
   Procedure: 'fa-list-check',
+  CAD: 'fa-cube',
+  '2D Drawing': 'fa-drafting-compass',
   Video: 'fa-video',
   Other: 'fa-circle-info'
 };
@@ -2295,14 +2309,13 @@ const resourcesEl = {
 };
 
 let allInternalResources = [];
-let internalResourcesLoaded = false;
 
 function renderInternalResources() {
   const category = resourcesEl.filterCategory.value;
   const rows = category ? allInternalResources.filter(r => r.category === category) : allInternalResources;
 
   if (allInternalResources.length === 0) {
-    resourcesEl.list.innerHTML = '<p class="log-empty">No internal resources have been added yet.</p>';
+    resourcesEl.list.innerHTML = '<p class="log-empty">No internal resources have been added for this equipment yet.</p>';
     return;
   }
   if (rows.length === 0) {
@@ -2320,12 +2333,10 @@ function renderInternalResources() {
   });
 }
 
-function loadInternalResources() {
-  resourcesEl.list.innerHTML = '<p class="log-empty">Loading resources…</p>';
-  db.collection('internalResources').orderBy('addedAt', 'desc').get()
+function loadInternalResources(equipmentId) {
+  db.collection('internalResources').where('equipmentId', '==', equipmentId).get()
     .then((snap) => {
       allInternalResources = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      internalResourcesLoaded = true;
       renderInternalResources();
     })
     .catch((err) => {
@@ -2337,7 +2348,7 @@ function loadInternalResources() {
 resourcesEl.openBtn.addEventListener('click', () => {
   resourcesEl.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
-  if (!internalResourcesLoaded) loadInternalResources();
+  renderInternalResources();
 });
 resourcesEl.closeX.addEventListener('click', () => {
   resourcesEl.overlay.classList.remove('is-open');
@@ -2464,6 +2475,21 @@ function openPartPanel(part, pinEl) {
   el.partPanelModel.textContent = part.modelNumber || '—';
   el.partPanelSerial.textContent = part.serialNumber || '—';
   el.partPanelFunction.textContent = part.function || 'No function description available.';
+
+  const linkedResources = allInternalResources.filter((r) => r.partId === part.id);
+  if (linkedResources.length) {
+    el.partPanelResourcesSection.style.display = 'block';
+    el.partPanelResources.innerHTML = '';
+    linkedResources.forEach((r) => {
+      const div = document.createElement('div');
+      div.className = 'doc';
+      div.innerHTML = `<span class="doc-name" title="Open"><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i> ${escapeHtml(r.name)}</span>`;
+      div.addEventListener('click', () => window.open(r.url, '_blank', 'noopener'));
+      el.partPanelResources.appendChild(div);
+    });
+  } else {
+    el.partPanelResourcesSection.style.display = 'none';
+  }
 
   if (part.image) {
     el.partPanelPhoto.src = part.image;
