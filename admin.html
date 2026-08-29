@@ -19,6 +19,19 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 
 <style>
+  #pageLoadingOverlay{
+    position:fixed;inset:0;z-index:99999;background:#006937;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    transition:opacity .3s ease;
+  }
+  #pageLoadingOverlay.is-hidden{opacity:0;pointer-events:none}
+  #pageLoadingOverlay img{width:64px;height:64px;border-radius:50%;background:#dacb04;object-fit:cover}
+  #pageLoadingOverlay .plo-spinner{
+    width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+    animation:ploSpin .7s linear infinite;
+  }
+  @keyframes ploSpin{to{transform:rotate(360deg)}}
+  #pageLoadingOverlay .plo-label{color:#fff;font-family:'Poppins',Arial,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.3px}
   :root{
     --brand:#006937;
     --brand-light:#00a651;
@@ -52,9 +65,17 @@
   #headerSignOutBtn{
     background:rgba(255,255,255,.18);color:#fff;border:none;padding:9px 16px;border-radius:20px;
     font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:none;align-items:center;gap:8px;
+    max-width:220px;
   }
   #headerSignOutBtn:hover{background:rgba(255,255,255,.3);}
   #headerSignOutBtn.show{display:flex;}
+  #headerSignedInAs{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;}
+
+  @media(max-width:560px){
+    header{padding:12px 16px;gap:10px}
+    header h1{font-size:1.02rem}
+    #headerSignedInAs{display:none}
+  }
 
   .container{max-width:980px;margin:0 auto;padding:24px 18px 60px;}
 
@@ -399,6 +420,12 @@
 </head>
 <body>
 
+<div id="pageLoadingOverlay">
+  <img src="assets/logo.png" alt="">
+  <div class="plo-spinner"></div>
+  <span class="plo-label">Loading…</span>
+</div>
+
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <header>
@@ -451,9 +478,6 @@
       </button>
       <button type="button" class="admin-tab-btn" data-tab="resourcesPanel">
         <i class="fa-solid fa-book"></i> Resources
-      </button>
-      <button type="button" class="admin-tab-btn" data-tab="ordersPanel">
-        <i class="fa-solid fa-clipboard-list"></i> Orders
       </button>
     </div>
 
@@ -517,9 +541,9 @@
     <div class="admin-panel" id="partsPanel">
       <div class="link-out-card">
         <i class="fa-solid fa-warehouse"></i>
-        <h3>Spare Parts Inventory</h3>
-        <p>Spare parts have their own dedicated management screen — add, edit, and remove parts, and adjust stock levels there. It uses the same admin sign-in as this page.</p>
-        <a href="inventory.html"><i class="fa-solid fa-arrow-right"></i> Open Spare Parts Inventory</a>
+        <h3>Stores Admin</h3>
+        <p>Spare parts inventory (add, edit, remove parts, adjust stock, bulk Excel import/export) and technician pick-ticket orders have their own dedicated screen, on a separate page. It uses the same admin sign-in as this page.</p>
+        <a href="stores-admin.html"><i class="fa-solid fa-arrow-right"></i> Open Stores Admin</a>
       </div>
     </div>
 
@@ -571,21 +595,6 @@
       <p class="ef-hint" id="resSelectEquipmentHint">Select an equipment above to view or add its resources.</p>
 
       <div id="resourceListContainer" style="margin-top:20px"><p class="loading-text">Loading resources…</p></div>
-    </div>
-
-    <!-- ---- Spare Part Orders panel ---- -->
-    <div class="admin-panel" id="ordersPanel">
-      <div class="panel-toolbar">
-        <h2>Spare Part Orders</h2>
-        <select id="ordersFilterStatus" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit">
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="fulfilled">Fulfilled</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-      <p class="panel-hint">Requests technicians submit from the Spare Parts Inventory page — mark them fulfilled once picked up, or cancel a bad request.</p>
-      <div id="ordersListContainer"><p class="loading-text">Loading orders…</p></div>
     </div>
 
   </div>
@@ -1045,7 +1054,6 @@ function renderAuthState(user) {
     signedInAs.textContent = user.email;
     loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect);
     loadHistoryEquipmentOptions();
-    loadPartOrders();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
@@ -1764,108 +1772,6 @@ function loadResources() {
     });
 }
 
-// ================= Spare Part Orders (technician requests) =================
-// Requests submitted from inventory.html's "Order Spare Part" form. Read
-// here, filtered/sorted client-side (single `.get()`, no composite index
-// needed) so admins can track and close out pick-ticket requests.
-
-const ORDER_STATUS_META = {
-  pending:   { label: 'Pending',   color: '#b26a00', bg: '#fff4e0' },
-  fulfilled: { label: 'Fulfilled', color: '#0a7d3f', bg: '#e6f7ee' },
-  cancelled: { label: 'Cancelled', color: '#8a8f98', bg: '#f0f1f3' },
-};
-
-const ordersEl = {
-  filterStatus: document.getElementById('ordersFilterStatus'),
-  list: document.getElementById('ordersListContainer'),
-};
-
-let allPartOrders = [];
-
-function loadPartOrders() {
-  ordersEl.list.innerHTML = '<p class="loading-text">Loading orders…</p>';
-  db.collection('partOrders').get()
-    .then((snap) => {
-      allPartOrders = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      allPartOrders.sort((a, b) => {
-        const ta = a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : 0;
-        const tb = b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : 0;
-        return tb - ta;
-      });
-      renderPartOrders();
-    })
-    .catch((err) => {
-      console.error('Failed to load part orders', err);
-      ordersEl.list.innerHTML = '<p class="empty-state">Could not load orders.</p>';
-    });
-}
-
-function renderPartOrders() {
-  const statusFilter = ordersEl.filterStatus.value;
-  const rows = statusFilter ? allPartOrders.filter((o) => (o.status || 'pending') === statusFilter) : allPartOrders;
-
-  if (rows.length === 0) {
-    ordersEl.list.innerHTML = `<p class="empty-state">No${statusFilter ? ' ' + statusFilter : ''} orders yet.</p>`;
-    return;
-  }
-
-  ordersEl.list.innerHTML = rows.map((o) => {
-    const status = o.status || 'pending';
-    const meta = ORDER_STATUS_META[status] || ORDER_STATUS_META.pending;
-    const when = o.createdAt && typeof o.createdAt.toDate === 'function' ? o.createdAt.toDate().toLocaleString() : '—';
-    return `
-      <div class="ef-repeat-row" style="flex-direction:column;align-items:stretch;gap:8px;background:#fff;padding:14px 16px;border-radius:12px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-          <div>
-            <strong>${escapeHtml(o.partName || 'Unknown part')}</strong>
-            <span style="color:var(--muted)"> · ${escapeHtml(o.modelNumber || '—')} · qty ${o.quantityRequested || 1}</span>
-            ${o.groupItemCount > 1 ? `<span style="background:#eef4f1;color:var(--brand);padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600;margin-left:6px"><i class="fa-solid fa-layer-group"></i> 1 of ${o.groupItemCount} in this order</span>` : ''}<br>
-            <span style="font-size:.8rem;color:var(--muted)">${escapeHtml(o.fullName || '')} (${escapeHtml(o.staffId || '')})${o.department ? ' · ' + escapeHtml(o.department) : ''}${o.equipmentContext ? ' · ' + escapeHtml(o.equipmentContext) : ''}</span>
-          </div>
-          <span style="background:${meta.bg};color:${meta.color};padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap">${meta.label}</span>
-        </div>
-        ${o.reason ? `<p style="margin:0;font-size:.86rem"><b>Reason:</b> ${escapeHtml(o.reason)}</p>` : ''}
-        ${o.photoDataUrl ? `<img src="${o.photoDataUrl}" alt="Attached photo" style="max-width:140px;max-height:140px;border-radius:8px;border:1px solid var(--border);cursor:pointer;object-fit:cover" data-view-photo>` : ''}
-        <div style="font-size:.76rem;color:var(--muted)">${when}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${status !== 'fulfilled' ? `<button type="button" class="toolbar-btn" data-fulfill="${o.id}" style="padding:6px 14px;font-size:.78rem"><i class="fa-solid fa-check"></i> Mark Fulfilled</button>` : ''}
-          ${status !== 'cancelled' ? `<button type="button" class="toolbar-btn outline" data-cancel="${o.id}" style="padding:6px 14px;font-size:.78rem">Cancel</button>` : ''}
-          ${status !== 'pending' ? `<button type="button" class="toolbar-btn outline" data-reopen="${o.id}" style="padding:6px 14px;font-size:.78rem">Reopen</button>` : ''}
-          <button type="button" class="row-icon-btn danger" data-delete-order="${o.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  ordersEl.list.querySelectorAll('[data-fulfill]').forEach((btn) => btn.addEventListener('click', () => updateOrderStatus(btn.dataset.fulfill, 'fulfilled')));
-  ordersEl.list.querySelectorAll('[data-cancel]').forEach((btn) => btn.addEventListener('click', () => updateOrderStatus(btn.dataset.cancel, 'cancelled')));
-  ordersEl.list.querySelectorAll('[data-reopen]').forEach((btn) => btn.addEventListener('click', () => updateOrderStatus(btn.dataset.reopen, 'pending')));
-  ordersEl.list.querySelectorAll('[data-delete-order]').forEach((btn) => btn.addEventListener('click', () => deletePartOrder(btn.dataset.deleteOrder)));
-  ordersEl.list.querySelectorAll('[data-view-photo]').forEach((img) => img.addEventListener('click', () => window.open(img.src, '_blank')));
-}
-
-async function updateOrderStatus(orderId, status) {
-  try {
-    await db.collection('partOrders').doc(orderId).update({ status });
-    loadPartOrders();
-  } catch (err) {
-    console.error('Failed to update order status', err);
-    alert('Could not update this order. Please try again.');
-  }
-}
-
-async function deletePartOrder(orderId) {
-  if (!confirm('Delete this order record?')) return;
-  try {
-    await db.collection('partOrders').doc(orderId).delete();
-    loadPartOrders();
-  } catch (err) {
-    console.error('Failed to delete order', err);
-    alert('Could not delete this order. Please try again.');
-  }
-}
-
-ordersEl.filterStatus.addEventListener('change', renderPartOrders);
 
 wireFileUpload(
   document.getElementById('efImageFile'),
@@ -2730,6 +2636,8 @@ if ('serviceWorker' in navigator) {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 <script src="search.js" defer></script>
+<script src="pull-to-refresh.js" defer></script>
+<script src="loading-screen.js" defer></script>
 
 </body>
 </html>
