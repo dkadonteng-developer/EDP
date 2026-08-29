@@ -25,6 +25,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <style>
+  #pageLoadingOverlay{
+    position:fixed;inset:0;z-index:99999;background:#006937;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    transition:opacity .3s ease;
+  }
+  #pageLoadingOverlay.is-hidden{opacity:0;pointer-events:none}
+  #pageLoadingOverlay img{width:64px;height:64px;border-radius:50%;background:#dacb04;object-fit:cover}
+  #pageLoadingOverlay .plo-spinner{
+    width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+    animation:ploSpin .7s linear infinite;
+  }
+  @keyframes ploSpin{to{transform:rotate(360deg)}}
+  #pageLoadingOverlay .plo-label{color:#fff;font-family:'Poppins',Arial,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.3px}
 
 *{
 margin:0;
@@ -841,6 +854,12 @@ font-size:16px;
 </head>
 
 <body>
+
+<div id="pageLoadingOverlay">
+  <img src="assets/logo.png" alt="">
+  <div class="plo-spinner"></div>
+  <span class="plo-label">Loading…</span>
+</div>
 
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
@@ -2166,6 +2185,8 @@ if ('serviceWorker' in navigator) {
 
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 <script src="search.js" defer></script>
+<script src="pull-to-refresh.js" defer></script>
+<script src="loading-screen.js" defer></script>
 
 </body>
 
