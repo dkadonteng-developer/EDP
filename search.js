@@ -89,6 +89,7 @@
       const equipSnap = await sdb.collection('equipment').get();
       equipSnap.forEach((doc) => {
         const e = doc.data();
+        if (e.archived) return;
         const id = doc.id;
         const name = e.name || id;
         equipNameById[id] = name;
@@ -200,6 +201,11 @@
       font-weight:600;cursor:pointer;transition:background .15s ease;flex:0 0 auto;
     }
     #globalSearchBtn:hover{background:rgba(255,255,255,.26)}
+    @media(max-width:520px){
+      #globalSearchBtn{padding:9px 11px}
+      #globalSearchBtn .gs-btn-label{display:none}
+    }
+    nav > div:last-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     #globalSearchOverlay{
       position:fixed;inset:0;z-index:2000;background:rgba(15,20,25,.5);
       display:none;align-items:flex-start;justify-content:center;padding:0;
@@ -253,7 +259,13 @@
   btn.title = 'Search InfoPort';
   btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><span class="gs-btn-label">Search</span>';
 
-  const hostBar = document.querySelector('header') || document.querySelector('nav');
+  // Prefer a page's existing right-hand action group (keeps the search
+  // button visually grouped with whatever else lives there) — fall back to
+  // the outer header/nav bar itself when no such group exists.
+  const hostBar = document.querySelector('header .header-right')
+    || document.querySelector('nav > div:last-child')
+    || document.querySelector('header')
+    || document.querySelector('nav');
   if (hostBar) hostBar.appendChild(btn);
 
   const overlay = document.createElement('div');
