@@ -1211,9 +1211,27 @@
 
   <div class="eq-tab-panel" id="eqPanelLog">
   <div class="section">
-    <h2><i class="fa-solid fa-comments"></i> Comments & Maintenance Log</h2>
+    <h2><i class="fa-solid fa-comments"></i> Comments</h2>
     <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
-      Log lubrication details, PM/CM issues rectified, suggestions, observations, or any other maintenance history for this equipment.
+      General suggestions, observations, or other notes about this equipment.
+      Entries are visible to everyone, and can only be edited by the device that submitted them.
+    </p>
+
+    <button type="button" id="commentOpenFormBtn" class="log-open-form-btn">
+      <i class="fa-solid fa-plus"></i> Add Comment
+    </button>
+
+    <button type="button" id="commentHistoryToggle" class="log-history-toggle">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span>View Comments</span>
+      <span id="commentCountBadge" class="log-count-badge" style="display:none"></span>
+    </button>
+  </div>
+
+  <div class="section">
+    <h2><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance Log</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
+      Log lubrication details, PM/CM issues rectified, or any other maintenance history for this equipment.
       Entries are visible to everyone, and can only be edited by the device that submitted them.
     </p>
 
@@ -1226,7 +1244,10 @@
       <span id="logToggleLabel">View History</span>
       <span id="logCountBadge" class="log-count-badge" style="display:none"></span>
     </button>
+  </div>
 
+  <div class="section">
+    <h2><i class="fa-solid fa-bell"></i> Notifications</h2>
     <div class="log-subscribe">
       <div class="log-subscribe-head">
         <i class="fa-solid fa-bell"></i>
@@ -1312,12 +1333,12 @@
             <label for="logCategory">Entry Type *</label>
             <select id="logCategory" required>
               <option value="">Select a type…</option>
-              <option value="Lubrication">Lubrication</option>
-              <option value="PM">Preventive Maintenance (PM)</option>
-              <option value="CM">Corrective Maintenance (CM) — Issue Rectified</option>
-              <option value="Suggestion">Suggestion</option>
-              <option value="Observation">General Observation</option>
-              <option value="Other">Other</option>
+              <option value="Lubrication" data-group="maintenance">Lubrication</option>
+              <option value="PM" data-group="maintenance">Preventive Maintenance (PM)</option>
+              <option value="CM" data-group="maintenance">Corrective Maintenance (CM) — Issue Rectified</option>
+              <option value="Suggestion" data-group="comment">Suggestion</option>
+              <option value="Observation" data-group="comment">General Observation</option>
+              <option value="Other" data-group="comment">Other</option>
             </select>
           </div>
           <div class="log-field">
@@ -1358,19 +1379,19 @@
 <div id="logHistoryOverlay">
   <div class="log-history-modal">
     <div class="log-history-modal-head">
-      <h3><i class="fa-solid fa-clock-rotate-left"></i> Maintenance History</h3>
+      <h3 id="logHistoryModalTitle"><i class="fa-solid fa-clock-rotate-left"></i> Maintenance History</h3>
       <button type="button" class="log-history-modal-close" id="logHistoryCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="log-history-modal-body">
       <div class="log-controls">
         <select id="logFilterCategory">
           <option value="">All types</option>
-          <option value="Lubrication">Lubrication</option>
-          <option value="PM">Preventive Maintenance (PM)</option>
-          <option value="CM">Corrective Maintenance (CM)</option>
-          <option value="Suggestion">Suggestion</option>
-          <option value="Observation">General Observation</option>
-          <option value="Other">Other</option>
+          <option value="Lubrication" data-group="maintenance">Lubrication</option>
+          <option value="PM" data-group="maintenance">Preventive Maintenance (PM)</option>
+          <option value="CM" data-group="maintenance">Corrective Maintenance (CM)</option>
+          <option value="Suggestion" data-group="comment">Suggestion</option>
+          <option value="Observation" data-group="comment">General Observation</option>
+          <option value="Other" data-group="comment">Other</option>
         </select>
         <select id="logSortOrder">
           <option value="newest">Newest first</option>
@@ -2832,6 +2853,13 @@ const CATEGORY_META = {
   Other:       { label: 'Other', icon: 'fa-circle-info' }
 };
 
+// Which categories belong to the "Comments" card vs the "Maintenance Log" card.
+const LOG_GROUPS = {
+  comment: ['Suggestion', 'Observation', 'Other'],
+  maintenance: ['Lubrication', 'PM', 'CM']
+};
+let logGroupMode = 'maintenance'; // which card's form/history is currently open
+
 const logEl = {
   form: document.getElementById('logForm'),
   editId: document.getElementById('logEditId'),
@@ -2852,6 +2880,7 @@ const logEl = {
   toggleLabel: document.getElementById('logToggleLabel'),
   countBadge: document.getElementById('logCountBadge'),
   historyOverlay: document.getElementById('logHistoryOverlay'),
+  historyModalTitle: document.getElementById('logHistoryModalTitle'),
   historyCloseX: document.getElementById('logHistoryCloseX'),
   filterCategory: document.getElementById('logFilterCategory'),
   sortOrder: document.getElementById('logSortOrder'),
@@ -2861,7 +2890,21 @@ const logEl = {
   overlay: document.getElementById('logFormOverlay'),
   modalTitle: document.getElementById('logFormModalTitle'),
   closeX: document.getElementById('logFormCloseX'),
+  commentOpenFormBtn: document.getElementById('commentOpenFormBtn'),
+  commentHistoryToggle: document.getElementById('commentHistoryToggle'),
+  commentCountBadge: document.getElementById('commentCountBadge'),
 };
+
+// Show only the <option>s belonging to `mode` in a category <select>; keep
+// the blank/"All types" option (no data-group) always visible.
+function setCategorySelectOptionsForMode(selectEl, mode) {
+  Array.from(selectEl.options).forEach((opt) => {
+    const group = opt.dataset.group;
+    opt.hidden = !!group && group !== mode;
+  });
+  const current = selectEl.querySelector(`option[value="${selectEl.value}"]`);
+  if (!current || current.hidden) selectEl.value = '';
+}
 
 let allLogEntries = [];        // cache of {id, ...data} for the current equipment
 let currentVisibleLogRows = []; // filtered/sorted rows currently shown — what exports operate on
@@ -2979,7 +3022,7 @@ function applyLogControlsAndRender() {
   const order = logEl.sortOrder.value;
   const search = logEl.searchInput.value.trim().toLowerCase();
 
-  let rows = allLogEntries.slice();
+  let rows = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category));
 
   if (category) rows = rows.filter(r => r.category === category);
   if (search) {
@@ -2998,18 +3041,28 @@ function applyLogControlsAndRender() {
   });
 
   currentVisibleLogRows = rows;
+  updateLogGroupBadges();
   updateLogExportCount();
   renderLogEntries(rows);
+}
+
+function updateLogGroupBadges() {
+  const commentCount = allLogEntries.filter(r => LOG_GROUPS.comment.includes(r.category)).length;
+  const maintCount = allLogEntries.filter(r => LOG_GROUPS.maintenance.includes(r.category)).length;
+  logEl.commentCountBadge.textContent = commentCount;
+  logEl.commentCountBadge.style.display = commentCount ? 'inline-block' : 'none';
+  logEl.countBadge.textContent = maintCount;
+  logEl.countBadge.style.display = maintCount ? 'inline-block' : 'none';
 }
 
 function renderLogEntries(rows) {
   logEl.entries.innerHTML = '';
 
-  logEl.countBadge.textContent = allLogEntries.length;
-  logEl.countBadge.style.display = allLogEntries.length ? 'inline-block' : 'none';
+  const groupTotal = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category)).length;
+  const emptyLabel = logGroupMode === 'comment' ? 'comment' : 'maintenance note';
 
-  if (allLogEntries.length === 0) {
-    logEl.entries.innerHTML = '<p class="log-empty">No entries logged yet. Be the first to add a maintenance note.</p>';
+  if (groupTotal === 0) {
+    logEl.entries.innerHTML = `<p class="log-empty">No entries logged yet. Be the first to add a ${emptyLabel}.</p>`;
     return;
   }
   if (rows.length === 0) {
@@ -3206,7 +3259,12 @@ document.getElementById('logAdminToggleBtn').addEventListener('click', () => {
   requireAdminUnlock();
 });
 
-function openHistoryModal() {
+function openHistoryModal(mode) {
+  if (mode) logGroupMode = mode;
+  logEl.historyModalTitle.innerHTML = logGroupMode === 'comment'
+    ? '<i class="fa-solid fa-comments"></i> Comments History'
+    : '<i class="fa-solid fa-clock-rotate-left"></i> Maintenance History';
+  setCategorySelectOptionsForMode(logEl.filterCategory, logGroupMode);
   logEl.historyOverlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   setLogAdminUI(adminUnlocked); // reflect admin state if already unlocked elsewhere on the page
@@ -3218,7 +3276,8 @@ function closeHistoryModal() {
   document.body.style.overflow = '';
 }
 
-logEl.historyToggle.addEventListener('click', openHistoryModal);
+logEl.historyToggle.addEventListener('click', () => openHistoryModal('maintenance'));
+logEl.commentHistoryToggle.addEventListener('click', () => openHistoryModal('comment'));
 logEl.historyCloseX.addEventListener('click', closeHistoryModal);
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && logEl.historyOverlay.classList.contains('is-open')) closeHistoryModal();
@@ -3227,12 +3286,20 @@ document.addEventListener('keydown', (ev) => {
 // ----- Edit mode -----
 
 function openLogFormModal(mode) {
+  const groupLabel = logGroupMode === 'comment' ? 'Comment' : 'Entry';
   logEl.modalTitle.innerHTML = mode === 'edit'
-    ? '<i class="fa-solid fa-pen"></i> Edit Entry'
-    : '<i class="fa-solid fa-comment-medical"></i> Log New Entry';
+    ? '<i class="fa-solid fa-pen"></i> Edit ' + groupLabel
+    : '<i class="fa-solid fa-comment-medical"></i> ' + (logGroupMode === 'comment' ? 'Add New Comment' : 'Log New Entry');
   logEl.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
   logEl.fullName.focus();
+}
+
+function openLogFormForMode(mode) {
+  logGroupMode = mode;
+  resetLogForm();
+  setCategorySelectOptionsForMode(logEl.category, mode);
+  openLogFormModal('new');
 }
 
 function closeLogFormModal() {
@@ -3241,6 +3308,8 @@ function closeLogFormModal() {
 }
 
 function startEditLogEntry(entry) {
+  logGroupMode = LOG_GROUPS.comment.includes(entry.category) ? 'comment' : 'maintenance';
+  setCategorySelectOptionsForMode(logEl.category, logGroupMode);
   logEl.editId.value = entry.id;
   logEl.fullName.value = entry.fullName || '';
   logEl.department.value = entry.department || '';
@@ -3270,10 +3339,8 @@ function resetLogForm() {
   logEl.error.textContent = '';
 }
 
-logEl.openFormBtn.addEventListener('click', () => {
-  resetLogForm();
-  openLogFormModal('new');
-});
+logEl.openFormBtn.addEventListener('click', () => openLogFormForMode('maintenance'));
+logEl.commentOpenFormBtn.addEventListener('click', () => openLogFormForMode('comment'));
 
 logEl.closeX.addEventListener('click', () => {
   const wasEditing = !!logEl.editId.value;
