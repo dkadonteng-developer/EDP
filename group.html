@@ -977,7 +977,7 @@ function escapeHtmlCard(str) {
       db.collection('equipment').orderBy('name').get(),
       db.collection('groups').where('name', '==', groupName).limit(1).get().catch(() => null),
     ]);
-    const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
     const getGroupNames = (e) => {
       if (Array.isArray(e.groups) && e.groups.length) return e.groups;
       if (e.group && e.group.trim()) return [e.group.trim()];
