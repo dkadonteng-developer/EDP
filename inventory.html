@@ -270,27 +270,77 @@
   }
   .order-part-btn:hover{background:#eef4f1}
 
+  .part-select-checkbox{
+    width:18px;height:18px;accent-color:var(--brand);cursor:pointer;margin-right:2px;flex:0 0 auto;
+  }
+
+  /* ---------- Batch order cart bar ---------- */
+  #cartBar{
+    display:none;position:fixed;left:0;right:0;bottom:0;z-index:900;
+    background:var(--brand);color:#fff;padding:12px 20px;
+    align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    box-shadow:0 -2px 10px rgba(0,0,0,.18);
+  }
+  #cartBar.is-visible{display:flex}
+  #cartBar span{font-size:.88rem;font-weight:600}
+  .cart-bar-actions{display:flex;gap:10px}
+  .cart-bar-actions button{
+    font-family:inherit;font-size:.85rem;font-weight:600;border-radius:8px;padding:8px 16px;cursor:pointer;border:none;
+  }
+  #cartBarClearBtn{background:rgba(255,255,255,.16);color:#fff}
+  #cartBarClearBtn:hover{background:rgba(255,255,255,.28)}
+  #cartBarOrderBtn{background:#fff;color:var(--brand);display:flex;align-items:center;gap:8px}
+  #cartBarOrderBtn:hover{background:#eef4f1}
+
   /* modal (order part) */
   #orderFormOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
     display:none;align-items:center;justify-content:center;padding:16px;
   }
   #orderFormOverlay.is-open{display:flex}
-  .order-summary{
-    background:#eef4f1;border:1px solid #d7e6dc;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;
+  .order-item-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:#eef4f1;border:1px solid #d7e6dc;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:.85rem;
   }
-  .order-summary .os-model{
-    display:inline-block;background:#fff;color:var(--brand);font-weight:700;font-size:.76rem;
-    padding:3px 9px;border-radius:6px;font-family:'Courier New',monospace;margin-bottom:4px;
+  .order-item-row .oi-model{
+    display:inline-block;background:#fff;color:var(--brand);font-weight:700;font-size:.74rem;
+    padding:3px 8px;border-radius:6px;font-family:'Courier New',monospace;margin-bottom:3px;
   }
-  .order-summary .os-name{font-weight:600;margin:2px 0}
-  .order-summary .os-meta{color:var(--muted);font-size:.8rem}
+  .order-item-row .oi-name{font-weight:600;margin:2px 0}
+  .order-item-row .oi-meta{color:var(--muted);font-size:.78rem}
+  .order-item-row .oi-qty{display:flex;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto}
+  .order-item-row .oi-qty label{font-size:.7rem;color:var(--muted);font-weight:600}
+  .order-item-row .oi-qty input{
+    width:60px;padding:6px;border:1px solid var(--border);border-radius:6px;text-align:center;font-family:inherit;
+  }
+  #orderMultiList{margin-bottom:12px;max-height:240px;overflow-y:auto}
   #orderFormSuccess{
     display:none;text-align:center;padding:20px 10px;
   }
   #orderFormSuccess.show{display:block}
   #orderFormSuccess i{font-size:2.2rem;color:var(--brand);margin-bottom:10px;display:block}
   #orderFormSuccess p{color:var(--muted);font-size:.88rem;margin:6px 0 0}
+
+  /* modal (Excel import preview) */
+  #importPreviewOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #importPreviewOverlay.is-open{display:flex}
+  #importPreviewTableWrap{max-height:50vh;overflow:auto;border:1px solid var(--border);border-radius:10px}
+  #importPreviewTable{width:100%;border-collapse:collapse;font-size:.82rem}
+  #importPreviewTable th,#importPreviewTable td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+  #importPreviewTable th{background:#f4f6f7;position:sticky;top:0}
+  .import-status{padding:2px 9px;border-radius:12px;font-size:.72rem;font-weight:600;white-space:nowrap}
+  .import-status.new{background:#eaf6ee;color:#1a7a3d}
+  .import-status.update{background:#eef4fb;color:#1c5fa8}
+  .import-status.error{background:#fdeceb;color:#c0392b}
+  #importConfirmBtn{
+    background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
+    font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  #importConfirmBtn:hover{background:#005229}
+  #importConfirmBtn:disabled{opacity:.6;cursor:not-allowed}
 
   @media(max-width:680px){
     header h1{display:none}
@@ -364,6 +414,12 @@
     <div class="admin-controls" id="adminControls">
       <span id="viewerBadge" class="viewer-badge"><i class="fa-solid fa-eye"></i> Viewing only</span>
       <button type="button" id="addPartBtn" class="add-part-btn" style="display:none"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+      <button type="button" id="downloadTemplateBtn" class="admin-toggle-btn" style="display:none"><i class="fa-solid fa-file-arrow-down"></i> Excel Template</button>
+      <button type="button" id="exportInventoryBtn" class="admin-toggle-btn" style="display:none"><i class="fa-solid fa-file-export"></i> Export Inventory</button>
+      <label id="importExcelBtn" class="admin-toggle-btn" style="display:none;position:relative;overflow:hidden">
+        <i class="fa-solid fa-file-import"></i> Import Excel
+        <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+      </label>
       <button type="button" id="adminToggleBtn" class="admin-toggle-btn"><i class="fa-solid fa-lock"></i> Admin Login</button>
     </div>
   </div>
@@ -507,12 +563,15 @@
       </div>
 
       <form id="orderForm">
-        <input type="hidden" id="orderPartId" value="">
+        <div id="orderMultiList"></div>
 
-        <div class="order-summary">
-          <span class="os-model" id="orderPartModel"></span>
-          <p class="os-name" id="orderPartName"></p>
-          <span class="os-meta" id="orderPartMeta"></span>
+        <div class="pf-field full" style="margin-bottom:6px">
+          <label for="orderEquipmentSelect">Equipment this part is for *</label>
+          <select id="orderEquipmentSelect" required>
+            <option value="">Select equipment…</option>
+            <option value="__other__">Others (type equipment name)</option>
+          </select>
+          <input type="text" id="orderEquipmentOther" maxlength="150" placeholder="Type the equipment name" style="display:none;margin-top:8px">
         </div>
 
         <div class="pf-row">
@@ -527,13 +586,9 @@
         </div>
 
         <div class="pf-row">
-          <div class="pf-field">
+          <div class="pf-field full">
             <label for="orderDepartment">Department</label>
             <input type="text" id="orderDepartment" maxlength="100" placeholder="e.g. Mechanical Maintenance">
-          </div>
-          <div class="pf-field">
-            <label for="orderQty">Quantity Requested *</label>
-            <input type="number" id="orderQty" required min="1" step="1" value="1">
           </div>
         </div>
 
@@ -561,6 +616,36 @@
           <button type="submit" id="orderSubmitBtn"><i class="fa-solid fa-cart-shopping"></i> Submit Order</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<div id="cartBar">
+  <span id="cartBarCount">0 parts selected</span>
+  <div class="cart-bar-actions">
+    <button type="button" id="cartBarClearBtn">Clear</button>
+    <button type="button" id="cartBarOrderBtn"><i class="fa-solid fa-cart-shopping"></i> Order Selected</button>
+  </div>
+</div>
+
+<div id="importPreviewOverlay">
+  <div class="part-form-modal" style="max-width:780px">
+    <div class="part-form-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-file-import"></i> Import Preview</h3>
+        <p id="importSummary">Reading file…</p>
+      </div>
+      <button type="button" class="part-form-modal-close" id="importPreviewCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="part-form-modal-body">
+      <div id="importPreviewTableWrap">
+        <table id="importPreviewTable"></table>
+      </div>
+      <div class="pf-actions" style="margin-top:16px">
+        <span id="importPreviewError" class="pf-error"></span>
+        <button type="button" id="importCancelBtn" class="pf-btn-secondary">Cancel</button>
+        <button type="button" id="importConfirmBtn"><i class="fa-solid fa-check"></i> Confirm Import</button>
+      </div>
     </div>
   </div>
 </div>
@@ -599,8 +684,8 @@ auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed'
 // Templates) and paste the real IDs in here; see the chat message for the
 // exact variable names each template should reference.
 const EMAILJS_SERVICE_ID = 'service_07ex199';
-const EMAILJS_TEMPLATE_ORDER_STORES = 'template_6xwtqaa';   // TODO: replace with real template ID
-const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_80c6c19';      // TODO: replace with real template ID
+const EMAILJS_TEMPLATE_ORDER_STORES = 'template_order_stores';   // TODO: replace with real template ID
+const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_order_mcc';      // TODO: replace with real template ID
 // Stores/MCC recipient addresses are set as the fixed "To Email" on each
 // EmailJS template (Templates > [template] > Settings > To Email) — not
 // passed from here — so a request can't be redirected by editing this page.
@@ -618,15 +703,12 @@ const MCC_PHONE_NUMBER = '+233000000000';                                  // TO
 
 // Fire-and-forget: a failed/unconfigured SMS should never block the order
 // itself — email is the primary channel and is already sent separately.
-async function sendMccPickTicketSms(orderData) {
+async function sendMccPickTicketSms(message) {
   try {
     await fetch(SMS_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: MCC_PHONE_NUMBER,
-        message: `Pick ticket needed: ${orderData.partName} (${orderData.modelNumber}) x${orderData.quantityRequested} — requested by ${orderData.fullName} (${orderData.staffId}). Reason: ${orderData.reason}`,
-      }),
+      body: JSON.stringify({ to: MCC_PHONE_NUMBER, message }),
     });
   } catch (err) {
     console.error('MCC SMS could not be sent (order was still saved and emailed):', err);
@@ -652,6 +734,12 @@ db.collection('equipment').get().then((snap) => {
   formEl.equipChecks.innerHTML = EQUIPMENT_LIST.map(e => `
     <label><input type="checkbox" value="${e.id}"> ${escapeHtml(e.name)}</label>
   `).join('');
+  const equipOptions = EQUIPMENT_LIST
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`)
+    .join('');
+  orderEl.equipmentSelect.innerHTML = `<option value="">Select equipment…</option>${equipOptions}<option value="__other__">Others (type equipment name)</option>`;
   renderParts(); // refresh so equipment tags/names resolve now that data has loaded
 }).catch((err) => console.error('Failed to load equipment list', err));
 
@@ -688,6 +776,9 @@ function requireAdminUnlock() {
 function setAdminUI(unlocked) {
   document.getElementById('viewerBadge').style.display = unlocked ? 'none' : 'flex';
   document.getElementById('addPartBtn').style.display = unlocked ? 'flex' : 'none';
+  document.getElementById('downloadTemplateBtn').style.display = unlocked ? 'flex' : 'none';
+  document.getElementById('exportInventoryBtn').style.display = unlocked ? 'flex' : 'none';
+  document.getElementById('importExcelBtn').style.display = unlocked ? 'flex' : 'none';
   document.getElementById('adminToggleBtn').innerHTML = unlocked
     ? '<i class="fa-solid fa-unlock"></i> Admin Mode'
     : '<i class="fa-solid fa-lock"></i> Admin Login';
@@ -805,17 +896,16 @@ const formEl = {
 const orderEl = {
   overlay: document.getElementById('orderFormOverlay'),
   closeX: document.getElementById('orderFormCloseX'),
+  title: document.getElementById('orderFormTitle'),
   form: document.getElementById('orderForm'),
   success: document.getElementById('orderFormSuccess'),
   doneBtn: document.getElementById('orderFormDoneBtn'),
-  partId: document.getElementById('orderPartId'),
-  partModel: document.getElementById('orderPartModel'),
-  partName: document.getElementById('orderPartName'),
-  partMeta: document.getElementById('orderPartMeta'),
+  multiList: document.getElementById('orderMultiList'),
+  equipmentSelect: document.getElementById('orderEquipmentSelect'),
+  equipmentOther: document.getElementById('orderEquipmentOther'),
   staffId: document.getElementById('orderStaffId'),
   fullName: document.getElementById('orderFullName'),
   department: document.getElementById('orderDepartment'),
-  qty: document.getElementById('orderQty'),
   reason: document.getElementById('orderReason'),
   photoFile: document.getElementById('orderPhotoFile'),
   photoProgress: document.getElementById('orderPhotoProgress'),
@@ -895,6 +985,33 @@ orderEl.photoRemoveBtn.addEventListener('click', () => {
 });
 
 let allParts = [];
+// Parts checked for a batch order — persists across re-renders (filtering,
+// live Firestore updates) until cleared or ordered.
+const selectedPartIds = new Set();
+
+const cartBarEl = {
+  bar: document.getElementById('cartBar'),
+  count: document.getElementById('cartBarCount'),
+  clearBtn: document.getElementById('cartBarClearBtn'),
+  orderBtn: document.getElementById('cartBarOrderBtn'),
+};
+
+function updateCartBar() {
+  const n = selectedPartIds.size;
+  cartBarEl.bar.classList.toggle('is-visible', n > 0);
+  cartBarEl.count.textContent = `${n} part${n === 1 ? '' : 's'} selected`;
+}
+
+cartBarEl.clearBtn.addEventListener('click', () => {
+  selectedPartIds.clear();
+  updateCartBar();
+  renderParts();
+});
+
+cartBarEl.orderBtn.addEventListener('click', () => {
+  const parts = allParts.filter((p) => selectedPartIds.has(p.id));
+  if (parts.length) openOrderModal(parts);
+});
 
 // ---------- Stock status ----------
 function getStockStatus(p) {
@@ -916,6 +1033,10 @@ function populateCategoryFilter() {
 }
 
 function renderParts() {
+  const allIds = new Set(allParts.map((p) => p.id));
+  selectedPartIds.forEach((id) => { if (!allIds.has(id)) selectedPartIds.delete(id); });
+  updateCartBar();
+
   const query = el.search.value.trim().toLowerCase();
   const category = el.categoryFilter.value;
   const status = el.statusFilter.value;
@@ -968,6 +1089,7 @@ function renderParts() {
               <span class="part-category"><i class="fa-solid fa-tag"></i>${escapeHtml(p.category)}</span>
             </div>
             <div class="part-actions">
+              <input type="checkbox" class="part-select-checkbox" data-id="${p.id}" title="Select for batch order" ${selectedPartIds.has(p.id) ? 'checked' : ''}>
               <button type="button" class="order-part-btn" data-id="${p.id}" title="Order this part from stores"><i class="fa-solid fa-cart-shopping"></i></button>
               ${adminUnlocked ? `
                 <button type="button" class="edit-part" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen"></i></button>
@@ -1071,7 +1193,18 @@ function closePartForm() {
 }
 
 // ---------- Order Spare Part (Stores + MCC pick-ticket emails) ----------
-function openOrderModal(part) {
+let currentOrderParts = [];
+
+orderEl.equipmentSelect.addEventListener('change', () => {
+  const isOther = orderEl.equipmentSelect.value === '__other__';
+  orderEl.equipmentOther.style.display = isOther ? 'block' : 'none';
+  orderEl.equipmentOther.required = isOther;
+  if (isOther) orderEl.equipmentOther.focus();
+  else orderEl.equipmentOther.value = '';
+});
+
+function openOrderModal(parts) {
+  currentOrderParts = parts;
   orderEl.form.reset();
   orderEl.form.style.display = '';
   orderEl.success.classList.remove('show');
@@ -1079,15 +1212,33 @@ function openOrderModal(part) {
   orderEl.submitBtn.disabled = false;
   orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Submit Order';
 
-  orderEl.partId.value = part.id;
-  orderEl.partModel.textContent = part.modelNumber;
-  orderEl.partName.textContent = part.partName;
-  orderEl.partMeta.textContent = `${part.category} · ${part.binLocation || 'Bin location not set'} · Current stock: ${part.currentQty} ${part.unit || ''}`;
-  orderEl.qty.value = 1;
+  orderEl.title.innerHTML = parts.length > 1
+    ? `<i class="fa-solid fa-cart-shopping"></i> Order ${parts.length} Spare Parts`
+    : '<i class="fa-solid fa-cart-shopping"></i> Order Spare Part';
+
+  orderEl.multiList.innerHTML = parts.map((part) => `
+    <div class="order-item-row" data-part-id="${part.id}">
+      <div class="oi-info">
+        <span class="oi-model">${escapeHtml(part.modelNumber)}</span>
+        <p class="oi-name">${escapeHtml(part.partName)}</p>
+        <span class="oi-meta">${escapeHtml(part.category)} · ${escapeHtml(part.binLocation || 'Bin location not set')} · Current stock: ${part.currentQty} ${escapeHtml(part.unit || '')}</span>
+      </div>
+      <div class="oi-qty">
+        <label for="oiQty_${part.id}">Qty</label>
+        <input type="number" id="oiQty_${part.id}" class="order-item-qty" data-part-id="${part.id}" min="1" step="1" value="1">
+      </div>
+    </div>
+  `).join('');
+
   orderPhotoDataUrl = '';
   orderEl.photoPreviewWrap.style.display = 'none';
   orderEl.photoPreview.removeAttribute('src');
   orderEl.photoProgress.style.display = 'none';
+
+  orderEl.equipmentOther.style.display = 'none';
+  orderEl.equipmentOther.required = false;
+  orderEl.equipmentOther.value = '';
+  orderEl.equipmentSelect.value = equipmentFilterId && EQUIPMENT_NAME_BY_ID[equipmentFilterId] ? equipmentFilterId : '';
 
   orderEl.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -1110,20 +1261,18 @@ orderEl.form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   orderEl.error.textContent = '';
 
-  const part = allParts.find(p => p.id === orderEl.partId.value);
-  if (!part) {
-    orderEl.error.textContent = 'This part could not be found — please close and try again.';
+  if (!currentOrderParts.length) {
+    orderEl.error.textContent = 'No parts selected — please close and try again.';
     return;
   }
 
   const staffId = orderEl.staffId.value.trim();
   const fullName = orderEl.fullName.value.trim();
   const department = orderEl.department.value.trim();
-  const quantityRequested = Number(orderEl.qty.value);
   const reason = orderEl.reason.value.trim();
 
-  if (!staffId || !fullName || !quantityRequested || quantityRequested < 1) {
-    orderEl.error.textContent = 'Staff ID, full name, and a valid quantity are required.';
+  if (!staffId || !fullName) {
+    orderEl.error.textContent = 'Staff ID and full name are required.';
     return;
   }
   if (!reason) {
@@ -1131,55 +1280,95 @@ orderEl.form.addEventListener('submit', async (ev) => {
     return;
   }
 
-  const equipmentContext = equipmentFilterId
-    ? (EQUIPMENT_NAME_BY_ID[equipmentFilterId] || equipmentFilterId)
-    : '';
-  const compatEquipNames = (part.compatibleEquipment || [])
-    .map(id => EQUIPMENT_NAME_BY_ID[id] || id)
-    .join(', ');
+  const equipmentSelectValue = orderEl.equipmentSelect.value;
+  let equipmentContext = '';
+  let equipmentContextId = '';
+  if (!equipmentSelectValue) {
+    orderEl.error.textContent = 'Please select the equipment this part is for.';
+    return;
+  } else if (equipmentSelectValue === '__other__') {
+    equipmentContext = orderEl.equipmentOther.value.trim();
+    if (!equipmentContext) {
+      orderEl.error.textContent = 'Please type the equipment name.';
+      return;
+    }
+  } else {
+    equipmentContextId = equipmentSelectValue;
+    equipmentContext = EQUIPMENT_NAME_BY_ID[equipmentSelectValue] || equipmentSelectValue;
+  }
+
+  // Pull each item's own quantity from its row in the list, and validate.
+  const items = [];
+  for (const part of currentOrderParts) {
+    const qtyInput = orderEl.multiList.querySelector(`.order-item-qty[data-part-id="${part.id}"]`);
+    const quantityRequested = Number(qtyInput ? qtyInput.value : 0);
+    if (!quantityRequested || quantityRequested < 1) {
+      orderEl.error.textContent = `Enter a valid quantity for "${part.partName}".`;
+      return;
+    }
+    items.push({ part, quantityRequested });
+  }
+
   const submittedAt = new Date().toLocaleString();
+  // Groups the line items of one submission together — each part still
+  // gets its own partOrders doc (so Stores/admin can track each item's
+  // status independently), but they all share this ID.
+  const orderGroupId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
   orderEl.submitBtn.disabled = true;
   orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending…';
 
-  const orderData = {
-    partId: part.id,
-    modelNumber: part.modelNumber,
-    partName: part.partName,
-    category: part.category,
-    unit: part.unit || '',
-    binLocation: part.binLocation || '',
-    compatibleEquipment: part.compatibleEquipment || [],
-    equipmentContext,
-    quantityRequested,
-    staffId,
-    fullName,
-    department,
-    reason,
-    photoDataUrl: orderPhotoDataUrl || '',
-    status: 'pending',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  };
-
   try {
     await authReady;
 
-    // 1) Log the order in Firestore so there's an auditable record even if
-    //    an email fails to send, and so admin.html can list/track orders.
-    await db.collection('partOrders').add(orderData);
+    // 1) Log each part as its own order doc, sharing the group ID — an
+    //    auditable record even if an email fails to send, and lets
+    //    admin.html track/fulfill each line item independently.
+    await Promise.all(items.map(({ part, quantityRequested }) => {
+      const compatEquipNames = (part.compatibleEquipment || []).map(id => EQUIPMENT_NAME_BY_ID[id] || id).join(', ');
+      return db.collection('partOrders').add({
+        orderGroupId,
+        groupItemCount: items.length,
+        partId: part.id,
+        modelNumber: part.modelNumber,
+        partName: part.partName,
+        category: part.category,
+        unit: part.unit || '',
+        binLocation: part.binLocation || '',
+        compatibleEquipment: part.compatibleEquipment || [],
+        compatibleEquipmentNames: compatEquipNames,
+        equipmentContext,
+        equipmentContextId,
+        quantityRequested,
+        staffId,
+        fullName,
+        department,
+        reason,
+        photoDataUrl: orderPhotoDataUrl || '',
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }));
 
-    // 2) Email Stores — full specs so they can prepare/pull the part.
+    // Build one combined itemized summary for the emails/SMS — works the
+    // same whether it's 1 part or several.
+    const itemsListText = items.map(({ part, quantityRequested }) =>
+      `${part.partName} (${part.modelNumber}) x${quantityRequested} — Bin ${part.binLocation || 'not set'}`
+    ).join('\n');
+    const itemsListHtml = items.map(({ part, quantityRequested }) =>
+      `<li>${escapeHtml(part.partName)} (${escapeHtml(part.modelNumber)}) x${quantityRequested} — Bin ${escapeHtml(part.binLocation || 'not set')}</li>`
+    ).join('');
+    const totalQuantity = items.reduce((sum, i) => sum + i.quantityRequested, 0);
+
+    // 2) Email Stores — full specs so they can prepare/pull every item.
     const storesSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_STORES, {
       staff_id: staffId,
       full_name: fullName,
       department: department || '—',
-      model_number: part.modelNumber,
-      part_name: part.partName,
-      category: part.category,
-      unit: part.unit || '',
-      bin_location: part.binLocation || 'Not set',
-      quantity_requested: quantityRequested,
-      compatible_equipment: compatEquipNames || '—',
+      item_count: items.length,
+      total_quantity: totalQuantity,
+      items_list: itemsListText,
+      items_list_html: `<ul>${itemsListHtml}</ul>`,
       equipment_context: equipmentContext || '—',
       reason: reason,
       photo_data_url: orderPhotoDataUrl || '',
@@ -1187,15 +1376,15 @@ orderEl.form.addEventListener('submit', async (ev) => {
       submitted_at: submittedAt,
     });
 
-    // 3) Email MCC — ask them to prepare a pick ticket on Infor EAM.
+    // 3) Email MCC — ask them to prepare a pick ticket covering every item.
     const mccSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_MCC, {
       staff_id: staffId,
       full_name: fullName,
       department: department || '—',
-      model_number: part.modelNumber,
-      part_name: part.partName,
-      quantity_requested: quantityRequested,
-      bin_location: part.binLocation || 'Not set',
+      item_count: items.length,
+      total_quantity: totalQuantity,
+      items_list: itemsListText,
+      items_list_html: `<ul>${itemsListHtml}</ul>`,
       equipment_context: equipmentContext || '—',
       reason: reason,
       photo_data_url: orderPhotoDataUrl || '',
@@ -1203,14 +1392,22 @@ orderEl.form.addEventListener('submit', async (ev) => {
       submitted_at: submittedAt,
     });
 
-    // 4) Text MCC directly that a pick ticket is needed (in addition to the
-    //    email above) — best-effort, never blocks the order on failure.
-    const mccSmsSend = sendMccPickTicketSms({ partName: part.partName, modelNumber: part.modelNumber, quantityRequested, fullName, staffId, reason });
+    // 4) Text MCC directly that a pick ticket is needed — best-effort,
+    //    never blocks the order on failure. Kept short since SMS has a
+    //    length cap; a single item still gets full detail, a batch gets a
+    //    compact list.
+    const smsMessage = items.length === 1
+      ? `Pick ticket needed: ${items[0].part.partName} (${items[0].part.modelNumber}) x${items[0].quantityRequested} — requested by ${fullName} (${staffId}). Reason: ${reason}`
+      : `Pick ticket needed (${items.length} items, qty ${totalQuantity} total): ${items.map(({ part, quantityRequested }) => `${part.partName} x${quantityRequested}`).join('; ')} — requested by ${fullName} (${staffId}).`;
+    const mccSmsSend = sendMccPickTicketSms(smsMessage);
 
     await Promise.all([storesSend, mccSend, mccSmsSend]);
 
     orderEl.form.style.display = 'none';
     orderEl.success.classList.add('show');
+    selectedPartIds.clear();
+    updateCartBar();
+    renderParts();
   } catch (err) {
     console.error('Failed to submit spare part order', err);
     orderEl.error.textContent = 'Could not send this order right now. Please try again, or contact Stores directly.';
@@ -1223,6 +1420,251 @@ orderEl.form.addEventListener('submit', async (ev) => {
 el.addPartBtn.addEventListener('click', () => {
   if (!requireAdminUnlock()) return;
   openPartForm('new');
+});
+
+// ---------- Excel template, export, and bulk import (Stores admin) ----------
+const CATEGORY_OPTIONS = ['Bearings', 'Belts & Chains', 'Seals & Gaskets', 'Lubricants', 'Electrical', 'Fasteners', 'Other'];
+const CATEGORY_LOOKUP = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.toLowerCase(), c]));
+const PARTS_SHEET_HEADERS = ['Model Number', 'Part Name', 'Category', 'Unit', 'Min Qty', 'Max Qty', 'Current Qty', 'Bin Location', 'Notes', 'Compatible Equipment'];
+
+function partToSheetRow(p) {
+  return {
+    'Model Number': p.modelNumber || '',
+    'Part Name': p.partName || '',
+    'Category': p.category || '',
+    'Unit': p.unit || '',
+    'Min Qty': p.minQty ?? '',
+    'Max Qty': p.maxQty ?? '',
+    'Current Qty': p.currentQty ?? '',
+    'Bin Location': p.binLocation || '',
+    'Notes': p.notes || '',
+    'Compatible Equipment': (p.compatibleEquipment || []).map((id) => EQUIPMENT_NAME_BY_ID[id] || id).join(', '),
+  };
+}
+
+function buildInstructionsRows() {
+  return [
+    { Field: 'Model Number', Notes: 'Required. Unique per part — matches rows to existing inventory on import (case-insensitive). A new value creates a new part; a match updates that part.' },
+    { Field: 'Part Name', Notes: 'Required.' },
+    { Field: 'Category', Notes: `Required. Must be exactly one of: ${CATEGORY_OPTIONS.join(', ')}.` },
+    { Field: 'Unit', Notes: 'Required, e.g. pcs, kg, L.' },
+    { Field: 'Min Qty / Max Qty / Current Qty', Notes: 'Required whole numbers, 0 or more. Max Qty must be \u2265 Min Qty.' },
+    { Field: 'Bin Location', Notes: 'Optional.' },
+    { Field: 'Notes', Notes: 'Optional.' },
+    { Field: 'Compatible Equipment', Notes: 'Optional. Comma-separated equipment names — must match names on the "Equipment Reference" sheet (not case-sensitive). Unmatched names are flagged in the import preview but do not stop the row from importing.' },
+  ];
+}
+
+function downloadPartsWorkbook(rows, filename) {
+  const wb = XLSX.utils.book_new();
+
+  const instrWs = XLSX.utils.json_to_sheet(buildInstructionsRows());
+  instrWs['!cols'] = [{ wch: 28 }, { wch: 95 }];
+  XLSX.utils.book_append_sheet(wb, instrWs, 'Instructions');
+
+  const partsWs = XLSX.utils.json_to_sheet(rows, { header: PARTS_SHEET_HEADERS });
+  partsWs['!cols'] = [{ wch: 16 }, { wch: 30 }, { wch: 16 }, { wch: 8 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 14 }, { wch: 30 }, { wch: 34 }];
+  XLSX.utils.book_append_sheet(wb, partsWs, 'Spare Parts');
+
+  const equipRows = EQUIPMENT_LIST.slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map((e) => ({ 'Equipment Name': e.name }));
+  const equipWs = XLSX.utils.json_to_sheet(equipRows);
+  equipWs['!cols'] = [{ wch: 36 }];
+  XLSX.utils.book_append_sheet(wb, equipWs, 'Equipment Reference');
+
+  XLSX.writeFile(wb, filename);
+}
+
+document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
+  if (!requireAdminUnlock()) return;
+  const exampleRow = {
+    'Model Number': 'SKF-6205',
+    'Part Name': 'Deep Groove Ball Bearing 6205-2RS',
+    'Category': 'Bearings',
+    'Unit': 'pcs',
+    'Min Qty': 5,
+    'Max Qty': 30,
+    'Current Qty': 12,
+    'Bin Location': 'A1-04',
+    'Notes': 'Example row — replace or delete before importing',
+    'Compatible Equipment': EQUIPMENT_LIST[0] ? EQUIPMENT_LIST[0].name : '',
+  };
+  downloadPartsWorkbook([exampleRow], 'ghacem-spare-parts-template.xlsx');
+});
+
+document.getElementById('exportInventoryBtn').addEventListener('click', () => {
+  if (!requireAdminUnlock()) return;
+  if (!allParts.length) { alert('No spare parts in inventory yet to export.'); return; }
+  const rows = allParts.map(partToSheetRow);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadPartsWorkbook(rows, `ghacem-spare-parts-export-${dateStr}.xlsx`);
+});
+
+let pendingImportRows = [];
+
+function parseImportRow(raw, index) {
+  const get = (key) => (raw[key] ?? '').toString().trim();
+  const modelNumber = get('Model Number');
+  const partName = get('Part Name');
+  const categoryRaw = get('Category');
+  const unit = get('Unit');
+  const minQty = Number(get('Min Qty'));
+  const maxQty = Number(get('Max Qty'));
+  const currentQty = Number(get('Current Qty'));
+  const binLocation = get('Bin Location');
+  const notes = get('Notes');
+  const compatRaw = get('Compatible Equipment');
+
+  const errors = [];
+  if (!modelNumber) errors.push('Missing Model Number');
+  if (!partName) errors.push('Missing Part Name');
+  const category = CATEGORY_LOOKUP[categoryRaw.toLowerCase()];
+  if (!category) errors.push(`Category "${categoryRaw || '(blank)'}" is not valid`);
+  if (!unit) errors.push('Missing Unit');
+  if (!Number.isFinite(minQty) || minQty < 0) errors.push('Min Qty must be 0 or more');
+  if (!Number.isFinite(maxQty) || maxQty < 0) errors.push('Max Qty must be 0 or more');
+  if (!Number.isFinite(currentQty) || currentQty < 0) errors.push('Current Qty must be 0 or more');
+  if (Number.isFinite(minQty) && Number.isFinite(maxQty) && maxQty < minQty) errors.push('Max Qty must be \u2265 Min Qty');
+
+  const nameToId = {};
+  EQUIPMENT_LIST.forEach((e) => { nameToId[e.name.toLowerCase()] = e.id; });
+  const compatNames = compatRaw ? compatRaw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const compatibleEquipment = [];
+  const unmatchedNames = [];
+  compatNames.forEach((name) => {
+    const id = nameToId[name.toLowerCase()];
+    if (id) compatibleEquipment.push(id); else unmatchedNames.push(name);
+  });
+
+  const existing = allParts.find((p) => (p.modelNumber || '').toLowerCase() === modelNumber.toLowerCase());
+
+  return {
+    rowNumber: index + 2, // header row + 1-indexing
+    modelNumber, partName, category, unit, minQty, maxQty, currentQty, binLocation, notes,
+    compatibleEquipment, unmatchedNames, errors,
+    status: errors.length ? 'error' : (existing ? 'update' : 'new'),
+    existingId: existing ? existing.id : null,
+  };
+}
+
+document.getElementById('importExcelFile').addEventListener('change', (ev) => {
+  if (!requireAdminUnlock()) { ev.target.value = ''; return; }
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames.includes('Spare Parts') ? 'Spare Parts' : workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      if (!rawRows.length) {
+        alert('No rows found in that sheet.');
+        return;
+      }
+      pendingImportRows = rawRows.map(parseImportRow);
+      renderImportPreview();
+      document.getElementById('importPreviewOverlay').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    } catch (err) {
+      console.error('Failed to parse Excel file', err);
+      alert("Could not read that file. Make sure it's a .xlsx file built from the template or a previous export.");
+    } finally {
+      ev.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function renderImportPreview() {
+  const newCount = pendingImportRows.filter((r) => r.status === 'new').length;
+  const updateCount = pendingImportRows.filter((r) => r.status === 'update').length;
+  const errorCount = pendingImportRows.filter((r) => r.status === 'error').length;
+  document.getElementById('importSummary').textContent =
+    `${newCount} new \u00b7 ${updateCount} update${updateCount === 1 ? '' : 's'} \u00b7 ${errorCount} error${errorCount === 1 ? '' : 's'}${errorCount ? ' (skipped)' : ''}`;
+
+  const table = document.getElementById('importPreviewTable');
+  table.innerHTML = `
+    <thead><tr><th>Row</th><th>Model</th><th>Part Name</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      ${pendingImportRows.map((r) => `
+        <tr>
+          <td>${r.rowNumber}</td>
+          <td>${escapeHtml(r.modelNumber || '\u2014')}</td>
+          <td>${escapeHtml(r.partName || '\u2014')}</td>
+          <td><span class="import-status ${r.status}">${r.status === 'new' ? 'New' : r.status === 'update' ? 'Update' : 'Error'}</span></td>
+          <td>${escapeHtml(r.errors.length ? r.errors.join('; ') : (r.unmatchedNames.length ? `Unmatched equipment: ${r.unmatchedNames.join(', ')}` : ''))}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+
+  document.getElementById('importConfirmBtn').disabled = (newCount + updateCount) === 0;
+}
+
+function closeImportPreview() {
+  document.getElementById('importPreviewOverlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+  pendingImportRows = [];
+}
+document.getElementById('importPreviewCloseX').addEventListener('click', closeImportPreview);
+document.getElementById('importCancelBtn').addEventListener('click', closeImportPreview);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && document.getElementById('importPreviewOverlay').classList.contains('is-open')) closeImportPreview();
+});
+
+document.getElementById('importConfirmBtn').addEventListener('click', async () => {
+  if (!requireAdminUnlock()) return;
+  const errorEl = document.getElementById('importPreviewError');
+  errorEl.textContent = '';
+  const validRows = pendingImportRows.filter((r) => r.status !== 'error');
+  if (!validRows.length) { errorEl.textContent = 'No valid rows to import.'; return; }
+
+  const btn = document.getElementById('importConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing…';
+
+  try {
+    await authReady;
+    // Firestore batches cap at 500 ops — chunk to stay well under that.
+    const chunkSize = 400;
+    for (let i = 0; i < validRows.length; i += chunkSize) {
+      const chunk = validRows.slice(i, i + chunkSize);
+      const batch = db.batch();
+      chunk.forEach((r) => {
+        const data = {
+          modelNumber: r.modelNumber,
+          partName: r.partName,
+          category: r.category,
+          unit: r.unit,
+          minQty: r.minQty,
+          maxQty: r.maxQty,
+          currentQty: r.currentQty,
+          binLocation: r.binLocation,
+          notes: r.notes,
+          compatibleEquipment: r.compatibleEquipment,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        };
+        if (r.existingId) {
+          batch.update(db.collection('spareParts').doc(r.existingId), data);
+        } else {
+          data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          batch.set(db.collection('spareParts').doc(), data);
+        }
+      });
+      await batch.commit();
+    }
+    closeImportPreview();
+    alert(`Import complete: ${validRows.length} part(s) saved.`);
+  } catch (err) {
+    console.error('Import failed', err);
+    errorEl.textContent = 'Could not complete the import. Please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirm Import';
+  }
 });
 
 document.getElementById('adminToggleBtn').addEventListener('click', () => {
@@ -1248,7 +1690,7 @@ el.grid.addEventListener('click', (ev) => {
 
   if (orderBtn) {
     const part = allParts.find(p => p.id === orderBtn.dataset.id);
-    if (part) openOrderModal(part);
+    if (part) openOrderModal([part]);
     return;
   }
 
@@ -1264,6 +1706,14 @@ el.grid.addEventListener('click', (ev) => {
     db.collection('spareParts').doc(delBtn.dataset.id).delete()
       .catch(err => { console.error('Failed to delete part', err); alert('Could not delete this part. Please try again.'); });
   }
+});
+
+el.grid.addEventListener('change', (ev) => {
+  const checkbox = ev.target.closest('.part-select-checkbox');
+  if (!checkbox) return;
+  if (checkbox.checked) selectedPartIds.add(checkbox.dataset.id);
+  else selectedPartIds.delete(checkbox.dataset.id);
+  updateCartBar();
 });
 
 formEl.form.addEventListener('submit', async (ev) => {
@@ -1374,6 +1824,7 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 <script src="search.js" defer></script>
 
