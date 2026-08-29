@@ -48,6 +48,26 @@
   .hero{display:grid;grid-template-columns:380px 1fr;gap:20px}
   .card,.section{background:var(--card);padding:20px;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.06);border:1px solid var(--border)}
   .section{margin-top:20px}
+
+  /* ---------- Equipment page bottom nav ---------- */
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .eq-tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:500;
+    display:flex;background:#fff;border-top:1px solid var(--border);
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -2px 10px rgba(0,0,0,.06);
+    max-width:600px;margin:0 auto;
+  }
+  .eq-tab-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:9px 4px 8px;border:none;background:none;font-family:inherit;
+    font-size:.68rem;font-weight:600;color:var(--muted);cursor:pointer;
+  }
+  .eq-tab-btn i{font-size:1.15rem}
+  .eq-tab-btn:hover{color:var(--text)}
+  .eq-tab-btn.is-active{color:var(--brand)}
+  .eq-tab-panel{display:none}
+  .eq-tab-panel.is-active{display:block}
   .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
   .section h2 i{color:var(--brand)}
 
@@ -755,9 +775,9 @@
     .search-bar input{min-width:90px}
     .search-bar .match-nav button{padding:5px 8px}
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:420px;height:420px}
-    #callFloatBtn{bottom:84px;right:16px}
-    #aiLauncher{bottom:16px;right:16px}
-    #inventoryFloatBtn{bottom:152px;right:16px}
+    #callFloatBtn{bottom:154px;right:16px}
+    #aiLauncher{bottom:86px;right:16px}
+    #inventoryFloatBtn{bottom:222px;right:16px}
   }
 
   @media (max-width:360px){
@@ -766,7 +786,7 @@
 
   /* ---------- Call Control Room (floating) ---------- */
   #callFloatBtn{
-    position:fixed;bottom:96px;right:24px;z-index:500;
+    position:fixed;bottom:166px;right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:#d92d20;color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -783,7 +803,7 @@
 
   /* ---------- Spare Parts Inventory (floating) ---------- */
   #inventoryFloatBtn{
-    position:fixed;bottom:166px;right:24px;z-index:500;
+    position:fixed;bottom:236px;right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:var(--brand);color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -795,12 +815,12 @@
 
   @media (max-width:600px){
     #inventoryFloatBtn span{display:none}
-    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:168px}
+    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:238px}
   }
 
   /* ---------- AI Troubleshooting Assistant ---------- */
   #aiLauncher{
-    position:fixed;bottom:24px;right:24px;z-index:500;
+    position:fixed;bottom:94px;right:24px;z-index:500;
     width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
     background:var(--brand);color:#fff;font-size:1.3rem;
     box-shadow:0 6px 18px rgba(0,0,0,.25);
@@ -1084,6 +1104,28 @@
     </div>
   </div>
 
+  <div class="section safety-checklist-section">
+    <div class="safety-checklist-bar">
+      <div class="safety-checklist-bar-label">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Major Maintenance Safety Checklist</span>
+      </div>
+      <div class="safety-checklist-actions">
+        <button type="button" id="openSafetyChecklistBtn" class="safety-checklist-btn-primary">
+          <i class="fa-solid fa-clipboard-check"></i> Open Checklist
+        </button>
+        <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-tabs" id="eqTabs">
+    <button type="button" class="eq-tab-btn" data-tab="diagrams" id="eqTabBtnDiagrams" style="display:none;"><i class="fa-solid fa-diagram-project"></i> Diagrams</button>
+    <button type="button" class="eq-tab-btn is-active" data-tab="documents"><i class="fa-solid fa-folder-open"></i> Documents</button>
+    <button type="button" class="eq-tab-btn" data-tab="log"><i class="fa-solid fa-comments"></i> Log</button>
+  </div>
+
+  <div class="eq-tab-panel" id="eqPanelDiagrams">
   <div class="section" id="explodedSection" style="display:none;">
     <h2><i class="fa-solid fa-diagram-project"></i> Exploded View</h2>
     <p class="explode-hint">Tap a part to see its details.</p>
@@ -1093,6 +1135,7 @@
         <img id="explodeDiagramImg" alt="Exploded view diagram">
       </div>
     </div>
+  </div>
   </div>
 
   <div id="partPanelOverlay">
@@ -1111,21 +1154,7 @@
     </div>
   </div>
 
-  <div class="section safety-checklist-section">
-    <div class="safety-checklist-bar">
-      <div class="safety-checklist-bar-label">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>Major Maintenance Safety Checklist</span>
-      </div>
-      <div class="safety-checklist-actions">
-        <button type="button" id="openSafetyChecklistBtn" class="safety-checklist-btn-primary">
-          <i class="fa-solid fa-clipboard-check"></i> Open Checklist
-        </button>
-        <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
-      </div>
-    </div>
-  </div>
-
+  <div class="eq-tab-panel is-active" id="eqPanelDocuments">
   <div class="section">
     <h2><i class="fa-solid fa-folder-open"></i> Equipment Documents</h2>
     <div id="documents" class="doc-list"></div>
@@ -1174,7 +1203,9 @@
       </div>
     </div>
   </div>
+  </div>
 
+  <div class="eq-tab-panel" id="eqPanelLog">
   <div class="section">
     <h2><i class="fa-solid fa-comments"></i> Comments & Maintenance Log</h2>
     <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
@@ -1217,6 +1248,7 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 
 </div>
@@ -1521,6 +1553,8 @@ const el = {
   model: document.getElementById('model'),
   serial: document.getElementById('serial'),
   installation: document.getElementById('installation'),
+  eqTabs: document.getElementById('eqTabs'),
+  eqTabBtnDiagrams: document.getElementById('eqTabBtnDiagrams'),
   explodedSection: document.getElementById('explodedSection'),
   explodeTabs: document.getElementById('explodeTabs'),
   explodeWrap: document.getElementById('explodeWrap'),
@@ -2178,6 +2212,15 @@ function renderEquipment(e) {
   });
 }
 
+// ---------- Equipment page tabs ----------
+function showEqTab(tab) {
+  document.querySelectorAll('.eq-tab-btn').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tab));
+  document.querySelectorAll('.eq-tab-panel').forEach((panel) => panel.classList.toggle('is-active', panel.id === `eqPanel${tab.charAt(0).toUpperCase()}${tab.slice(1)}`));
+}
+el.eqTabs.querySelectorAll('.eq-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => showEqTab(btn.dataset.tab));
+});
+
 // ---------- Exploded View ----------
 // One or more diagrams (switchable via tabs when there's more than one)
 // with clickable hotspot pins positioned by percentage. The diagram shows
@@ -2208,9 +2251,11 @@ function loadExplodedView(e) {
   explodeViews = getExplodedViews(e);
   if (!explodeViews.length) {
     el.explodedSection.style.display = 'none';
+    el.eqTabBtnDiagrams.style.display = 'none';
     return;
   }
   el.explodedSection.style.display = 'block';
+  el.eqTabBtnDiagrams.style.display = 'flex';
   renderExplodeTabs();
   selectExplodeView(explodeViews[0].id);
 }
