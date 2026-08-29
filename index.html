@@ -582,6 +582,14 @@ font-size:16px;
   box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
 }
 .offline-fab:hover{background:#00552c;transform:scale(1.06);}
+.inventory-fab{
+  position:fixed;right:20px;bottom:84px;z-index:1400;
+  width:52px;height:52px;border-radius:50%;border:none;
+  background:#006937;color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;text-decoration:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
+}
+.inventory-fab:hover{background:#00552c;transform:scale(1.06);text-decoration:none;}
 .offline-fab-panel{
   display:none;position:fixed;right:20px;bottom:84px;z-index:1400;
   width:270px;max-width:calc(100vw - 28px);background:#fff;border-radius:12px;
@@ -594,6 +602,7 @@ font-size:16px;
 .offline-fab-close:hover{color:#333;}
 @media(max-width:640px){
   .offline-fab{right:14px;bottom:14px;}
+  .inventory-fab{right:14px;bottom:78px;}
   .offline-fab-panel{right:14px;bottom:78px;}
 }
 
@@ -875,8 +884,6 @@ font-size:16px;
 
 <div>
 
-<a href="inventory.html" class="nav-link" title="Spare Parts Inventory" aria-label="Spare Parts Inventory"><i class="fa-solid fa-warehouse"></i> Spare Parts Inventory</a>
-
 </div>
 
 </nav>
@@ -912,6 +919,11 @@ font-size:16px;
 
   </div>
 </div>
+
+<!-- Spare Parts Inventory — floating button, stacked above the Offline Access download button -->
+<a href="inventory.html" id="inventoryFabBtn" class="inventory-fab" title="Spare Parts Inventory" aria-label="Spare Parts Inventory">
+  <i class="fa-solid fa-cart-shopping"></i>
+</a>
 
 <!-- Offline Access — floating side button + panel (moved out of the quick actions bar) -->
 <button type="button" id="offlineFabBtn" class="offline-fab" title="Offline Access" aria-label="Offline Access">
