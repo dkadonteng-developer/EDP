@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>InfoPort — Handover &amp; Report Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#006937">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="InfoPort">
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --brand:#006937;
+    --brand-light:#00a651;
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --text:#1f2a24;
+    --muted:#6b7280;
+    --border:#e6e9ec;
+    --danger:#d92d20;
+    --amber:#b45309;
+    --amber-bg:#fef3e0;
+  }
+  *{box-sizing:border-box}
+  html{overflow-x:hidden}
+  body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--text);overflow-x:hidden}
+
+  #offlineBanner{
+    display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+    background:var(--danger);color:#fff;text-align:center;
+    padding:9px 12px;font-size:13px;font-weight:600;
+  }
+  #offlineBanner.show{display:block}
+
+  header{
+    background:var(--brand);color:#fff;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;row-gap:8px;
+    position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  }
+  header a.header-back{
+    display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
+    font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
+    padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
+  }
+  header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
+  header h1{font-size:1.05rem;font-weight:600;margin:0;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+  .header-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:110px;justify-content:flex-end}
+
+  .container{max-width:900px;margin:auto;padding:22px 20px 100px}
+
+  .card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+  .card h2{margin:0 0 4px;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+  .card h2 i{color:var(--brand)}
+  .card-hint{color:var(--muted);font-size:.85rem;margin:0 0 16px}
+
+  .view-toggle{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .view-toggle-btn{
+    flex:1;min-width:150px;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:20px;
+    padding:11px 16px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  }
+  .view-toggle-btn.is-active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .pf-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  .pf-field{display:flex;flex-direction:column;gap:6px}
+  .pf-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
+  .pf-field input,.pf-field select,.pf-field textarea{
+    border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;
+    font-size:16px;outline:none;background:#fff;
+  }
+  .pf-field input:focus,.pf-field select:focus{border-color:var(--brand-light)}
+
+  .stoppage-row{
+    display:grid;grid-template-columns:1fr 100px 100px 80px 34px;gap:8px;align-items:end;
+    background:#f7f8fa;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;
+  }
+  .stoppage-row label{font-size:.7rem;color:var(--muted);font-weight:600;display:block;margin-bottom:4px}
+  .stoppage-row input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;font-family:inherit;font-size:14px}
+  .stoppage-duration{font-weight:700;color:var(--brand);font-size:.9rem;text-align:center;padding-bottom:8px}
+  .stoppage-remove{
+    background:none;border:1px solid var(--border);border-radius:6px;color:var(--danger);
+    width:34px;height:36px;cursor:pointer;
+  }
+  .stoppage-remove:hover{background:#fdecea}
+  .add-stoppage-btn{
+    background:#fff;border:1.5px dashed var(--brand-light);color:var(--brand);border-radius:10px;
+    padding:10px;width:100%;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;margin-bottom:14px;
+  }
+  .add-stoppage-btn:hover{background:#f0f9f4}
+  .no-stoppages{color:var(--muted);font-size:.85rem;text-align:center;padding:14px;background:#f7f8fa;border-radius:10px;margin-bottom:14px}
+
+  .total-downtime{
+    display:flex;align-items:center;justify-content:space-between;background:var(--amber-bg);color:var(--amber);
+    border-radius:10px;padding:12px 16px;font-weight:700;margin-bottom:16px;
+  }
+
+  .pf-error{color:var(--danger);font-size:.82rem;min-height:1.2em}
+  .pf-submit-btn{
+    background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;width:100%;
+    font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .pf-submit-btn:hover{background:#005229}
+  .pf-submit-btn:disabled{background:#ccc;cursor:not-allowed}
+  .pf-success{display:none;text-align:center;padding:20px 10px}
+  .pf-success.show{display:block}
+  .pf-success i{font-size:2.2rem;color:var(--brand);margin-bottom:10px;display:block}
+
+  /* ---------- Admin sign-in (lightweight modal, same pattern as other pages) ---------- */
+  #adminSignInOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #adminSignInOverlay.is-open{display:flex}
+  .admin-modal{
+    background:#fff;border-radius:16px;max-width:380px;width:100%;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .admin-modal-head{background:var(--brand);color:#fff;padding:18px 20px;position:relative}
+  .admin-modal-head h3{margin:0 0 3px;font-size:1.05rem}
+  .admin-modal-head p{margin:0;font-size:.82rem;opacity:.92}
+  .admin-modal-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;
+  }
+  .admin-modal-close:hover{background:rgba(255,255,255,.35)}
+  .admin-modal-body{padding:20px}
+  .admin-modal-body form{display:flex;flex-direction:column;gap:14px}
+  .admin-modal-body label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;font-weight:600;color:#444}
+  .admin-modal-body input{font-family:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--border);border-radius:8px}
+  .admin-modal-body input:focus{outline:none;border-color:var(--brand)}
+  .admin-signin-error{color:var(--danger);font-size:.82rem;min-height:1em}
+  .admin-signin-btn{
+    background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
+    font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .admin-signin-btn:hover{background:#005229}
+  .admin-signin-btn:disabled{background:#ccc;cursor:not-allowed}
+
+  /* ---------- Admin view ---------- */
+  .admin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .admin-tab-btn{
+    background:#fff;border:1.5px solid var(--border);color:#555;padding:9px 16px;border-radius:20px;
+    font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .admin-tab-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+  .admin-panel{display:none}
+  .admin-panel.active{display:block}
+
+  .stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+  .stat-card .num{font-size:1.5rem;font-weight:700;color:var(--brand)}
+  .stat-card .label{font-size:.76rem;color:var(--muted)}
+
+  .chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+  .chart-card h3{margin:0 0 12px;font-size:.9rem;color:var(--text)}
+  .chart-card canvas{max-height:240px}
+
+  .history-filter{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .history-filter select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85rem}
+
+  .log-row{
+    background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;
+  }
+  .log-row-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .log-row-title{font-weight:700;font-size:.92rem}
+  .log-row-meta{color:var(--muted);font-size:.78rem}
+  .log-row-badge{
+    background:var(--amber-bg);color:var(--amber);padding:3px 10px;border-radius:20px;font-size:.74rem;font-weight:600;white-space:nowrap
+  }
+  .log-row-stoppages{font-size:.8rem;color:var(--text);margin-top:8px}
+  .log-row-stoppages div{padding:3px 0;border-top:1px dashed var(--border)}
+  .log-row-btns{display:flex;gap:8px;margin-top:10px}
+  .row-icon-btn{background:#f2f4f3;border:none;color:#555;width:34px;height:34px;border-radius:8px;cursor:pointer}
+  .row-icon-btn:hover{background:#e5e8e7}
+  .row-icon-btn.danger{color:var(--danger)}
+  .row-icon-btn.danger:hover{background:#fdeceb}
+
+  .toolbar-btn{
+    background:var(--brand);color:#fff;border:none;padding:10px 18px;border-radius:20px;
+    font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  }
+  .toolbar-btn:hover{background:#005229}
+  .toolbar-btn.outline{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
+  .toolbar-btn.outline:hover{background:#f0f9f4}
+  .export-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .empty-state{color:var(--muted);font-size:.88rem;padding:24px;text-align:center;background:#fff;border-radius:14px}
+  .loading-text{color:var(--muted);font-size:.85rem;padding:20px;text-align:center}
+
+  /* ---------- Loading overlay (shared pattern) ---------- */
+  #pageLoadingOverlay{
+    position:fixed;inset:0;z-index:99999;background:#006937;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    transition:opacity .3s ease;
+  }
+  #pageLoadingOverlay.is-hidden{opacity:0;pointer-events:none}
+  #pageLoadingOverlay img{width:64px;height:64px;border-radius:50%;background:#dacb04;object-fit:cover}
+  #pageLoadingOverlay .plo-spinner{
+    width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+    animation:ploSpin .7s linear infinite;
+  }
+  @keyframes ploSpin{to{transform:rotate(360deg)}}
+  #pageLoadingOverlay .plo-label{color:#fff;font-family:'Poppins',Arial,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.3px}
+
+  @media(max-width:600px){
+    .container{padding:16px 14px 100px}
+    .pf-row,.pf-row-3{grid-template-columns:1fr}
+    .stoppage-row{grid-template-columns:1fr 1fr;grid-template-areas:"reason reason" "start end" "dur remove"}
+    .stoppage-row .pf-field:nth-child(1){grid-area:reason}
+    .stoppage-row .pf-field:nth-child(2){grid-area:start}
+    .stoppage-row .pf-field:nth-child(3){grid-area:end}
+    .stoppage-duration{grid-area:dur;text-align:left}
+    .stoppage-remove{grid-area:remove;justify-self:end}
+  }
+</style>
+</head>
+<body>
+
+<div id="pageLoadingOverlay">
+  <img src="assets/logo.png" alt="">
+  <div class="plo-spinner"></div>
+  <span class="plo-label">Loading…</span>
+</div>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
+
+<header>
+  <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+  <h1><i class="fa-solid fa-clipboard-list"></i> Handover &amp; Report Log</h1>
+  <div class="header-right"></div>
+</header>
+
+<div class="container">
+
+  <div class="view-toggle">
+    <button type="button" class="view-toggle-btn is-active" id="showEntryViewBtn"><i class="fa-solid fa-pen-to-square"></i> New Log Entry</button>
+    <button type="button" class="view-toggle-btn" id="showAdminViewBtn"><i class="fa-solid fa-user-shield"></i> Admin View</button>
+  </div>
+
+  <!-- ================= NEW LOG ENTRY ================= -->
+  <div id="entryView">
+    <div class="card">
+      <h2><i class="fa-solid fa-industry"></i> Milling Department Shift Log</h2>
+      <p class="card-hint">Log stoppages for this shift — total downtime is calculated automatically.</p>
+
+      <div class="pf-success" id="entrySuccess">
+        <i class="fa-solid fa-circle-check"></i>
+        <strong>Log entry saved</strong>
+        <p style="color:var(--muted);font-size:.88rem;margin:6px 0 0">Thanks — this shift's log has been recorded.</p>
+        <button type="button" class="toolbar-btn outline" id="entryDoneBtn" style="margin-top:16px">Log Another Entry</button>
+      </div>
+
+      <form id="entryForm">
+        <div class="pf-row-3">
+          <div class="pf-field">
+            <label for="millSelect">Mill *</label>
+            <select id="millSelect" required>
+              <option value="">Select mill…</option>
+              <option>Mill 1</option>
+              <option>Mill 2</option>
+              <option>Mill 3</option>
+              <option>Mill 4</option>
+              <option>Mill 5</option>
+            </select>
+          </div>
+          <div class="pf-field">
+            <label for="shiftSelect">Shift *</label>
+            <select id="shiftSelect" required>
+              <option value="">Select shift…</option>
+              <option value="Morning (06:00–14:00)">Morning (06:00–14:00)</option>
+              <option value="Afternoon (14:00–22:00)">Afternoon (14:00–22:00)</option>
+              <option value="Night (22:00–06:00)">Night (22:00–06:00)</option>
+            </select>
+          </div>
+          <div class="pf-field">
+            <label for="recordedDateInput">Recorded Date *</label>
+            <input type="date" id="recordedDateInput" required>
+          </div>
+        </div>
+
+        <div class="pf-row">
+          <div class="pf-field" style="grid-column:1/-1">
+            <label for="supervisorInput">Supervisor Signature (Name) *</label>
+            <input type="text" id="supervisorInput" required maxlength="100" placeholder="e.g. Kwame Mensah">
+          </div>
+        </div>
+
+        <h2 style="font-size:.92rem;margin:18px 0 4px"><i class="fa-solid fa-triangle-exclamation"></i> Stoppages</h2>
+        <p class="card-hint">Log every stop during this shift. Total downtime is calculated automatically.</p>
+
+        <div id="stoppagesList"></div>
+        <div class="no-stoppages" id="noStoppagesMsg">No stoppages logged for this shift yet.</div>
+        <button type="button" class="add-stoppage-btn" id="addStoppageBtn"><i class="fa-solid fa-plus"></i> Add Stoppage</button>
+
+        <div class="total-downtime">
+          <span>Total downtime</span>
+          <span id="totalDowntimeDisplay">0.0 hrs</span>
+        </div>
+
+        <div class="pf-error" id="entryFormError"></div>
+        <button type="submit" class="pf-submit-btn" id="entrySubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Log Entry</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= ADMIN VIEW ================= -->
+  <div id="adminView" style="display:none">
+    <div class="card" id="adminGate">
+      <h2><i class="fa-solid fa-lock"></i> Admin Access</h2>
+      <p class="card-hint">Sign in with your admin account to view submitted logs, run reports, and manage the recycle bin.</p>
+      <button type="button" class="toolbar-btn" id="adminSignInBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+    </div>
+
+    <div id="adminDashboard" style="display:none">
+      <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" data-tab="overviewPanel"><i class="fa-solid fa-chart-column"></i> Overview</button>
+        <button type="button" class="admin-tab-btn" data-tab="entriesPanel"><i class="fa-solid fa-list"></i> Log Entries</button>
+        <button type="button" class="admin-tab-btn" data-tab="binPanel"><i class="fa-solid fa-trash-can"></i> Recycle Bin</button>
+      </div>
+
+      <!-- Overview -->
+      <div class="admin-panel active" id="overviewPanel">
+        <div class="stat-cards" id="statCards"></div>
+        <div class="chart-card"><h3>Downtime by mill (hrs)</h3><canvas id="chartByMill"></canvas></div>
+        <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
+        <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
+      </div>
+
+      <!-- Log Entries -->
+      <div class="admin-panel" id="entriesPanel">
+        <div class="history-filter">
+          <select id="filterMill"><option value="">All mills</option></select>
+          <select id="filterShift"><option value="">All shifts</option></select>
+          <button type="button" class="toolbar-btn outline" id="clearFiltersBtn">Clear filters</button>
+        </div>
+        <div class="export-bar">
+          <button type="button" class="toolbar-btn outline" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" class="toolbar-btn outline" id="exportPdfBtn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+        </div>
+        <div id="entriesListContainer"><p class="loading-text">Loading entries…</p></div>
+      </div>
+
+      <!-- Recycle Bin -->
+      <div class="admin-panel" id="binPanel">
+        <p class="card-hint" style="margin-bottom:16px">Deleted log entries are kept here until permanently removed. Restore a record to return it to the active log list.</p>
+        <div id="binListContainer"><p class="loading-text">Loading…</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="adminSignInOverlay">
+  <div class="admin-modal">
+    <div class="admin-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-user-shield"></i> Admin Sign In</h3>
+        <p>Sign in with your admin account to view the handover &amp; report log admin dashboard.</p>
+      </div>
+      <button type="button" class="admin-modal-close" id="adminSignInCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="adminSignInForm">
+        <label>Email
+          <input type="email" id="adminEmailInput" required autocomplete="username">
+        </label>
+        <label>Password
+          <input type="password" id="adminPasswordInput" required autocomplete="current-password">
+        </label>
+        <div class="admin-signin-error" id="adminSignInError"></div>
+        <button type="submit" class="admin-signin-btn" id="adminSignInSubmitBtn">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Firebase (shared with the rest of InfoPort) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+const auth = firebase.auth();
+
+const authReady = new Promise((resolve) => {
+  auth.onAuthStateChanged((user) => { if (user) resolve(user.uid); });
+});
+auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed', err));
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+// Extra deliberate step beyond normal admin access before a permanent,
+// unrecoverable delete goes through.
+function confirmPermanentDelete(label) {
+  const typed = prompt(`This will permanently delete ${label}. This cannot be undone.\n\nType DELETE to confirm.`);
+  return typed === 'DELETE';
+}
+
+// ---------- View toggle: New Log Entry vs Admin View ----------
+const entryView = document.getElementById('entryView');
+const adminView = document.getElementById('adminView');
+const showEntryBtn = document.getElementById('showEntryViewBtn');
+const showAdminBtn = document.getElementById('showAdminViewBtn');
+
+showEntryBtn.addEventListener('click', () => {
+  entryView.style.display = 'block';
+  adminView.style.display = 'none';
+  showEntryBtn.classList.add('is-active');
+  showAdminBtn.classList.remove('is-active');
+});
+showAdminBtn.addEventListener('click', () => {
+  entryView.style.display = 'none';
+  adminView.style.display = 'block';
+  showAdminBtn.classList.add('is-active');
+  showEntryBtn.classList.remove('is-active');
+});
+
+// ---------- New Log Entry form ----------
+const entryEl = {
+  form: document.getElementById('entryForm'),
+  mill: document.getElementById('millSelect'),
+  shift: document.getElementById('shiftSelect'),
+  date: document.getElementById('recordedDateInput'),
+  supervisor: document.getElementById('supervisorInput'),
+  stoppagesList: document.getElementById('stoppagesList'),
+  noStoppagesMsg: document.getElementById('noStoppagesMsg'),
+  addStoppageBtn: document.getElementById('addStoppageBtn'),
+  totalDisplay: document.getElementById('totalDowntimeDisplay'),
+  error: document.getElementById('entryFormError'),
+  submitBtn: document.getElementById('entrySubmitBtn'),
+  success: document.getElementById('entrySuccess'),
+  doneBtn: document.getElementById('entryDoneBtn'),
+};
+
+entryEl.date.value = new Date().toISOString().slice(0, 10);
+
+let stoppageRows = []; // [{id, reason, start, end}]
+let stoppageRowSeq = 0;
+
+function parseTimeToMinutes(t) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+function stoppageDurationHrs(start, end) {
+  const s = parseTimeToMinutes(start);
+  const e = parseTimeToMinutes(end);
+  if (s == null || e == null) return 0;
+  let diff = e - s;
+  if (diff < 0) diff += 24 * 60; // shift crosses midnight
+  return Math.round((diff / 60) * 100) / 100;
+}
+
+function addStoppageRow() {
+  stoppageRows.push({ id: ++stoppageRowSeq, reason: '', start: '', end: '' });
+  renderStoppageRows();
+}
+
+function renderStoppageRows() {
+  entryEl.noStoppagesMsg.style.display = stoppageRows.length ? 'none' : 'block';
+  entryEl.stoppagesList.innerHTML = stoppageRows.map((row) => `
+    <div class="stoppage-row" data-row-id="${row.id}">
+      <div class="pf-field">
+        <label>Reason</label>
+        <input type="text" class="stoppage-reason" placeholder="e.g. Belt jam" value="${escapeHtml(row.reason)}" maxlength="150">
+      </div>
+      <div class="pf-field">
+        <label>Start</label>
+        <input type="time" class="stoppage-start" value="${escapeHtml(row.start)}">
+      </div>
+      <div class="pf-field">
+        <label>End</label>
+        <input type="time" class="stoppage-end" value="${escapeHtml(row.end)}">
+      </div>
+      <div class="stoppage-duration">${stoppageDurationHrs(row.start, row.end).toFixed(1)}h</div>
+      <button type="button" class="stoppage-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  `).join('');
+
+  entryEl.stoppagesList.querySelectorAll('.stoppage-row').forEach((rowEl) => {
+    const id = Number(rowEl.dataset.rowId);
+    const row = stoppageRows.find((r) => r.id === id);
+    rowEl.querySelector('.stoppage-reason').addEventListener('input', (ev) => { row.reason = ev.target.value; });
+    rowEl.querySelector('.stoppage-start').addEventListener('input', (ev) => { row.start = ev.target.value; updateStoppageDuration(rowEl, row); });
+    rowEl.querySelector('.stoppage-end').addEventListener('input', (ev) => { row.end = ev.target.value; updateStoppageDuration(rowEl, row); });
+    rowEl.querySelector('.stoppage-remove').addEventListener('click', () => {
+      stoppageRows = stoppageRows.filter((r) => r.id !== id);
+      renderStoppageRows();
+    });
+  });
+  updateTotalDowntime();
+}
+
+function updateStoppageDuration(rowEl, row) {
+  rowEl.querySelector('.stoppage-duration').textContent = `${stoppageDurationHrs(row.start, row.end).toFixed(1)}h`;
+  updateTotalDowntime();
+}
+
+function updateTotalDowntime() {
+  const total = stoppageRows.reduce((sum, r) => sum + stoppageDurationHrs(r.start, r.end), 0);
+  entryEl.totalDisplay.textContent = `${total.toFixed(1)} hrs`;
+}
+
+entryEl.addStoppageBtn.addEventListener('click', addStoppageRow);
+renderStoppageRows();
+
+entryEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  entryEl.error.textContent = '';
+
+  const mill = entryEl.mill.value;
+  const shift = entryEl.shift.value;
+  const recordedDate = entryEl.date.value;
+  const supervisorName = entryEl.supervisor.value.trim();
+
+  if (!mill || !shift || !recordedDate || !supervisorName) {
+    entryEl.error.textContent = 'Mill, shift, recorded date, and supervisor name are required.';
+    return;
+  }
+  for (const row of stoppageRows) {
+    if ((row.start && !row.end) || (!row.start && row.end)) {
+      entryEl.error.textContent = 'Each stoppage needs both a start and end time.';
+      return;
+    }
+  }
+
+  const stoppages = stoppageRows
+    .filter((r) => r.start && r.end)
+    .map((r) => ({ reason: r.reason.trim(), startTime: r.start, endTime: r.end, durationHrs: stoppageDurationHrs(r.start, r.end) }));
+  const totalDowntimeHrs = stoppages.reduce((sum, s) => sum + s.durationHrs, 0);
+
+  entryEl.submitBtn.disabled = true;
+  entryEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    const uid = await authReady;
+    await db.collection('millLogs').add({
+      mill, shift, recordedDate, supervisorName,
+      stoppages, totalDowntimeHrs,
+      submittedBy: uid,
+      archived: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    entryEl.form.style.display = 'none';
+    entryEl.success.classList.add('show');
+  } catch (err) {
+    console.error('Failed to save log entry', err);
+    entryEl.error.textContent = 'Could not save this log entry. Please try again.';
+  } finally {
+    entryEl.submitBtn.disabled = false;
+    entryEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Log Entry';
+  }
+});
+
+entryEl.doneBtn.addEventListener('click', () => {
+  entryEl.form.reset();
+  entryEl.date.value = new Date().toISOString().slice(0, 10);
+  stoppageRows = [];
+  renderStoppageRows();
+  entryEl.form.style.display = '';
+  entryEl.success.classList.remove('show');
+});
+
+// ---------- Admin authentication (same real Firebase Auth + admins collection pattern used across the app) ----------
+let isAdmin = false;
+
+auth.onAuthStateChanged(async (user) => {
+  if (user && !user.isAnonymous) {
+    try {
+      const doc = await db.collection('admins').doc(user.uid).get();
+      isAdmin = doc.exists;
+    } catch (err) {
+      console.error('Admin membership check failed', err);
+      isAdmin = false;
+    }
+  } else {
+    isAdmin = false;
+  }
+  document.getElementById('adminGate').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('adminDashboard').style.display = isAdmin ? 'block' : 'none';
+  if (isAdmin) loadAllMillLogs();
+});
+
+document.getElementById('adminSignInBtn').addEventListener('click', () => {
+  document.getElementById('adminSignInError').textContent = '';
+  document.getElementById('adminSignInOverlay').classList.add('is-open');
+});
+document.getElementById('adminSignInCloseX').addEventListener('click', () => {
+  document.getElementById('adminSignInOverlay').classList.remove('is-open');
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && document.getElementById('adminSignInOverlay').classList.contains('is-open')) {
+    document.getElementById('adminSignInOverlay').classList.remove('is-open');
+  }
+});
+document.getElementById('adminSignInForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const errorEl = document.getElementById('adminSignInError');
+  const submitBtn = document.getElementById('adminSignInSubmitBtn');
+  errorEl.textContent = '';
+  const email = document.getElementById('adminEmailInput').value.trim();
+  const password = document.getElementById('adminPasswordInput').value;
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, password);
+    const adminDoc = await db.collection('admins').doc(cred.user.uid).get();
+    if (!adminDoc.exists) {
+      await auth.signOut();
+      errorEl.textContent = 'This account is not authorized as an admin.';
+      return;
+    }
+    ev.target.reset();
+    document.getElementById('adminSignInOverlay').classList.remove('is-open');
+  } catch (err) {
+    console.error('Admin sign-in failed', err);
+    errorEl.textContent = 'Incorrect email or password.';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+  }
+});
+
+// ---------- Admin dashboard tabs ----------
+document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach((p) => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Admin data: load, filter, render ----------
+let allMillLogs = [];
+let millCharts = { mill: null, shift: null, reason: null };
+
+async function loadAllMillLogs() {
+  document.getElementById('entriesListContainer').innerHTML = '<p class="loading-text">Loading entries…</p>';
+  document.getElementById('binListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    const snap = await db.collection('millLogs').get();
+    allMillLogs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    allMillLogs.sort((a, b) => {
+      const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    });
+    populateFilterOptions();
+    renderOverview();
+    renderEntriesList();
+    renderBinList();
+  } catch (err) {
+    console.error('Failed to load mill logs', err);
+    document.getElementById('entriesListContainer').innerHTML = '<p class="empty-state">Could not load log entries.</p>';
+  }
+}
+
+function populateFilterOptions() {
+  const millSel = document.getElementById('filterMill');
+  const shiftSel = document.getElementById('filterShift');
+  const mills = Array.from(new Set(allMillLogs.map((l) => l.mill).filter(Boolean))).sort();
+  const shifts = Array.from(new Set(allMillLogs.map((l) => l.shift).filter(Boolean))).sort();
+  const curMill = millSel.value, curShift = shiftSel.value;
+  millSel.innerHTML = '<option value="">All mills</option>' + mills.map((m) => `<option>${escapeHtml(m)}</option>`).join('');
+  shiftSel.innerHTML = '<option value="">All shifts</option>' + shifts.map((s) => `<option>${escapeHtml(s)}</option>`).join('');
+  millSel.value = curMill;
+  shiftSel.value = curShift;
+}
+
+function activeLogs() { return allMillLogs.filter((l) => !l.archived); }
+function archivedLogs() { return allMillLogs.filter((l) => !!l.archived); }
+
+function filteredEntries() {
+  const mill = document.getElementById('filterMill').value;
+  const shift = document.getElementById('filterShift').value;
+  return activeLogs().filter((l) => (!mill || l.mill === mill) && (!shift || l.shift === shift));
+}
+
+document.getElementById('filterMill').addEventListener('change', renderEntriesList);
+document.getElementById('filterShift').addEventListener('change', renderEntriesList);
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+  document.getElementById('filterMill').value = '';
+  document.getElementById('filterShift').value = '';
+  renderEntriesList();
+});
+
+function renderOverview() {
+  const rows = activeLogs();
+  const totalDowntime = rows.reduce((s, r) => s + (r.totalDowntimeHrs || 0), 0);
+  const totalStoppages = rows.reduce((s, r) => s + ((r.stoppages || []).length), 0);
+
+  document.getElementById('statCards').innerHTML = `
+    <div class="stat-card"><div class="num">${rows.length}</div><div class="label">Log entries</div></div>
+    <div class="stat-card"><div class="num">${totalDowntime.toFixed(1)}h</div><div class="label">Total downtime</div></div>
+    <div class="stat-card"><div class="num">${totalStoppages}</div><div class="label">Stoppages logged</div></div>
+    <div class="stat-card"><div class="num">${archivedLogs().length}</div><div class="label">In recycle bin</div></div>
+  `;
+
+  const byMill = {};
+  rows.forEach((r) => { byMill[r.mill] = (byMill[r.mill] || 0) + (r.totalDowntimeHrs || 0); });
+  const byShift = {};
+  rows.forEach((r) => { byShift[r.shift] = (byShift[r.shift] || 0) + (r.totalDowntimeHrs || 0); });
+  const byReason = {};
+  rows.forEach((r) => (r.stoppages || []).forEach((s) => {
+    const key = s.reason || 'Unspecified';
+    byReason[key] = (byReason[key] || 0) + 1;
+  }));
+  const topReasons = Object.entries(byReason).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  drawBarChart('mill', 'chartByMill', Object.keys(byMill), Object.values(byMill), '#006937');
+  drawBarChart('shift', 'chartByShift', Object.keys(byShift), Object.values(byShift), '#00a651');
+  drawBarChart('reason', 'chartByReason', topReasons.map((r) => r[0]), topReasons.map((r) => r[1]), '#b45309');
+}
+
+function drawBarChart(key, canvasId, labels, data, color) {
+  if (typeof Chart === 'undefined') return;
+  if (millCharts[key]) millCharts[key].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  millCharts[key] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+}
+
+function renderEntriesList() {
+  const container = document.getElementById('entriesListContainer');
+  const rows = filteredEntries();
+  if (!rows.length) {
+    container.innerHTML = '<p class="empty-state">No log entries match your filter.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((r) => `
+    <div class="log-row">
+      <div class="log-row-head">
+        <div>
+          <div class="log-row-title">${escapeHtml(r.mill)} — ${escapeHtml(r.shift)}</div>
+          <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Supervisor: ${escapeHtml(r.supervisorName)}</div>
+        </div>
+        <span class="log-row-badge">${(r.totalDowntimeHrs || 0).toFixed(1)}h downtime</span>
+      </div>
+      ${(r.stoppages || []).length ? `<div class="log-row-stoppages">${r.stoppages.map((s) => `<div>${escapeHtml(s.startTime)}–${escapeHtml(s.endTime)} (${s.durationHrs.toFixed(1)}h) — ${escapeHtml(s.reason || 'No reason given')}</div>`).join('')}</div>` : '<div class="log-row-stoppages" style="color:var(--muted)">No stoppages logged.</div>'}
+      <div class="log-row-btns">
+        <button type="button" class="row-icon-btn" title="Archive" data-archive-log="${r.id}"><i class="fa-solid fa-box-archive"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-archive-log]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Archive this log entry? It will move to the recycle bin and can be restored later.')) return;
+      try {
+        await db.collection('millLogs').doc(btn.dataset.archiveLog).update({
+          archived: true,
+          archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          archivedBy: auth.currentUser ? auth.currentUser.email : '',
+        });
+        loadAllMillLogs();
+      } catch (err) {
+        console.error('Failed to archive log entry', err);
+        alert('Could not archive this entry. Please try again.');
+      }
+    });
+  });
+}
+
+function renderBinList() {
+  const container = document.getElementById('binListContainer');
+  const rows = archivedLogs();
+  if (!rows.length) {
+    container.innerHTML = '<p class="empty-state">Recycle bin is empty.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((r) => `
+    <div class="log-row">
+      <div class="log-row-head">
+        <div>
+          <div class="log-row-title">${escapeHtml(r.mill)} — ${escapeHtml(r.shift)}</div>
+          <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Supervisor: ${escapeHtml(r.supervisorName)}</div>
+        </div>
+        <span class="log-row-badge">${(r.totalDowntimeHrs || 0).toFixed(1)}h downtime</span>
+      </div>
+      <div class="log-row-btns">
+        <button type="button" class="row-icon-btn" title="Restore" data-restore-log="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
+        <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-log="${r.id}"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('[data-restore-log]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await db.collection('millLogs').doc(btn.dataset.restoreLog).update({
+          archived: false,
+          archivedAt: firebase.firestore.FieldValue.delete(),
+          archivedBy: firebase.firestore.FieldValue.delete(),
+        });
+        loadAllMillLogs();
+      } catch (err) {
+        console.error('Failed to restore log entry', err);
+        alert('Could not restore this entry. Please try again.');
+      }
+    });
+  });
+  container.querySelectorAll('[data-delete-log]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirmPermanentDelete('this log entry')) return;
+      try {
+        await db.collection('millLogs').doc(btn.dataset.deleteLog).delete();
+        loadAllMillLogs();
+      } catch (err) {
+        console.error('Failed to delete log entry', err);
+        alert('Could not delete this entry. Please try again.');
+      }
+    });
+  });
+}
+
+// ---------- Export (Excel / PDF) — active, filtered entries only ----------
+function exportRows() { return filteredEntries(); }
+
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+  const rows = exportRows();
+  if (!rows.length) { alert('No entries to export with the current filter.'); return; }
+  const sheetRows = rows.map((r) => ({
+    Mill: r.mill,
+    Shift: r.shift,
+    'Recorded Date': r.recordedDate,
+    Supervisor: r.supervisorName,
+    'Total Downtime (hrs)': r.totalDowntimeHrs || 0,
+    Stoppages: (r.stoppages || []).map((s) => `${s.startTime}-${s.endTime} (${s.durationHrs}h): ${s.reason}`).join('; '),
+  }));
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  ws['!cols'] = [{ wch: 10 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 60 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Mill Log');
+  XLSX.writeFile(wb, `mill-log-${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+  const rows = exportRows();
+  if (!rows.length) { alert('No entries to export with the current filter.'); return; }
+  if (typeof window.jspdf === 'undefined') { alert('Export library failed to load. Check your connection and try again.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.setFontSize(14);
+  doc.setTextColor(0, 105, 55);
+  doc.text('Milling Department Handover & Report Log', 40, 40);
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Exported ${new Date().toLocaleString()} • ${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`, 40, 56);
+
+  const head = ['Mill', 'Shift', 'Date', 'Supervisor', 'Downtime (h)', 'Stoppages'];
+  const body = rows.map((r) => [
+    r.mill, r.shift, r.recordedDate, r.supervisorName,
+    (r.totalDowntimeHrs || 0).toFixed(1),
+    (r.stoppages || []).map((s) => `${s.startTime}-${s.endTime} (${s.durationHrs}h): ${s.reason}`).join('; '),
+  ]);
+
+  doc.autoTable({
+    head: [head], body, startY: 70,
+    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [247, 248, 250] },
+    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 110 }, 2: { cellWidth: 70 }, 3: { cellWidth: 90 }, 4: { cellWidth: 70 }, 5: { cellWidth: 'auto' } },
+    margin: { left: 40, right: 40 },
+  });
+
+  doc.save(`mill-log-${new Date().toISOString().slice(0, 10)}.pdf`);
+});
+
+// ---------- Offline banner ----------
+function updateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('offline', updateOfflineBanner);
+updateOfflineBanner();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<script src="search.js" defer></script>
+<script src="pull-to-refresh.js" defer></script>
+<script src="loading-screen.js" defer></script>
+
+</body>
+</html>
