@@ -449,6 +449,9 @@
       <button type="button" class="admin-tab-btn" data-tab="partsPanel">
         <i class="fa-solid fa-warehouse"></i> Spare Parts
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="resourcesPanel">
+        <i class="fa-solid fa-book"></i> Resources
+      </button>
     </div>
 
     <!-- ---- Equipment panel ---- -->
@@ -515,6 +518,38 @@
         <p>Spare parts have their own dedicated management screen — add, edit, and remove parts, and adjust stock levels there. It uses the same admin sign-in as this page.</p>
         <a href="inventory.html"><i class="fa-solid fa-arrow-right"></i> Open Spare Parts Inventory</a>
       </div>
+    </div>
+
+    <!-- ---- Internal Resources panel ---- -->
+    <div class="admin-panel" id="resourcesPanel">
+      <div class="panel-toolbar">
+        <h2>Internal Resources</h2>
+      </div>
+      <p class="panel-hint">Manuals, terminology/procedure references, training videos, and any other in-house material. These show up in a shared "Internal Resources" card on every equipment's Documents tab.</p>
+
+      <div class="ef-subsection">
+        <div class="ef-doc-row-top" style="margin-bottom:8px">
+          <input type="text" id="resNameInput" placeholder="Resource name (e.g. Lubrication Glossary)">
+          <select id="resCategoryInput">
+            <option value="Manual">Manual</option>
+            <option value="Procedure">Procedure</option>
+            <option value="Video">Video</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <input type="text" id="resFileInput" placeholder="File path/URL, or paste a video link" style="width:100%;margin-bottom:8px">
+        <label class="ef-upload-btn">
+          <i class="fa-solid fa-upload"></i> Upload File
+          <input type="file" id="resFileUploadInput" hidden>
+        </label>
+        <div class="ef-upload-progress" id="resUploadProgress" style="display:none;"></div>
+        <div class="ef-error" id="resFormError"></div>
+        <button type="button" class="toolbar-btn" id="addResourceBtn" style="margin-top:10px">
+          <i class="fa-solid fa-plus"></i> Add Resource
+        </button>
+      </div>
+
+      <div id="resourceListContainer" style="margin-top:20px"><p class="loading-text">Loading resources…</p></div>
     </div>
 
   </div>
@@ -964,6 +999,7 @@ function renderAuthState(user) {
     signedInAs.textContent = user.email;
     loadEquipmentList().then(loadGroupsList);
     loadHistoryEquipmentOptions();
+    loadResources();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
@@ -1503,6 +1539,113 @@ function addSafetyRow(text = '') {
 
 document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
 document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
+
+// ================= Internal Resources (global, admin-managed) =================
+// Shown as a shared "Internal Resources" card on every equipment's Documents
+// tab — manuals, procedure/terminology references, training videos, or any
+// other in-house material not tied to one specific machine.
+
+const RESOURCE_CATEGORY_ICON = {
+  Manual: 'fa-book',
+  Procedure: 'fa-list-check',
+  Video: 'fa-video',
+  Other: 'fa-circle-info'
+};
+
+const resEl = {
+  name: document.getElementById('resNameInput'),
+  category: document.getElementById('resCategoryInput'),
+  file: document.getElementById('resFileInput'),
+  fileUpload: document.getElementById('resFileUploadInput'),
+  progress: document.getElementById('resUploadProgress'),
+  addBtn: document.getElementById('addResourceBtn'),
+  error: document.getElementById('resFormError'),
+  list: document.getElementById('resourceListContainer'),
+};
+
+resEl.fileUpload.addEventListener('change', async () => {
+  const file = resEl.fileUpload.files[0];
+  if (!file) return;
+  resEl.progress.style.display = 'block';
+  resEl.progress.textContent = 'Uploading…';
+  try {
+    const path = await uploadFileToGithub(file, 'docs/internal-resources');
+    resEl.file.value = path;
+    resEl.progress.textContent = 'Uploaded ✓ (may take up to a minute to go live)';
+    setTimeout(() => { resEl.progress.style.display = 'none'; }, 2500);
+  } catch (err) {
+    console.error('Upload failed', err);
+    resEl.progress.textContent = `Upload failed: ${err.message}`;
+  } finally {
+    resEl.fileUpload.value = '';
+  }
+});
+
+resEl.addBtn.addEventListener('click', async () => {
+  const name = resEl.name.value.trim();
+  const category = resEl.category.value;
+  const url = resEl.file.value.trim();
+  resEl.error.textContent = '';
+  if (!name || !url) {
+    resEl.error.textContent = 'Name and a file/link are required.';
+    return;
+  }
+  resEl.addBtn.disabled = true;
+  try {
+    await db.collection('internalResources').add({
+      name,
+      category,
+      url,
+      addedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    resEl.name.value = '';
+    resEl.file.value = '';
+    loadResources();
+  } catch (err) {
+    console.error('Failed to add resource', err);
+    resEl.error.textContent = 'Could not save this resource. Please try again.';
+  } finally {
+    resEl.addBtn.disabled = false;
+  }
+});
+
+function renderResourceList(rows) {
+  if (rows.length === 0) {
+    resEl.list.innerHTML = '<p class="empty-state">No internal resources added yet.</p>';
+    return;
+  }
+  resEl.list.innerHTML = rows.map((r) => `
+    <div class="ef-repeat-row" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+      <span><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i>
+        <strong>${escapeHtml(r.name)}</strong> —
+        <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.category)}</a>
+      </span>
+      <button type="button" class="ef-repeat-remove" data-res-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+  resEl.list.querySelectorAll('[data-res-id]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this resource? This removes it from every equipment page.')) return;
+      try {
+        await db.collection('internalResources').doc(btn.dataset.resId).delete();
+        loadResources();
+      } catch (err) {
+        console.error('Failed to delete resource', err);
+        alert('Could not delete this resource. Please try again.');
+      }
+    });
+  });
+}
+
+function loadResources() {
+  resEl.list.innerHTML = '<p class="loading-text">Loading resources…</p>';
+  db.collection('internalResources').orderBy('addedAt', 'desc').get()
+    .then((snap) => renderResourceList(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))
+    .catch((err) => {
+      console.error('Failed to load resources', err);
+      resEl.list.innerHTML = '<p class="empty-state">Could not load resources.</p>';
+    });
+}
 
 wireFileUpload(
   document.getElementById('efImageFile'),
