@@ -2516,6 +2516,7 @@ el.partPanelOverlay.addEventListener('click', (ev) => {
 });
 
 const id = new URLSearchParams(location.search).get('id');
+const requestedTab = new URLSearchParams(location.search).get('tab');
 
 if (!id) {
   showNotFound('No equipment ID was provided in the URL.');
@@ -2528,6 +2529,9 @@ if (!id) {
       }
       const e = { id: doc.id, ...doc.data() };
       renderEquipment(e);
+      if (requestedTab && ['home', 'diagrams', 'documents', 'log'].includes(requestedTab)) {
+        showEqTab(requestedTab);
+      }
     })
     .catch((err) => {
       console.error('Failed to load equipment data', err);
@@ -4254,5 +4258,8 @@ if ('serviceWorker' in navigator) {
 }
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<script src="search.js" defer></script>
+
 </body>
 </html>
