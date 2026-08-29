@@ -254,21 +254,12 @@
   .ev-tab-add:hover{border-color:var(--brand);}
   .ev-tab-add input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-  .ev-canvas-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-  .ev-zoom-btn{
-    width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);
-    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  }
-  .ev-zoom-btn:hover{border-color:var(--brand);color:var(--brand);}
-  .ev-zoom-level{font-size:.78rem;color:var(--muted);min-width:44px;text-align:center;}
-
   .ev-canvas-wrap{
-    position:relative;border-radius:10px;overflow:auto;border:1px solid var(--border);background:#f0f2f4;
-    max-height:60vh;touch-action:none;cursor:grab;
+    position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#f0f2f4;
+    cursor:crosshair;
   }
-  .ev-canvas-wrap.is-panning{cursor:grabbing;}
-  .ev-canvas-stage{position:relative;display:inline-block;line-height:0;}
-  .ev-canvas-stage img{display:block;user-select:none;-webkit-user-drag:none;}
+  .ev-canvas-stage{position:relative;width:100%;}
+  .ev-canvas-stage img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
   .ev-pin{
     position:absolute;width:26px;height:26px;border-radius:50%;background:var(--danger);color:#fff;
     display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;
@@ -687,12 +678,6 @@
             <i class="fa-solid fa-arrows-rotate"></i> Replace This Diagram
             <input type="file" accept="image/*" id="evReplaceFile" hidden>
           </label>
-        </div>
-        <div class="ev-canvas-toolbar">
-          <button type="button" class="ev-zoom-btn" id="evZoomOutBtn" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
-          <span class="ev-zoom-level" id="evZoomLevel">100%</span>
-          <button type="button" class="ev-zoom-btn" id="evZoomInBtn" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
-          <button type="button" class="ev-zoom-btn" id="evZoomResetBtn" title="Fit to screen"><i class="fa-solid fa-compress"></i></button>
         </div>
         <div class="ev-canvas-wrap" id="evCanvasWrap">
           <div class="ev-canvas-stage" id="evCanvasStage">
@@ -1759,9 +1744,6 @@ let evActiveViewId = null;
 let evParts = [];
 let evPendingPin = null;   // {x,y} percent — set while the part form is open
 let evEditingPartId = null;
-let evScale = 1;
-const EV_MIN_SCALE = 0.15;
-const EV_MAX_SCALE = 4;
 
 const evEl = {
   overlay: document.getElementById('explodedViewOverlay'),
@@ -1773,10 +1755,6 @@ const evEl = {
   canvasWrap: document.getElementById('evCanvasWrap'),
   canvasStage: document.getElementById('evCanvasStage'),
   diagramImg: document.getElementById('evDiagramImg'),
-  zoomInBtn: document.getElementById('evZoomInBtn'),
-  zoomOutBtn: document.getElementById('evZoomOutBtn'),
-  zoomResetBtn: document.getElementById('evZoomResetBtn'),
-  zoomLevel: document.getElementById('evZoomLevel'),
   partForm: document.getElementById('evPartForm'),
   partFormTitle: document.getElementById('evPartFormTitle'),
   partName: document.getElementById('evPartName'),
@@ -1930,94 +1908,9 @@ function selectEvView(viewId) {
   evPendingPin = null;
   evEl.tabs.querySelectorAll('.ev-tab').forEach((t) => t.classList.toggle('is-active', t.dataset.viewId === viewId));
 
-  evEl.diagramImg.onload = () => {
-    fitEvToWrap();
-    loadExplodedViewParts();
-  };
   evEl.diagramImg.src = view.url;
+  loadExplodedViewParts();
 }
-
-// ---- Full-resolution pan & zoom, mirroring the equipment-page viewer, so
-// pins can be placed precisely without the diagram being squashed to fit.
-
-function setEvScale(scale, anchor) {
-  const img = evEl.diagramImg;
-  if (!img.naturalWidth) return;
-  const wrap = evEl.canvasWrap;
-  const newScale = Math.min(EV_MAX_SCALE, Math.max(EV_MIN_SCALE, scale));
-  const point = anchor || { x: wrap.clientWidth / 2, y: wrap.clientHeight / 2 };
-  const contentX = (wrap.scrollLeft + point.x) / evScale;
-  const contentY = (wrap.scrollTop + point.y) / evScale;
-
-  evScale = newScale;
-  const w = img.naturalWidth * evScale;
-  const h = img.naturalHeight * evScale;
-  img.style.width = `${w}px`;
-  img.style.height = `${h}px`;
-  evEl.canvasStage.style.width = `${w}px`;
-  evEl.canvasStage.style.height = `${h}px`;
-
-  wrap.scrollLeft = contentX * evScale - point.x;
-  wrap.scrollTop = contentY * evScale - point.y;
-  evEl.zoomLevel.textContent = `${Math.round(evScale * 100)}%`;
-}
-
-function fitEvToWrap() {
-  const img = evEl.diagramImg;
-  if (!img.naturalWidth) return;
-  const wrap = evEl.canvasWrap;
-  evScale = Math.min(1, (wrap.clientWidth || img.naturalWidth) / img.naturalWidth);
-  const w = img.naturalWidth * evScale;
-  const h = img.naturalHeight * evScale;
-  img.style.width = `${w}px`;
-  img.style.height = `${h}px`;
-  evEl.canvasStage.style.width = `${w}px`;
-  evEl.canvasStage.style.height = `${h}px`;
-  wrap.scrollLeft = 0;
-  wrap.scrollTop = 0;
-  evEl.zoomLevel.textContent = `${Math.round(evScale * 100)}%`;
-}
-
-evEl.zoomInBtn.addEventListener('click', () => setEvScale(evScale * 1.4));
-evEl.zoomOutBtn.addEventListener('click', () => setEvScale(evScale / 1.4));
-evEl.zoomResetBtn.addEventListener('click', fitEvToWrap);
-
-evEl.canvasWrap.addEventListener('wheel', (ev) => {
-  if (!evEl.diagramImg.naturalWidth) return;
-  ev.preventDefault();
-  const rect = evEl.canvasWrap.getBoundingClientRect();
-  setEvScale(evScale * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
-}, { passive: false });
-
-let evPanState = null;
-evEl.canvasWrap.addEventListener('pointerdown', (ev) => {
-  if (ev.target.closest('.ev-pin')) return;
-  evPanState = {
-    startX: ev.clientX, startY: ev.clientY,
-    scrollLeft: evEl.canvasWrap.scrollLeft, scrollTop: evEl.canvasWrap.scrollTop,
-    moved: false, pointerId: ev.pointerId,
-  };
-  evEl.canvasWrap.setPointerCapture(ev.pointerId);
-});
-evEl.canvasWrap.addEventListener('pointermove', (ev) => {
-  if (!evPanState || ev.pointerId !== evPanState.pointerId) return;
-  const dx = ev.clientX - evPanState.startX;
-  const dy = ev.clientY - evPanState.startY;
-  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) evPanState.moved = true;
-  if (evPanState.moved) {
-    evEl.canvasWrap.classList.add('is-panning');
-    evEl.canvasWrap.scrollLeft = evPanState.scrollLeft - dx;
-    evEl.canvasWrap.scrollTop = evPanState.scrollTop - dy;
-  }
-});
-let evLastPanMoved = false;
-function endEvPan() {
-  evEl.canvasWrap.classList.remove('is-panning');
-  evLastPanMoved = !!(evPanState && evPanState.moved);
-  evPanState = null;
-}
-evEl.canvasWrap.addEventListener('pointerup', endEvPan);
-evEl.canvasWrap.addEventListener('pointercancel', endEvPan);
 
 async function saveDiagramUrl(url, mode) {
   if (mode === 'add') {
@@ -2042,7 +1935,6 @@ async function saveDiagramUrl(url, mode) {
       const view = evViews.find((v) => v.id === evActiveViewId) || evViews[0];
       view.url = url;
       await persistEvViews();
-      evEl.diagramImg.onload = fitEvToWrap;
       evEl.diagramImg.src = url;
     }
   }
@@ -2073,10 +1965,6 @@ function wireDiagramUpload(fileInput, mode) {
 wireDiagramUpload(document.getElementById('evDiagramFile'), 'first');
 wireDiagramUpload(document.getElementById('evReplaceFile'), 'replace');
 
-window.addEventListener('resize', () => {
-  if (evEl.overlay.classList.contains('is-open')) fitEvToWrap();
-});
-
 function wireEvPartImageUpload(fileInput, targetInput) {
   const progressEl = document.getElementById('evPartImageUploadProgress');
   fileInput.addEventListener('change', async () => {
@@ -2101,7 +1989,6 @@ wireEvPartImageUpload(document.getElementById('evPartImageFile'), evEl.partImage
 // Click anywhere on the diagram (not on an existing pin) to place a new part.
 evEl.canvasWrap.addEventListener('click', (ev) => {
   if (ev.target.closest('.ev-pin')) return;
-  if (evLastPanMoved) { evLastPanMoved = false; return; } // was a drag-to-pan, not a tap
   const rect = evEl.canvasStage.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   const x = ((ev.clientX - rect.left) / rect.width) * 100;
