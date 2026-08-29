@@ -258,57 +258,25 @@ border-color:#006937;
 
 }
 
-.filter-chips{
+.select-row{
 
 display:flex;
 
-flex-wrap:wrap;
-
-gap:10px;
+gap:12px;
 
 }
 
-.filter-chip{
+.select-row .sort-box{
 
-padding:10px 18px;
+flex:1;
 
-border-radius:30px;
-
-border:1px solid #ddd;
-
-background:white;
-
-color:#555;
-
-font-family:inherit;
-
-font-size:13px;
-
-font-weight:500;
-
-cursor:pointer;
-
-transition:.2s;
-
-white-space:nowrap;
+min-width:0;
 
 }
 
-.filter-chip:hover{
+.select-row .sort-box select{
 
-border-color:#006937;
-
-color:#006937;
-
-}
-
-.filter-chip.active{
-
-background:#006937;
-
-border-color:#006937;
-
-color:white;
+width:100%;
 
 }
 
@@ -360,7 +328,15 @@ align-items:stretch;
 
 }
 
-.search-box,.sort-box select{
+.controls-left{
+
+flex-direction:column;
+
+align-items:stretch;
+
+}
+
+.search-box{
 
 max-width:none;
 
@@ -382,9 +358,9 @@ padding:20px;
 
 .section-title{
 
-font-size:32px;
-
-margin-bottom:30px;
+font-size:1.6rem;
+font-weight:600;
+margin-bottom:24px;
 
 color:#006937;
 
@@ -404,20 +380,21 @@ gap:30px;
 
 background:white;
 
-border-radius:18px;
+border-radius:14px;
 
 overflow:hidden;
 
-box-shadow:0 10px 20px rgba(0,0,0,.08);
+box-shadow:0 6px 16px rgba(0,0,0,.06);
+border:1px solid #e6e9ec;
 
-transition:.3s;
+transition:.2s;
 
 }
 
 .card:hover{
 
-transform: translateY(-8px) scale(1.02);
-box-shadow: 0 18px 35px rgba(0,0,0,.15);
+transform: translateY(-4px);
+box-shadow: 0 10px 24px rgba(0,0,0,.1);
 
 }
 
@@ -944,6 +921,8 @@ font-size:16px;
 
 </div>
 
+<div class="select-row">
+
 <div class="sort-box">
 
 <select id="sortSelect">
@@ -956,19 +935,25 @@ font-size:16px;
 
 </div>
 
+<div class="sort-box">
+
+<select id="departmentFilterSelect">
+
+<option value="all">All Departments</option>
+
+<option value="packing-plant">Packing Plant</option>
+
+<option value="milling">Milling</option>
+
+<option value="material-transport">Material Transport</option>
+
+<option value="others">Others</option>
+
+</select>
+
 </div>
 
-<div class="filter-chips" id="filterChips">
-
-<button class="filter-chip active" data-filter="all">All</button>
-
-<button class="filter-chip" data-filter="packing-plant">Packing Plant</button>
-
-<button class="filter-chip" data-filter="milling">Milling</button>
-
-<button class="filter-chip" data-filter="material-transport">Material Transport</button>
-
-<button class="filter-chip" data-filter="others">Others</button>
+</div>
 
 </div>
 
@@ -1134,7 +1119,7 @@ function escapeHtmlCard(str) {
   const cardsGrid = document.getElementById('cardsGrid');
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
-  const filterChips = document.querySelectorAll('.filter-chip');
+  const departmentFilterSelect = document.getElementById('departmentFilterSelect');
   const resultsCount = document.getElementById('resultsCount');
 
   const DEPARTMENT_MAP = {
@@ -1278,13 +1263,9 @@ function escapeHtmlCard(str) {
   searchInput.addEventListener('input', applyFiltersAndSort);
   sortSelect.addEventListener('change', applyFiltersAndSort);
 
-  filterChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      filterChips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentFilter = chip.dataset.filter;
-      applyFiltersAndSort();
-    });
+  departmentFilterSelect.addEventListener('change', () => {
+    currentFilter = departmentFilterSelect.value;
+    applyFiltersAndSort();
   });
 
   applyFiltersAndSort();
