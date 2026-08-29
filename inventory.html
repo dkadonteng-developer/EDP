@@ -601,33 +601,29 @@ auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed'
 const EMAILJS_SERVICE_ID = 'service_07ex199';
 const EMAILJS_TEMPLATE_ORDER_STORES = 'template_order_stores';   // TODO: replace with real template ID
 const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_order_mcc';      // TODO: replace with real template ID
-// Fill in real recipient addresses here (or set them as the fixed "To Email"
-// on each EmailJS template instead, and drop to_email from the payload below).
-const STORES_EMAIL = 'stores@ghacem.example.com';   // TODO: replace with real Stores email
-const MCC_EMAIL     = 'mcc@ghacem.example.com';     // TODO: replace with real MCC email
+// Stores/MCC recipient addresses are set as the fixed "To Email" on each
+// EmailJS template (Templates > [template] > Settings > To Email) — not
+// passed from here — so a request can't be redirected by editing this page.
 emailjs.init({ publicKey: '-1qmTfV9pX6ycWzse' });
 
-// ---------- SMS to MCC (pick-ticket alert) ----------
-// Any SMS gateway with a browser-callable HTTP API works here — this is
-// written for a generic JSON POST pattern. Providers that support this
-// kind of client-side, public-key-style call include Termii and Africa's
-// Talking (both widely used in Ghana). Twilio's API normally needs a secret
-// Auth Token, which shouldn't be embedded in browser code — if Twilio is
-// the only option available, send this request through a small server-side
-// proxy or a Firebase Cloud Function instead of calling it directly here.
-const SMS_API_URL = 'https://api.example-sms-provider.com/send'; // TODO: replace with your SMS provider's send endpoint
-const SMS_API_KEY = 'YOUR_SMS_API_KEY';                          // TODO: replace with your provider's API key
-const MCC_PHONE_NUMBER = '+233000000000';                        // TODO: replace with MCC's phone number
+// ---------- SMS to MCC (pick-ticket alert, via Hubtel) ----------
+// Hubtel's Send SMS API needs a Client ID + Client Secret sent as HTTP Basic
+// Auth. Those are real secrets — never put them in this file, since anyone
+// can view page source and use them to send SMS on your account. Instead,
+// this calls a small Cloudflare Worker that holds the secret and forwards
+// the request to Hubtel. See the deployment steps shared alongside this
+// code for how to set that Worker up (free, no Firebase billing needed).
+const SMS_PROXY_URL = 'https://YOUR-WORKER-SUBDOMAIN.workers.dev/send-sms'; // TODO: replace with your deployed Worker URL
+const MCC_PHONE_NUMBER = '+233000000000';                                  // TODO: replace with MCC's phone number
 
 // Fire-and-forget: a failed/unconfigured SMS should never block the order
 // itself — email is the primary channel and is already sent separately.
 async function sendMccPickTicketSms(orderData) {
   try {
-    await fetch(SMS_API_URL, {
+    await fetch(SMS_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        api_key: SMS_API_KEY,
         to: MCC_PHONE_NUMBER,
         message: `Pick ticket needed: ${orderData.partName} (${orderData.modelNumber}) x${orderData.quantityRequested} — requested by ${orderData.fullName} (${orderData.staffId}). Reason: ${orderData.reason}`,
       }),
@@ -1024,6 +1020,14 @@ db.collection('spareParts').onSnapshot((snapshot) => {
 });
 
 el.search.addEventListener('input', renderParts);
+
+// Prefills the search box when arriving from a site-wide search result
+// (e.g. inventory.html?q=part+name) and applies the filter immediately.
+const searchParam = new URLSearchParams(location.search).get('q');
+if (searchParam) {
+  el.search.value = searchParam;
+  renderParts();
+}
 el.categoryFilter.addEventListener('change', renderParts);
 el.statusFilter.addEventListener('change', renderParts);
 el.sort.addEventListener('change', renderParts);
@@ -1166,7 +1170,6 @@ orderEl.form.addEventListener('submit', async (ev) => {
 
     // 2) Email Stores — full specs so they can prepare/pull the part.
     const storesSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_STORES, {
-      to_email: STORES_EMAIL,
       staff_id: staffId,
       full_name: fullName,
       department: department || '—',
@@ -1186,7 +1189,6 @@ orderEl.form.addEventListener('submit', async (ev) => {
 
     // 3) Email MCC — ask them to prepare a pick ticket on Infor EAM.
     const mccSend = emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ORDER_MCC, {
-      to_email: MCC_EMAIL,
       staff_id: staffId,
       full_name: fullName,
       department: department || '—',
@@ -1371,6 +1373,9 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<script src="search.js" defer></script>
 
 </body>
 </html>
