@@ -251,6 +251,13 @@
     padding:11px 18px;font-family:inherit;font-size:.88rem;cursor:pointer;
   }
   .pf-btn-secondary:hover{background:#f7f8fa}
+  .ef-upload-btn{
+    display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+    color:var(--brand);border-radius:8px;padding:9px 16px;font-family:inherit;font-size:.85rem;
+    cursor:pointer;font-weight:600;
+  }
+  .ef-upload-btn:hover{background:#f0faf4}
+  .ef-upload-progress{font-size:.82rem;color:var(--muted);margin-top:6px}
   #partSubmitBtn{
     background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
     font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
@@ -484,7 +491,7 @@
     <div class="part-form-modal-head">
       <div>
         <h3 id="orderFormTitle"><i class="fa-solid fa-cart-shopping"></i> Order Spare Part</h3>
-        <p>Sends the request to Stores and MCC — no login needed, just your Staff ID.</p>
+        <p>Emails Stores and MCC (plus a text to MCC) — no login needed, just your Staff ID.</p>
       </div>
       <button type="button" class="part-form-modal-close" id="orderFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -493,7 +500,7 @@
       <div id="orderFormSuccess">
         <i class="fa-solid fa-circle-check"></i>
         <strong>Order sent</strong>
-        <p>Stores and MCC have been emailed with the part specs. MCC will prepare a pick ticket on Infor EAM.</p>
+        <p>Stores and MCC have been emailed with the part specs, and MCC has been texted that a pick ticket is needed. MCC will prepare the pick ticket on Infor EAM.</p>
         <div class="pf-actions" style="justify-content:center;margin-top:16px">
           <button type="button" id="orderFormDoneBtn" class="pf-btn-secondary">Done</button>
         </div>
@@ -531,14 +538,27 @@
         </div>
 
         <div class="pf-field full" style="margin-bottom:6px">
-          <label for="orderNotes">Notes (optional)</label>
-          <textarea id="orderNotes" rows="2" maxlength="500" placeholder="Reason for request, urgency, equipment tag number…"></textarea>
+          <label for="orderReason">Reason for Request *</label>
+          <textarea id="orderReason" required rows="2" maxlength="500" placeholder="Why is this part needed? e.g. worn bearing, urgency, equipment tag number…"></textarea>
+        </div>
+
+        <div class="pf-field full" style="margin-bottom:6px">
+          <label>Photo of damaged part (optional)</label>
+          <label class="ef-upload-btn">
+            <i class="fa-solid fa-camera"></i> Attach Photo
+            <input type="file" accept="image/*" id="orderPhotoFile" hidden>
+          </label>
+          <div class="ef-upload-progress" id="orderPhotoProgress" style="display:none;"></div>
+          <div id="orderPhotoPreviewWrap" style="display:none;margin-top:8px">
+            <img id="orderPhotoPreview" alt="Attached photo" style="max-width:160px;max-height:160px;border-radius:8px;border:1px solid var(--border);display:block">
+            <button type="button" id="orderPhotoRemoveBtn" class="pf-btn-secondary" style="margin-top:6px;padding:4px 10px;font-size:.8rem">Remove photo</button>
+          </div>
         </div>
 
         <div class="pf-actions">
           <span id="orderFormError" class="pf-error"></span>
           <button type="button" id="orderCancelBtn" class="pf-btn-secondary">Cancel</button>
-          <button type="submit" id="orderSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Submit Order</button>
+          <button type="submit" id="orderSubmitBtn"><i class="fa-solid fa-cart-shopping"></i> Submit Order</button>
         </div>
       </form>
     </div>
@@ -586,6 +606,36 @@ const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_order_mcc';      // TODO: replac
 const STORES_EMAIL = 'stores@ghacem.example.com';   // TODO: replace with real Stores email
 const MCC_EMAIL     = 'mcc@ghacem.example.com';     // TODO: replace with real MCC email
 emailjs.init({ publicKey: '-1qmTfV9pX6ycWzse' });
+
+// ---------- SMS to MCC (pick-ticket alert) ----------
+// Any SMS gateway with a browser-callable HTTP API works here — this is
+// written for a generic JSON POST pattern. Providers that support this
+// kind of client-side, public-key-style call include Termii and Africa's
+// Talking (both widely used in Ghana). Twilio's API normally needs a secret
+// Auth Token, which shouldn't be embedded in browser code — if Twilio is
+// the only option available, send this request through a small server-side
+// proxy or a Firebase Cloud Function instead of calling it directly here.
+const SMS_API_URL = 'https://api.example-sms-provider.com/send'; // TODO: replace with your SMS provider's send endpoint
+const SMS_API_KEY = 'YOUR_SMS_API_KEY';                          // TODO: replace with your provider's API key
+const MCC_PHONE_NUMBER = '+233000000000';                        // TODO: replace with MCC's phone number
+
+// Fire-and-forget: a failed/unconfigured SMS should never block the order
+// itself — email is the primary channel and is already sent separately.
+async function sendMccPickTicketSms(orderData) {
+  try {
+    await fetch(SMS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: SMS_API_KEY,
+        to: MCC_PHONE_NUMBER,
+        message: `Pick ticket needed: ${orderData.partName} (${orderData.modelNumber}) x${orderData.quantityRequested} — requested by ${orderData.fullName} (${orderData.staffId}). Reason: ${orderData.reason}`,
+      }),
+    });
+  } catch (err) {
+    console.error('MCC SMS could not be sent (order was still saved and emailed):', err);
+  }
+}
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -770,11 +820,83 @@ const orderEl = {
   fullName: document.getElementById('orderFullName'),
   department: document.getElementById('orderDepartment'),
   qty: document.getElementById('orderQty'),
-  notes: document.getElementById('orderNotes'),
+  reason: document.getElementById('orderReason'),
+  photoFile: document.getElementById('orderPhotoFile'),
+  photoProgress: document.getElementById('orderPhotoProgress'),
+  photoPreviewWrap: document.getElementById('orderPhotoPreviewWrap'),
+  photoPreview: document.getElementById('orderPhotoPreview'),
+  photoRemoveBtn: document.getElementById('orderPhotoRemoveBtn'),
   error: document.getElementById('orderFormError'),
   submitBtn: document.getElementById('orderSubmitBtn'),
   cancelBtn: document.getElementById('orderCancelBtn'),
 };
+
+let orderPhotoDataUrl = '';
+
+// Compresses a photo client-side to a small data URL — same approach used
+// for part photos in admin.html, tightened further here since this one may
+// also be passed to an email template (keep it well under typical email
+// service payload limits).
+function compressOrderPhoto(file, { maxDim = 900, quality = 0.6, maxBytes = 45 * 1024 } = {}) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected file.'));
+    reader.onload = () => {
+      img.onerror = () => reject(new Error('That file doesn\u2019t look like a valid image.'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+        let q = quality;
+        let dataUrl = canvas.toDataURL('image/jpeg', q);
+        while (dataUrl.length > maxBytes * 1.37 && q > 0.25) {
+          q -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', q);
+        }
+        if (dataUrl.length > maxBytes * 1.37) {
+          reject(new Error('Photo is too large even after compression — try a smaller image.'));
+          return;
+        }
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+orderEl.photoFile.addEventListener('change', async () => {
+  const file = orderEl.photoFile.files[0];
+  if (!file) return;
+  orderEl.photoProgress.style.display = 'block';
+  orderEl.photoProgress.textContent = 'Compressing photo…';
+  try {
+    orderPhotoDataUrl = await compressOrderPhoto(file);
+    orderEl.photoPreview.src = orderPhotoDataUrl;
+    orderEl.photoPreviewWrap.style.display = 'block';
+    orderEl.photoProgress.style.display = 'none';
+  } catch (err) {
+    console.error('Photo attach failed', err);
+    orderEl.photoProgress.textContent = err.message || 'Could not attach that photo.';
+  } finally {
+    orderEl.photoFile.value = '';
+  }
+});
+
+orderEl.photoRemoveBtn.addEventListener('click', () => {
+  orderPhotoDataUrl = '';
+  orderEl.photoPreviewWrap.style.display = 'none';
+  orderEl.photoPreview.removeAttribute('src');
+});
 
 let allParts = [];
 
@@ -951,13 +1073,17 @@ function openOrderModal(part) {
   orderEl.success.classList.remove('show');
   orderEl.error.textContent = '';
   orderEl.submitBtn.disabled = false;
-  orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order';
+  orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Submit Order';
 
   orderEl.partId.value = part.id;
   orderEl.partModel.textContent = part.modelNumber;
   orderEl.partName.textContent = part.partName;
   orderEl.partMeta.textContent = `${part.category} · ${part.binLocation || 'Bin location not set'} · Current stock: ${part.currentQty} ${part.unit || ''}`;
   orderEl.qty.value = 1;
+  orderPhotoDataUrl = '';
+  orderEl.photoPreviewWrap.style.display = 'none';
+  orderEl.photoPreview.removeAttribute('src');
+  orderEl.photoProgress.style.display = 'none';
 
   orderEl.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -990,10 +1116,14 @@ orderEl.form.addEventListener('submit', async (ev) => {
   const fullName = orderEl.fullName.value.trim();
   const department = orderEl.department.value.trim();
   const quantityRequested = Number(orderEl.qty.value);
-  const notes = orderEl.notes.value.trim();
+  const reason = orderEl.reason.value.trim();
 
   if (!staffId || !fullName || !quantityRequested || quantityRequested < 1) {
     orderEl.error.textContent = 'Staff ID, full name, and a valid quantity are required.';
+    return;
+  }
+  if (!reason) {
+    orderEl.error.textContent = 'Please state the reason for this request.';
     return;
   }
 
@@ -1021,7 +1151,8 @@ orderEl.form.addEventListener('submit', async (ev) => {
     staffId,
     fullName,
     department,
-    notes,
+    reason,
+    photoDataUrl: orderPhotoDataUrl || '',
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
@@ -1047,7 +1178,9 @@ orderEl.form.addEventListener('submit', async (ev) => {
       quantity_requested: quantityRequested,
       compatible_equipment: compatEquipNames || '—',
       equipment_context: equipmentContext || '—',
-      notes: notes || '—',
+      reason: reason,
+      photo_data_url: orderPhotoDataUrl || '',
+      has_photo: orderPhotoDataUrl ? 'Yes — see attached photo' : 'No',
       submitted_at: submittedAt,
     });
 
@@ -1062,11 +1195,17 @@ orderEl.form.addEventListener('submit', async (ev) => {
       quantity_requested: quantityRequested,
       bin_location: part.binLocation || 'Not set',
       equipment_context: equipmentContext || '—',
-      notes: notes || '—',
+      reason: reason,
+      photo_data_url: orderPhotoDataUrl || '',
+      has_photo: orderPhotoDataUrl ? 'Yes — see attached photo' : 'No',
       submitted_at: submittedAt,
     });
 
-    await Promise.all([storesSend, mccSend]);
+    // 4) Text MCC directly that a pick ticket is needed (in addition to the
+    //    email above) — best-effort, never blocks the order on failure.
+    const mccSmsSend = sendMccPickTicketSms({ partName: part.partName, modelNumber: part.modelNumber, quantityRequested, fullName, staffId, reason });
+
+    await Promise.all([storesSend, mccSend, mccSmsSend]);
 
     orderEl.form.style.display = 'none';
     orderEl.success.classList.add('show');
@@ -1075,7 +1214,7 @@ orderEl.form.addEventListener('submit', async (ev) => {
     orderEl.error.textContent = 'Could not send this order right now. Please try again, or contact Stores directly.';
   } finally {
     orderEl.submitBtn.disabled = false;
-    orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit Order';
+    orderEl.submitBtn.innerHTML = '<i class="fa-solid fa-cart-shopping"></i> Submit Order';
   }
 });
 
