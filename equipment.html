@@ -588,6 +588,12 @@
     padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
   }
   .log-entry-delete-btn:hover{color:var(--danger);border-color:#f5c2c0;background:#fdecea}
+  .log-entry-archive-btn,.log-entry-restore-btn{
+    background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.74rem;
+    padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  }
+  .log-entry-archive-btn:hover{color:#b26a00;border-color:#f0d9a8;background:#fff4e0}
+  .log-entry-restore-btn:hover{color:var(--brand);border-color:var(--brand-light);background:#eef4f1}
 
   .log-export-bar{
     display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;
@@ -602,6 +608,7 @@
   }
   .log-export-btn:hover{border-color:var(--brand-light);color:var(--brand)}
   .log-export-btn:disabled{opacity:.5;cursor:not-allowed}
+  .log-export-btn.is-active{background:var(--brand);border-color:var(--brand);color:#fff}
   #logExportPdfBtn i{color:#d92d20}
   #logExportExcelBtn i{color:#1d6f42}
 
@@ -1444,6 +1451,7 @@
         <div class="log-export-btns" id="logExportBtns" style="display:none">
           <button type="button" id="logExportPdfBtn" class="log-export-btn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
           <button type="button" id="logExportExcelBtn" class="log-export-btn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" id="logShowArchivedBtn" class="log-export-btn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
         </div>
         <button type="button" id="logAdminToggleBtn" class="admin-toggle-btn"><i class="fa-solid fa-lock"></i> Admin Login</button>
       </div>
@@ -3060,6 +3068,7 @@ const logEl = {
   commentOpenFormBtn: document.getElementById('commentOpenFormBtn'),
   commentHistoryToggle: document.getElementById('commentHistoryToggle'),
   commentCountBadge: document.getElementById('commentCountBadge'),
+  showArchivedBtn: document.getElementById('logShowArchivedBtn'),
 };
 
 // Show only the <option>s belonging to `mode` in a category <select>; keep
@@ -3077,6 +3086,7 @@ let allLogEntries = [];        // cache of {id, ...data} for the current equipme
 let currentVisibleLogRows = []; // filtered/sorted rows currently shown — what exports operate on
 let pendingLogImages = [];     // data URLs staged for the next submit/update
 let historyLoadedFor = null;   // equipmentId already fetched, to avoid refetching on every toggle
+let showArchivedLogs = false;  // admin-only "Show Archived" view
 
 const subscribeEl = {
   form: document.getElementById('subscribeForm'),
@@ -3189,7 +3199,7 @@ function applyLogControlsAndRender() {
   const order = logEl.sortOrder.value;
   const search = logEl.searchInput.value.trim().toLowerCase();
 
-  let rows = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category));
+  let rows = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category) && !!r.archived === showArchivedLogs);
 
   if (category) rows = rows.filter(r => r.category === category);
   if (search) {
@@ -3214,8 +3224,8 @@ function applyLogControlsAndRender() {
 }
 
 function updateLogGroupBadges() {
-  const commentCount = allLogEntries.filter(r => LOG_GROUPS.comment.includes(r.category)).length;
-  const maintCount = allLogEntries.filter(r => LOG_GROUPS.maintenance.includes(r.category)).length;
+  const commentCount = allLogEntries.filter(r => LOG_GROUPS.comment.includes(r.category) && !r.archived).length;
+  const maintCount = allLogEntries.filter(r => LOG_GROUPS.maintenance.includes(r.category) && !r.archived).length;
   logEl.commentCountBadge.textContent = commentCount;
   logEl.commentCountBadge.style.display = commentCount ? 'inline-block' : 'none';
   logEl.countBadge.textContent = maintCount;
@@ -3225,11 +3235,13 @@ function updateLogGroupBadges() {
 function renderLogEntries(rows) {
   logEl.entries.innerHTML = '';
 
-  const groupTotal = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category)).length;
+  const groupTotal = allLogEntries.filter(r => LOG_GROUPS[logGroupMode].includes(r.category) && !!r.archived === showArchivedLogs).length;
   const emptyLabel = logGroupMode === 'comment' ? 'comment' : 'maintenance note';
 
   if (groupTotal === 0) {
-    logEl.entries.innerHTML = `<p class="log-empty">No entries logged yet. Be the first to add a ${emptyLabel}.</p>`;
+    logEl.entries.innerHTML = showArchivedLogs
+      ? `<p class="log-empty">No archived ${emptyLabel}s.</p>`
+      : `<p class="log-empty">No entries logged yet. Be the first to add a ${emptyLabel}.</p>`;
     return;
   }
   if (rows.length === 0) {
@@ -3254,9 +3266,13 @@ function renderLogEntries(rows) {
         <span class="log-entry-who">${escapeHtml(r.fullName || 'Unknown')} <span class="dept">— ${escapeHtml(r.department || 'Unknown dept.')}</span></span>
         <div class="log-entry-date-wrap">
           <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
-          ${adminUnlocked ? `
+          ${adminUnlocked && !showArchivedLogs ? `
             <button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
-            <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            <button type="button" class="log-entry-archive-btn" data-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>
+          ` : ''}
+          ${adminUnlocked && showArchivedLogs ? `
+            <button type="button" class="log-entry-restore-btn" data-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
+            <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
           ` : ''}
         </div>
       </div>
@@ -3275,9 +3291,44 @@ function renderLogEntries(rows) {
     const editBtn = div.querySelector('.log-entry-edit-btn');
     if (editBtn) editBtn.addEventListener('click', () => startEditLogEntry(r));
 
+    const archiveBtn = div.querySelector('.log-entry-archive-btn');
+    if (archiveBtn) archiveBtn.addEventListener('click', async () => {
+      if (!confirm('Archive this entry? It will be hidden from the log but can be restored later from "Show Archived".')) return;
+      archiveBtn.disabled = true;
+      try {
+        await db.collection('equipmentLogs').doc(r.id).update({
+          archived: true,
+          archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          archivedBy: auth.currentUser ? auth.currentUser.email : '',
+        });
+        loadEquipmentLogs(currentEquipmentData.id, true);
+      } catch (err) {
+        console.error('Failed to archive log entry', err);
+        alert('Could not archive this entry. Please try again.');
+        archiveBtn.disabled = false;
+      }
+    });
+
+    const restoreBtn = div.querySelector('.log-entry-restore-btn');
+    if (restoreBtn) restoreBtn.addEventListener('click', async () => {
+      restoreBtn.disabled = true;
+      try {
+        await db.collection('equipmentLogs').doc(r.id).update({
+          archived: false,
+          archivedAt: firebase.firestore.FieldValue.delete(),
+          archivedBy: firebase.firestore.FieldValue.delete(),
+        });
+        loadEquipmentLogs(currentEquipmentData.id, true);
+      } catch (err) {
+        console.error('Failed to restore log entry', err);
+        alert('Could not restore this entry. Please try again.');
+        restoreBtn.disabled = false;
+      }
+    });
+
     const deleteBtn = div.querySelector('.log-entry-delete-btn');
     if (deleteBtn) deleteBtn.addEventListener('click', async () => {
-      if (!confirm('Delete this maintenance log entry? This cannot be undone.')) return;
+      if (!confirmPermanentDelete('this log entry')) return;
       deleteBtn.disabled = true;
       try {
         await db.collection('equipmentLogs').doc(r.id).delete();
@@ -3401,6 +3452,23 @@ function loadEquipmentLogs(equipmentId, forceReload) {
 logEl.filterCategory.addEventListener('change', applyLogControlsAndRender);
 logEl.sortOrder.addEventListener('change', applyLogControlsAndRender);
 logEl.searchInput.addEventListener('input', applyLogControlsAndRender);
+
+// Extra deliberate step beyond normal admin access before a permanent,
+// unrecoverable delete goes through — being signed in as admin alone
+// isn't enough once an item is already safely archived.
+function confirmPermanentDelete(label) {
+  const typed = prompt(`This will permanently delete ${label}. This cannot be undone.\n\nType DELETE to confirm.`);
+  return typed === 'DELETE';
+}
+
+logEl.showArchivedBtn.addEventListener('click', () => {
+  showArchivedLogs = !showArchivedLogs;
+  logEl.showArchivedBtn.innerHTML = showArchivedLogs
+    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
+    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
+  logEl.showArchivedBtn.classList.toggle('is-active', showArchivedLogs);
+  applyLogControlsAndRender();
+});
 
 // ----- History now opens as a modal, not an inline expander -----
 
