@@ -542,6 +542,9 @@
           <select id="resCategoryInput">
             <option value="Manual">Manual</option>
             <option value="Procedure">Procedure</option>
+            <option value="Specification">Specification</option>
+            <option value="Standard">Standard</option>
+            <option value="Report">Report</option>
             <option value="CAD">CAD Drawing</option>
             <option value="2D Drawing">2D Drawing</option>
             <option value="Video">Video</option>
@@ -1591,6 +1594,9 @@ document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSaf
 const RESOURCE_CATEGORY_ICON = {
   Manual: 'fa-book',
   Procedure: 'fa-list-check',
+  Specification: 'fa-ruler-combined',
+  Standard: 'fa-stamp',
+  Report: 'fa-chart-line',
   CAD: 'fa-cube',
   '2D Drawing': 'fa-drafting-compass',
   Video: 'fa-video',
@@ -1812,7 +1818,8 @@ function renderPartOrders() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
           <div>
             <strong>${escapeHtml(o.partName || 'Unknown part')}</strong>
-            <span style="color:var(--muted)"> · ${escapeHtml(o.modelNumber || '—')} · qty ${o.quantityRequested || 1}</span><br>
+            <span style="color:var(--muted)"> · ${escapeHtml(o.modelNumber || '—')} · qty ${o.quantityRequested || 1}</span>
+            ${o.groupItemCount > 1 ? `<span style="background:#eef4f1;color:var(--brand);padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600;margin-left:6px"><i class="fa-solid fa-layer-group"></i> 1 of ${o.groupItemCount} in this order</span>` : ''}<br>
             <span style="font-size:.8rem;color:var(--muted)">${escapeHtml(o.fullName || '')} (${escapeHtml(o.staffId || '')})${o.department ? ' · ' + escapeHtml(o.department) : ''}${o.equipmentContext ? ' · ' + escapeHtml(o.equipmentContext) : ''}</span>
           </div>
           <span style="background:${meta.bg};color:${meta.color};padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;white-space:nowrap">${meta.label}</span>
