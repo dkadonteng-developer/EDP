@@ -60,22 +60,12 @@
   }
   .explode-tab:hover{border-color:var(--brand);color:var(--brand)}
   .explode-tab.is-active{background:var(--brand);border-color:var(--brand);color:#fff}
-  .explode-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-  .explode-zoom-btn{
-    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:#fff;
-    color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
-  }
-  .explode-zoom-btn:hover{border-color:var(--brand);color:var(--brand)}
-  .explode-zoom-level{font-size:.8rem;color:var(--muted);min-width:46px;text-align:center}
-  .explode-toolbar-hint{font-size:.78rem;color:var(--muted);margin-left:auto}
   .explode-wrap{
-    position:relative;border-radius:12px;overflow:auto;background:#eef1f3;
-    border:1px solid var(--border);max-height:68vh;touch-action:none;cursor:grab;
-    -webkit-overflow-scrolling:touch;
+    position:relative;border-radius:12px;overflow:hidden;background:#eef1f3;
+    border:1px solid var(--border);
   }
-  .explode-wrap.is-panning{cursor:grabbing}
-  .explode-stage{position:relative;display:inline-block;line-height:0}
-  .explode-stage img{display:block;user-select:none;-webkit-user-drag:none}
+  .explode-stage{position:relative;width:100%;}
+  .explode-stage img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
 
   .explode-pin{
     position:absolute;width:30px;height:30px;border-radius:50%;
@@ -1096,15 +1086,8 @@
 
   <div class="section" id="explodedSection" style="display:none;">
     <h2><i class="fa-solid fa-diagram-project"></i> Exploded View</h2>
-    <p class="explode-hint">Tap a part to see its details. Pinch, scroll, or use the buttons below to zoom in on the full-size diagram.</p>
+    <p class="explode-hint">Tap a part to see its details.</p>
     <div class="explode-tabs" id="explodeTabs" style="display:none;"></div>
-    <div class="explode-toolbar">
-      <button type="button" class="explode-zoom-btn" id="explodeZoomOutBtn" title="Zoom out"><i class="fa-solid fa-minus"></i></button>
-      <span class="explode-zoom-level" id="explodeZoomLevel">100%</span>
-      <button type="button" class="explode-zoom-btn" id="explodeZoomInBtn" title="Zoom in"><i class="fa-solid fa-plus"></i></button>
-      <button type="button" class="explode-zoom-btn" id="explodeZoomResetBtn" title="Fit to screen"><i class="fa-solid fa-compress"></i></button>
-      <span class="explode-toolbar-hint">Drag to pan</span>
-    </div>
     <div class="explode-wrap" id="explodeWrap">
       <div class="explode-stage" id="explodeStage">
         <img id="explodeDiagramImg" alt="Exploded view diagram">
@@ -1543,10 +1526,6 @@ const el = {
   explodeWrap: document.getElementById('explodeWrap'),
   explodeStage: document.getElementById('explodeStage'),
   explodeDiagramImg: document.getElementById('explodeDiagramImg'),
-  explodeZoomInBtn: document.getElementById('explodeZoomInBtn'),
-  explodeZoomOutBtn: document.getElementById('explodeZoomOutBtn'),
-  explodeZoomResetBtn: document.getElementById('explodeZoomResetBtn'),
-  explodeZoomLevel: document.getElementById('explodeZoomLevel'),
   partPanelOverlay: document.getElementById('partPanelOverlay'),
   partPanel: document.getElementById('partPanel'),
   partPanelClose: document.getElementById('partPanelClose'),
@@ -2200,22 +2179,16 @@ function renderEquipment(e) {
 }
 
 // ---------- Exploded View ----------
-// One or more full-resolution diagrams (switchable via tabs when there's
-// more than one) with clickable hotspot pins positioned by percentage so
-// they stay correctly placed at any zoom level. The diagram is shown at its
-// true uploaded size — never squished or cropped to a fixed shape — and can
-// be panned (drag / scroll) and zoomed (buttons, mouse wheel, or pinch) so
-// every detail is reachable at full resolution. Pins load per-diagram from
-// the `equipmentParts` collection (equipmentId, viewId, name, serialNumber,
-// modelNumber, function, x, y, image).
+// One or more diagrams (switchable via tabs when there's more than one)
+// with clickable hotspot pins positioned by percentage. The diagram shows
+// at full width, at its natural aspect ratio — never cropped or stretched
+// into a fixed shape. Pins load per-diagram from the `equipmentParts`
+// collection (equipmentId, viewId, name, serialNumber, modelNumber,
+// function, x, y, image).
 
 let activeExplodePin = null;
 let explodeViews = [];
 let explodeActiveViewId = null;
-let explodeScale = 1;
-let explodeFitScale = 1;
-const EXPLODE_MIN_SCALE = 0.15;
-const EXPLODE_MAX_SCALE = 4;
 
 // Normalizes both the old single-`explodedView` field and the new
 // `explodedViews` array so older equipment records keep working.
@@ -2265,12 +2238,8 @@ function selectExplodeView(viewId) {
   el.explodeTabs.querySelectorAll('.explode-tab').forEach((btn) => {
     btn.classList.toggle('is-active', btn.dataset.viewId === viewId);
   });
-
-  el.explodeDiagramImg.onload = () => {
-    fitExplodeToWrap();
-    loadExplodePartsForView(viewId);
-  };
   el.explodeDiagramImg.src = view.url;
+  loadExplodePartsForView(viewId);
 }
 
 function loadExplodePartsForView(viewId) {
@@ -2300,134 +2269,6 @@ function renderExplodePins(parts) {
     el.explodeStage.appendChild(pin);
   });
 }
-
-// ---- Pan & zoom: the image is rendered at its natural pixel size times
-// explodeScale, so 100% always means the true uploaded resolution. Panning
-// is done by scrolling the wrap; zooming keeps the point under the
-// cursor/fingers stable.
-
-function setExplodeScale(scale, anchor) {
-  const img = el.explodeDiagramImg;
-  if (!img.naturalWidth) return;
-  const wrap = el.explodeWrap;
-  const newScale = Math.min(EXPLODE_MAX_SCALE, Math.max(EXPLODE_MIN_SCALE, scale));
-  const point = anchor || { x: wrap.clientWidth / 2, y: wrap.clientHeight / 2 };
-  const contentX = (wrap.scrollLeft + point.x) / explodeScale;
-  const contentY = (wrap.scrollTop + point.y) / explodeScale;
-
-  explodeScale = newScale;
-  const w = img.naturalWidth * explodeScale;
-  const h = img.naturalHeight * explodeScale;
-  img.style.width = `${w}px`;
-  img.style.height = `${h}px`;
-  el.explodeStage.style.width = `${w}px`;
-  el.explodeStage.style.height = `${h}px`;
-
-  wrap.scrollLeft = contentX * explodeScale - point.x;
-  wrap.scrollTop = contentY * explodeScale - point.y;
-
-  el.explodeZoomLevel.textContent = `${Math.round(explodeScale * 100)}%`;
-}
-
-function fitExplodeToWrap() {
-  const img = el.explodeDiagramImg;
-  if (!img.naturalWidth) return;
-  const wrap = el.explodeWrap;
-  explodeFitScale = Math.min(1, (wrap.clientWidth || img.naturalWidth) / img.naturalWidth);
-  explodeScale = explodeFitScale;
-  const w = img.naturalWidth * explodeScale;
-  const h = img.naturalHeight * explodeScale;
-  img.style.width = `${w}px`;
-  img.style.height = `${h}px`;
-  el.explodeStage.style.width = `${w}px`;
-  el.explodeStage.style.height = `${h}px`;
-  wrap.scrollLeft = 0;
-  wrap.scrollTop = 0;
-  el.explodeZoomLevel.textContent = `${Math.round(explodeScale * 100)}%`;
-}
-
-el.explodeZoomInBtn.addEventListener('click', () => setExplodeScale(explodeScale * 1.4));
-el.explodeZoomOutBtn.addEventListener('click', () => setExplodeScale(explodeScale / 1.4));
-el.explodeZoomResetBtn.addEventListener('click', fitExplodeToWrap);
-
-el.explodeWrap.addEventListener('wheel', (ev) => {
-  if (!el.explodeDiagramImg.naturalWidth) return;
-  ev.preventDefault();
-  const rect = el.explodeWrap.getBoundingClientRect();
-  const anchor = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-  setExplodeScale(explodeScale * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), anchor);
-}, { passive: false });
-
-el.explodeWrap.addEventListener('dblclick', (ev) => {
-  const rect = el.explodeWrap.getBoundingClientRect();
-  const anchor = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-  setExplodeScale(explodeScale < 1 ? 1 : explodeScale * 2, anchor);
-});
-
-// Drag-to-pan (mouse) and one/two-finger touch pan & pinch-zoom, unified
-// via Pointer Events.
-let explodePanState = null;
-let explodePointers = new Map();
-let explodePinchStart = null;
-
-el.explodeWrap.addEventListener('pointerdown', (ev) => {
-  if (ev.target.closest('.explode-pin')) return;
-  explodePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-  el.explodeWrap.setPointerCapture(ev.pointerId);
-
-  if (explodePointers.size === 2) {
-    const pts = Array.from(explodePointers.values());
-    explodePinchStart = {
-      dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
-      scale: explodeScale,
-    };
-    explodePanState = null;
-  } else if (explodePointers.size === 1) {
-    explodePanState = {
-      startX: ev.clientX,
-      startY: ev.clientY,
-      scrollLeft: el.explodeWrap.scrollLeft,
-      scrollTop: el.explodeWrap.scrollTop,
-      moved: false,
-    };
-  }
-});
-
-el.explodeWrap.addEventListener('pointermove', (ev) => {
-  if (!explodePointers.has(ev.pointerId)) return;
-  explodePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-
-  if (explodePointers.size >= 2 && explodePinchStart) {
-    const pts = Array.from(explodePointers.values());
-    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-    const rect = el.explodeWrap.getBoundingClientRect();
-    const midpoint = { x: (pts[0].x + pts[1].x) / 2 - rect.left, y: (pts[0].y + pts[1].y) / 2 - rect.top };
-    setExplodeScale(explodePinchStart.scale * (dist / explodePinchStart.dist), midpoint);
-    return;
-  }
-  if (!explodePanState) return;
-  const dx = ev.clientX - explodePanState.startX;
-  const dy = ev.clientY - explodePanState.startY;
-  if (Math.abs(dx) > 4 || Math.abs(dy) > 4) explodePanState.moved = true;
-  if (explodePanState.moved) {
-    el.explodeWrap.classList.add('is-panning');
-    el.explodeWrap.scrollLeft = explodePanState.scrollLeft - dx;
-    el.explodeWrap.scrollTop = explodePanState.scrollTop - dy;
-  }
-});
-
-function endExplodePointer(ev) {
-  explodePointers.delete(ev.pointerId);
-  el.explodeWrap.classList.remove('is-panning');
-  if (explodePointers.size < 2) explodePinchStart = null;
-  if (explodePointers.size === 0) explodePanState = null;
-}
-el.explodeWrap.addEventListener('pointerup', endExplodePointer);
-el.explodeWrap.addEventListener('pointercancel', endExplodePointer);
-
-window.addEventListener('resize', () => {
-  if (el.explodedSection.style.display !== 'none') fitExplodeToWrap();
-});
 
 function openPartPanel(part, pinEl) {
   if (activeExplodePin) activeExplodePin.classList.remove('is-active');
