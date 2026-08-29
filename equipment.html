@@ -1087,7 +1087,7 @@
     <button type="button" class="eq-tab-btn" data-tab="log"><i class="fa-solid fa-comments"></i> Log</button>
   </div>
 
-  <div class="section safety-checklist-section">
+  <div class="section safety-checklist-section" id="safetyChecklistSection">
     <div class="safety-checklist-bar">
       <div class="safety-checklist-bar-label">
         <i class="fa-solid fa-triangle-exclamation"></i>
@@ -2222,6 +2222,7 @@ function renderEquipment(e) {
 function showEqTab(tab) {
   document.querySelectorAll('.eq-tab-btn').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tab));
   document.querySelectorAll('.eq-tab-panel').forEach((panel) => panel.classList.toggle('is-active', panel.id === `eqPanel${tab.charAt(0).toUpperCase()}${tab.slice(1)}`));
+  document.getElementById('safetyChecklistSection').style.display = (tab === 'home' || tab === 'log') ? '' : 'none';
 }
 el.eqTabs.querySelectorAll('.eq-tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showEqTab(btn.dataset.tab));
