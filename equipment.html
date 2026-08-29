@@ -331,20 +331,6 @@
   .item span a{color:var(--brand);text-decoration:none}
   .item span a:hover{text-decoration:underline}
 
-  .hero-quick{display:flex;gap:24px;margin:2px 0 14px}
-  .hero-quick-item{display:flex;flex-direction:column;gap:2px}
-  .hero-quick-item b{font-size:.72rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-  .hero-quick-item span{font-size:.98rem;font-weight:600}
-  .hero-quick-item span a{color:var(--brand);text-decoration:none}
-  .hero-quick-item span a:hover{text-decoration:underline}
-
-  .hero-details-toggle{
-    display:flex;align-items:center;gap:6px;background:none;border:none;font-family:inherit;
-    font-size:.82rem;font-weight:600;color:var(--brand);cursor:pointer;padding:4px 0;
-  }
-  .hero-details-toggle i{font-size:.72rem;transition:transform .2s ease}
-  .hero-details-toggle.is-open i{transform:rotate(180deg)}
-
   .doc-list{display:flex;flex-direction:column;gap:8px}
   .doc{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -1094,38 +1080,11 @@
 
 <div class="container" id="container">
 
-  <div class="hero">
-    <div class="card">
-      <div class="image-wrap">
-        <img id="equipmentImage" alt="Equipment photo">
-        <div class="no-image" id="noImage"><i class="fa-solid fa-image"></i><span>No image available</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <span id="status" class="badge skeleton">Loading…</span>
-      <h1 id="name" class="skeleton">Loading equipment…</h1>
-      <p id="description" class="skeleton">Loading description…</p>
-
-      <div class="hero-quick">
-        <div class="hero-quick-item"><b>Model</b><span id="modelQuick"></span></div>
-        <div class="hero-quick-item"><b>Group</b><span id="groupQuick"></span></div>
-      </div>
-
-      <button type="button" id="heroDetailsToggle" class="hero-details-toggle">
-        <span>Details</span><i class="fa-solid fa-chevron-down"></i>
-      </button>
-
-      <div class="grid" id="heroDetailsGrid" style="display:none;">
-        <div class="item"><b>ID</b><span id="equipmentId"></span></div>
-        <div class="item"><b>Group</b><span id="group"></span></div>
-        <div class="item"><b>Department</b><span id="department"></span></div>
-        <div class="item"><b>Manufacturer</b><span id="manufacturer"></span></div>
-        <div class="item"><b>Model</b><span id="model"></span></div>
-        <div class="item"><b>Serial</b><span id="serial"></span></div>
-        <div class="item"><b>Installation</b><span id="installation"></span></div>
-      </div>
-    </div>
+  <div class="eq-tabs" id="eqTabs">
+    <button type="button" class="eq-tab-btn is-active" data-tab="home"><i class="fa-solid fa-house"></i> Home</button>
+    <button type="button" class="eq-tab-btn" data-tab="diagrams" id="eqTabBtnDiagrams" style="display:none;"><i class="fa-solid fa-diagram-project"></i> Diagrams</button>
+    <button type="button" class="eq-tab-btn" data-tab="documents"><i class="fa-solid fa-folder-open"></i> Documents</button>
+    <button type="button" class="eq-tab-btn" data-tab="log"><i class="fa-solid fa-comments"></i> Log</button>
   </div>
 
   <div class="section safety-checklist-section">
@@ -1143,10 +1102,31 @@
     </div>
   </div>
 
-  <div class="eq-tabs" id="eqTabs">
-    <button type="button" class="eq-tab-btn" data-tab="diagrams" id="eqTabBtnDiagrams" style="display:none;"><i class="fa-solid fa-diagram-project"></i> Diagrams</button>
-    <button type="button" class="eq-tab-btn is-active" data-tab="documents"><i class="fa-solid fa-folder-open"></i> Documents</button>
-    <button type="button" class="eq-tab-btn" data-tab="log"><i class="fa-solid fa-comments"></i> Log</button>
+  <div class="eq-tab-panel is-active" id="eqPanelHome">
+  <div class="hero">
+    <div class="card">
+      <div class="image-wrap">
+        <img id="equipmentImage" alt="Equipment photo">
+        <div class="no-image" id="noImage"><i class="fa-solid fa-image"></i><span>No image available</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <span id="status" class="badge skeleton">Loading…</span>
+      <h1 id="name" class="skeleton">Loading equipment…</h1>
+      <p id="description" class="skeleton">Loading description…</p>
+
+      <div class="grid" id="heroDetailsGrid">
+        <div class="item"><b>ID</b><span id="equipmentId"></span></div>
+        <div class="item"><b>Group</b><span id="group"></span></div>
+        <div class="item"><b>Department</b><span id="department"></span></div>
+        <div class="item"><b>Manufacturer</b><span id="manufacturer"></span></div>
+        <div class="item"><b>Model</b><span id="model"></span></div>
+        <div class="item"><b>Serial</b><span id="serial"></span></div>
+        <div class="item"><b>Installation</b><span id="installation"></span></div>
+      </div>
+    </div>
+  </div>
   </div>
 
   <div class="eq-tab-panel" id="eqPanelDiagrams">
@@ -1178,7 +1158,7 @@
     </div>
   </div>
 
-  <div class="eq-tab-panel is-active" id="eqPanelDocuments">
+  <div class="eq-tab-panel" id="eqPanelDocuments">
   <div class="section">
     <h2><i class="fa-solid fa-folder-open"></i> Equipment Documents</h2>
     <div id="documents" class="doc-list"></div>
@@ -1572,12 +1552,9 @@ const el = {
   description: document.getElementById('description'),
   equipmentId: document.getElementById('equipmentId'),
   group: document.getElementById('group'),
-  groupQuick: document.getElementById('groupQuick'),
   department: document.getElementById('department'),
   manufacturer: document.getElementById('manufacturer'),
   model: document.getElementById('model'),
-  modelQuick: document.getElementById('modelQuick'),
-  heroDetailsToggle: document.getElementById('heroDetailsToggle'),
   heroDetailsGrid: document.getElementById('heroDetailsGrid'),
   serial: document.getElementById('serial'),
   installation: document.getElementById('installation'),
@@ -2208,16 +2185,13 @@ function renderEquipment(e) {
       .map((g) => `<a href="group.html?group=${encodeURIComponent(g)}">${escapeHtml(g)}</a>`)
       .join(', ');
     el.group.innerHTML = groupLinks;
-    el.groupQuick.innerHTML = groupLinks;
   } else {
     el.group.textContent = '—';
-    el.groupQuick.textContent = '—';
   }
   updateHeaderBackLink(equipGroups[0] || null);
   el.department.textContent = e.department || '—';
   el.manufacturer.textContent = e.manufacturer || '—';
   el.model.textContent = e.model || '—';
-  el.modelQuick.textContent = e.model || '—';
   el.serial.textContent = e.serial || '—';
   el.installation.textContent = formatDate(e.installation);
 
@@ -2243,13 +2217,6 @@ function renderEquipment(e) {
     el.documents.appendChild(div);
   });
 }
-
-// ---------- Hero details toggle ----------
-el.heroDetailsToggle.addEventListener('click', () => {
-  const isOpen = el.heroDetailsGrid.style.display !== 'none';
-  el.heroDetailsGrid.style.display = isOpen ? 'none' : 'flex';
-  el.heroDetailsToggle.classList.toggle('is-open', !isOpen);
-});
 
 // ---------- Equipment page tabs ----------
 function showEqTab(tab) {
