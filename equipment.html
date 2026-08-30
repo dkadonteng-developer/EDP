@@ -154,6 +154,17 @@
   .part-panel-function{margin-top:16px}
   .part-panel-function b{display:block;color:var(--muted);font-weight:500;font-size:.8rem;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px}
   .part-panel-function p{margin:0;font-size:.92rem;line-height:1.55}
+  .part-panel-components{display:flex;flex-direction:column;gap:10px}
+  .part-panel-component-card{
+    display:flex;gap:12px;padding:10px;border:1px solid var(--border);border-radius:10px;align-items:flex-start;
+  }
+  .part-panel-component-card img{
+    width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid var(--border);
+  }
+  .part-panel-component-card .pcc-body{min-width:0}
+  .part-panel-component-card .pcc-name{font-weight:600;font-size:.9rem;margin:0 0 2px}
+  .part-panel-component-card .pcc-spec{color:var(--muted);font-size:.78rem;margin:0 0 4px}
+  .part-panel-component-card .pcc-function{font-size:.85rem;line-height:1.45;margin:0}
 
   /* ---------- Major Maintenance Safety Checklist (prominent banner) ---------- */
   .safety-checklist-section{
@@ -454,6 +465,28 @@
   }
   #pdfViewerBox{display:none}
   #pdfViewerBox.is-visible{display:block}
+
+  /* Universal preview for non-PDF documents (images, video, YouTube/Vimeo,
+     and generic links) — same fullscreen behavior as the PDF viewer above,
+     via the shared #previewFsWrap toggle. */
+  #genericPreviewBox{display:none}
+  #genericPreviewBox.is-visible{display:block}
+  .generic-preview-toolbar{
+    display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+    padding:10px;background:#f7f8fa;border:1px solid var(--border);border-radius:10px 10px 0 0;
+  }
+  .generic-preview-toolbar a,.generic-preview-toolbar button{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;font-family:inherit;font-size:.85rem;color:inherit;text-decoration:none;
+  }
+  .generic-preview-toolbar a:hover,.generic-preview-toolbar button:hover{background:#eef1f3}
+  .generic-preview-body{
+    max-height:700px;height:700px;overflow:auto;border:1px solid var(--border);border-top:none;
+    border-radius:0 0 10px 10px;background:#525659;display:flex;align-items:center;justify-content:center;
+  }
+  .generic-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
+  .generic-preview-body video{max-width:100%;max-height:100%}
+  .generic-preview-body iframe{width:100%;height:100%;border:0;background:#fff}
   .spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -840,7 +873,7 @@
   @media (max-width:860px){
     .hero{grid-template-columns:1fr}
     .image-wrap{height:280px}
-    .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:500px;height:500px}
+    .pdf-canvas-scroll,.viewer-empty,.pdf-loading,.generic-preview-body{max-height:500px;height:500px}
   }
 
   @media (max-width:520px){
@@ -863,7 +896,7 @@
     .search-bar{padding:6px 10px}
     .search-bar input{min-width:90px}
     .search-bar .match-nav button{padding:5px 8px}
-    .pdf-canvas-scroll,.viewer-empty,.pdf-loading{max-height:420px;height:420px}
+    .pdf-canvas-scroll,.viewer-empty,.pdf-loading,.generic-preview-body{max-height:420px;height:420px}
     #callFloatBtn{bottom:154px;right:16px}
     #aiLauncher{bottom:86px;right:16px}
     #inventoryFloatBtn{bottom:222px;right:16px}
@@ -1034,6 +1067,10 @@
   #previewFsWrap.fake-fullscreen .viewer-empty,
   #previewFsWrap:fullscreen .pdf-loading,
   #previewFsWrap.fake-fullscreen .pdf-loading{flex:1;max-height:none;height:auto}
+  #previewFsWrap:fullscreen #genericPreviewBox,
+  #previewFsWrap.fake-fullscreen #genericPreviewBox{flex:1;min-height:0;display:flex;flex-direction:column}
+  #previewFsWrap:fullscreen .generic-preview-body,
+  #previewFsWrap.fake-fullscreen .generic-preview-body{flex:1;max-height:none;height:auto;border-radius:0 0 10px 10px}
   #fullscreenBtn.is-active i{color:var(--brand)}#offlineBanner{
   display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
   background:var(--danger);color:#fff;text-align:center;
@@ -1331,6 +1368,10 @@
         <b>Resources</b>
         <div id="partPanelResources" class="doc-list"></div>
       </div>
+      <div class="part-panel-function" id="partPanelComponentsSection" style="display:none;">
+        <b>Spare Parts in This Assembly</b>
+        <div id="partPanelComponents" class="part-panel-components"></div>
+      </div>
     </div>
   </div>
 
@@ -1407,9 +1448,18 @@
             <div id="pdfPagesContainer"></div>
           </div>
         </div>
+
+        <div id="genericPreviewBox">
+          <div class="generic-preview-toolbar">
+            <a id="genericPreviewOpenTab" href="#" target="_blank" rel="noopener" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i> Open in new tab</a>
+            <button type="button" id="genericFullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
+          </div>
+          <div class="generic-preview-body" id="genericPreviewBody"></div>
+        </div>
       </div>
     </div>
   </div>
+
   </div>
 
   <div class="eq-tab-panel" id="eqPanelLog">
@@ -1844,6 +1894,8 @@ const el = {
   partPanelTools: document.getElementById('partPanelTools'),
   partPanelResourcesSection: document.getElementById('partPanelResourcesSection'),
   partPanelResources: document.getElementById('partPanelResources'),
+  partPanelComponentsSection: document.getElementById('partPanelComponentsSection'),
+  partPanelComponents: document.getElementById('partPanelComponents'),
   documents: document.getElementById('documents'),
   viewerEmpty: document.getElementById('viewerEmpty'),
   pdfLoading: document.getElementById('pdfLoading'),
@@ -1861,6 +1913,10 @@ const el = {
   zoomInBtn: document.getElementById('zoomInBtn'),
   fullscreenBtn: document.getElementById('fullscreenBtn'),
   previewFsWrap: document.getElementById('previewFsWrap'),
+  genericPreviewBox: document.getElementById('genericPreviewBox'),
+  genericPreviewBody: document.getElementById('genericPreviewBody'),
+  genericPreviewOpenTab: document.getElementById('genericPreviewOpenTab'),
+  genericFullscreenBtn: document.getElementById('genericFullscreenBtn'),
   pageNumLabel: document.getElementById('pageNumLabel'),
   pageCountLabel: document.getElementById('pageCountLabel'),
   pdfScroll: document.getElementById('pdfScroll'),
@@ -1996,6 +2052,20 @@ async function openDocument(doc, docEl) {
   if (docEl) docEl.classList.add('active');
 
   el.viewerEmpty.style.display = 'none';
+
+  // Only genuine PDFs get the full custom viewer (continuous scroll,
+  // in-document search, page/zoom controls). Everything else — a URL to a
+  // webpage, image, video, YouTube/Vimeo link, etc. — previously still got
+  // forced through pdfjsLib and just failed to load. Route those through
+  // the same universal preview (with the same fullscreen support) used for
+  // Internal Resources instead.
+  const kind = guessResourceKind(doc.file || '');
+  if (kind !== 'pdf') {
+    openGenericDocumentPreview(doc);
+    return;
+  }
+
+  el.genericPreviewBox.classList.remove('is-visible');
   el.pdfViewerBox.classList.remove('is-visible');
   el.pdfLoading.style.display = 'flex';
   el.pdfLoading.innerHTML = '<div class="spinner"></div><span>Loading document…</span>';
@@ -2023,6 +2093,38 @@ async function openDocument(doc, docEl) {
       <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
       <span>Could not load this PDF. It may be missing or blocked.</span>`;
   }
+}
+
+// Universal preview for non-PDF document entries — mirrors
+// openResourcePreview's type detection (image/video/YouTube/Vimeo/generic
+// iframe), but renders inline in the Documents tab's own preview panel
+// (sharing its fullscreen wrap) instead of a separate modal.
+function openGenericDocumentPreview(doc) {
+  pdfDoc = null;
+  el.pdfLoading.style.display = 'none';
+  el.pdfViewerBox.classList.remove('is-visible');
+  el.searchBar.style.display = 'none';
+
+  const kind = guessResourceKind(doc.file || '');
+  const safeName = escapeHtml(doc.name || '');
+  const safeUrl = escapeHtml(doc.file || '');
+  el.genericPreviewOpenTab.href = doc.file || '#';
+
+  let html;
+  if (kind === 'image') {
+    html = `<img src="${safeUrl}" alt="${safeName}">`;
+  } else if (kind === 'video') {
+    html = `<video src="${safeUrl}" controls playsinline></video>`;
+  } else if (kind === 'youtube') {
+    html = `<iframe src="${escapeHtml(youtubeEmbedUrl(doc.file))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else if (kind === 'vimeo') {
+    html = `<iframe src="${escapeHtml(vimeoEmbedUrl(doc.file))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    html = `<iframe src="${safeUrl}" title="${safeName}"></iframe>`;
+  }
+
+  el.genericPreviewBody.innerHTML = html;
+  el.genericPreviewBox.classList.add('is-visible');
 }
 
 async function buildPageEntries() {
@@ -2227,6 +2329,10 @@ async function applyFullscreenState(active) {
   el.fullscreenBtn.innerHTML = active
     ? '<i class="fa-solid fa-compress"></i>'
     : '<i class="fa-solid fa-expand"></i>';
+  el.genericFullscreenBtn.classList.toggle('is-active', active);
+  el.genericFullscreenBtn.innerHTML = active
+    ? '<i class="fa-solid fa-compress"></i>'
+    : '<i class="fa-solid fa-expand"></i>';
 
   if (pdfDoc) {
     if (active) {
@@ -2297,6 +2403,7 @@ el.fullscreenBtn.addEventListener('click', () => {
     enableFakeFullscreen();
   }
 });
+el.genericFullscreenBtn.addEventListener('click', () => el.fullscreenBtn.click());
 
 document.addEventListener('fullscreenchange', () => applyFullscreenState(!!document.fullscreenElement));
 document.addEventListener('webkitfullscreenchange', () => applyFullscreenState(!!document.webkitFullscreenElement));
@@ -2880,6 +2987,37 @@ function openPartPanel(part, pinEl) {
   }
 
   el.partPanelOverlay.classList.add('is-open');
+  loadPartPanelComponents(part.id);
+}
+
+// The individual spare parts that make up this assembly — name, spec,
+// function, and an optional close-up photo — stored in their own
+// `partComponents` docs (see admin.html for why) rather than nested on the
+// part itself.
+async function loadPartPanelComponents(partId) {
+  el.partPanelComponentsSection.style.display = 'none';
+  el.partPanelComponents.innerHTML = '';
+  try {
+    const snap = await db.collection('partComponents').where('partId', '==', partId).get();
+    const components = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    if (!components.length) return;
+
+    el.partPanelComponentsSection.style.display = 'block';
+    el.partPanelComponents.innerHTML = components.map((c) => `
+      <div class="part-panel-component-card">
+        ${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name || '')}">` : ''}
+        <div class="pcc-body">
+          <p class="pcc-name">${escapeHtml(c.name || 'Unnamed spare part')}</p>
+          ${c.spec ? `<p class="pcc-spec">${escapeHtml(c.spec)}</p>` : ''}
+          ${c.function ? `<p class="pcc-function">${escapeHtml(c.function)}</p>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load spare parts for this assembly', err);
+  }
 }
 
 function closePartPanel() {
