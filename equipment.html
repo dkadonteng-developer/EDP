@@ -2733,13 +2733,15 @@ let activeExplodePin = null;
 let explodeViews = [];
 let explodeActiveViewId = null;
 
-// Normalizes both the old single-`explodedView` field and the new
-// `explodedViews` array so older equipment records keep working.
+// Normalizes the legacy single-`explodedView` field, the older
+// inline-image `explodedViews` array, and the current metadata-only
+// `explodedViews` array (images stored separately — see loadExplodedView)
+// so equipment from any point in the app's history keeps working.
 function getExplodedViews(e) {
   if (Array.isArray(e.explodedViews) && e.explodedViews.length) {
     return e.explodedViews
-      .filter((v) => v && v.url)
-      .map((v, i) => ({ id: v.id || `view${i}`, url: v.url, label: v.label || '' }));
+      .filter((v) => v && v.id)
+      .map((v, i) => ({ id: v.id || `view${i}`, url: v.url || '', label: v.label || '' }));
   }
   if (e.explodedView) {
     return [{ id: 'default', url: e.explodedView, label: '' }];
@@ -2747,8 +2749,26 @@ function getExplodedViews(e) {
   return [];
 }
 
-function loadExplodedView(e) {
+async function loadExplodedView(e) {
   explodeViews = getExplodedViews(e);
+
+  // Metadata-only entries (the current format) need their image looked up
+  // from its own doc — see admin.html's EV_DIAGRAMS_COLLECTION comment for
+  // why diagrams aren't stored inline on the equipment doc anymore.
+  if (explodeViews.some((v) => !v.url)) {
+    try {
+      const snap = await db.collection('explodedViewDiagrams')
+        .where('equipmentId', '==', e.id).get();
+      const urlById = {};
+      snap.docs.forEach((doc) => { urlById[doc.id] = doc.data().url; });
+      explodeViews = explodeViews
+        .map((v) => ({ ...v, url: v.url || urlById[v.id] || '' }))
+        .filter((v) => v.url);
+    } catch (err) {
+      console.error('Failed to load diagram images', err);
+    }
+  }
+
   if (!explodeViews.length) {
     el.explodedSection.style.display = 'none';
     el.eqTabBtnDiagrams.style.display = 'none';
