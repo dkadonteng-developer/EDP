@@ -78,11 +78,24 @@
     pulling = true;
   }, { passive: true });
 
+  function resetIndicator() {
+    indicator.classList.remove('ptr-dragging', 'ptr-ready');
+    indicator.style.marginTop = '-60px';
+  }
+
   document.addEventListener('touchmove', (ev) => {
     if (!pulling || startY === null) return;
     const dy = ev.touches[0].clientY - startY;
-    if (dy <= 0) { pulling = false; return; }
-    if (!atPageTop()) { pulling = false; return; }
+    // Bail out on an aborted pull (scrolled back up, or the page itself
+    // scrolled away from the top mid-gesture) — and reset the indicator's
+    // visual state right away, instead of leaving it stuck part-way down
+    // where touchend's early return would never clean it up.
+    if (dy <= 0 || !atPageTop()) {
+      pulling = false;
+      startY = null;
+      resetIndicator();
+      return;
+    }
 
     const pull = Math.min(MAX_PULL, dy * 0.5); // damped, rubber-band feel
     indicator.classList.add('ptr-dragging');
@@ -105,7 +118,7 @@
       // app like this one — every page re-fetches its own data on load.
       setTimeout(() => window.location.reload(), 300);
     } else {
-      indicator.style.marginTop = '-60px';
+      resetIndicator();
     }
     startY = null;
   });
@@ -113,7 +126,6 @@
   document.addEventListener('touchcancel', () => {
     pulling = false;
     startY = null;
-    indicator.classList.remove('ptr-dragging', 'ptr-ready');
-    indicator.style.marginTop = '-60px';
+    resetIndicator();
   });
 })();
