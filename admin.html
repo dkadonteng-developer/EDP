@@ -258,6 +258,9 @@
     border:1px solid var(--border);background:#fff;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;
   }
   .ev-tab:hover{border-color:var(--brand);color:var(--brand);}
+  .ev-tab.is-dragging{opacity:.4;}
+  .ev-tab-drag-handle{cursor:grab;color:var(--muted);font-size:.75rem;padding:2px;}
+  .ev-tab-drag-handle:active{cursor:grabbing;}
   .ev-tab.is-active{background:var(--brand);border-color:var(--brand);color:#fff;}
   .ev-tab-label-input{
     border:none;background:transparent;font:inherit;font-weight:600;color:inherit;width:90px;padding:0;
@@ -1159,18 +1162,36 @@ function escapeHtml(str) {
 // accounts with a matching admins/{uid} document get past the gate.
 
 let isAdmin = false;
+let adminCheckFailed = false;
+
+// Confirms admin membership via the `admins/{uid}` doc. Retries a few times
+// on transient errors — e.g. Firestore briefly rejecting requests right
+// after a fresh sign-in, before the new auth token has propagated, or a
+// plain network blip — instead of treating "couldn't verify" the same as
+// "confirmed not an admin". Only a doc that genuinely doesn't exist counts
+// as not-an-admin.
+async function checkAdminStatus(uid, attempt = 1) {
+  try {
+    const doc = await db.collection('admins').doc(uid).get();
+    return { isAdmin: doc.exists, failed: false };
+  } catch (err) {
+    console.error(`Admin membership check failed (attempt ${attempt})`, err);
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      return checkAdminStatus(uid, attempt + 1);
+    }
+    return { isAdmin: false, failed: true };
+  }
+}
 
 auth.onAuthStateChanged(async (user) => {
   if (user && !user.isAnonymous) {
-    try {
-      const doc = await db.collection('admins').doc(user.uid).get();
-      isAdmin = doc.exists;
-    } catch (err) {
-      console.error('Admin membership check failed', err);
-      isAdmin = false;
-    }
+    const result = await checkAdminStatus(user.uid);
+    isAdmin = result.isAdmin;
+    adminCheckFailed = result.failed;
   } else {
     isAdmin = false;
+    adminCheckFailed = false;
   }
   renderAuthState(user);
 });
@@ -1193,8 +1214,16 @@ function renderAuthState(user) {
     dashboard.classList.remove('show');
     signOutBtn.classList.remove('show');
     if (user && !user.isAnonymous) {
-      document.getElementById('signInError').textContent = 'This account is not authorized as an admin.';
-      auth.signOut();
+      if (adminCheckFailed) {
+        // Could not confirm either way (offline / transient error). Stay
+        // signed in to Firebase Auth and let the person retry, rather than
+        // a hard sign-out that looks like sign-in silently failing.
+        document.getElementById('signInError').textContent =
+          'Could not verify admin access — check your connection and try signing in again.';
+      } else {
+        document.getElementById('signInError').textContent = 'This account is not authorized as an admin.';
+        auth.signOut();
+      }
     }
   }
 }
@@ -2553,14 +2582,27 @@ const evEl = {
   partLinkResourceBtn: document.getElementById('evPartLinkResourceBtn'),
 };
 
-// Normalizes both the legacy single-`explodedView` field and the new
-// `explodedViews` array, so equipment created before multi-diagram support
-// keeps working.
+// Diagram images are big (compressed up to ~730KB each as stored base64),
+// and a single Firestore document is capped at 1MiB. Keeping every
+// diagram's image inline on the equipment doc's `explodedViews` field meant
+// the 2nd or 3rd diagram, plus the equipment's other fields, could push
+// that document over the limit and the save would silently fail. Each
+// diagram's image now lives in its own doc here — comfortably under 1MiB
+// on its own — while the equipment doc keeps only lightweight
+// {id, label, order} metadata, so it can never hit that cap no matter how
+// many diagrams get added.
+const EV_DIAGRAMS_COLLECTION = 'explodedViewDiagrams';
+
+// Normalizes the legacy single-`explodedView` field, the older
+// inline-image `explodedViews` array, and the current metadata-only
+// `explodedViews` array, so equipment from any point in the app's history
+// keeps working. Entries without a `url` here are the new format and need
+// their image looked up separately — see openExplodedViewOverlay below.
 function normalizeExplodedViews(equipment) {
   if (Array.isArray(equipment.explodedViews) && equipment.explodedViews.length) {
     return equipment.explodedViews
-      .filter((v) => v && v.url)
-      .map((v, i) => ({ id: v.id || `view${i}`, url: v.url, label: v.label || '' }));
+      .filter((v) => v && v.id)
+      .map((v, i) => ({ id: v.id || `view${i}`, url: v.url || '', label: v.label || '' }));
   }
   if (equipment.explodedView) {
     return [{ id: 'default', url: equipment.explodedView, label: '' }];
@@ -2568,10 +2610,27 @@ function normalizeExplodedViews(equipment) {
   return [];
 }
 
-function openExplodedViewOverlay(equipment) {
+async function openExplodedViewOverlay(equipment) {
   if (!equipment) return;
   evEquipment = equipment;
   evViews = normalizeExplodedViews(equipment);
+
+  // Fill in images for any metadata-only entries (the current format)
+  // from their dedicated docs.
+  if (evViews.some((v) => !v.url)) {
+    try {
+      const snap = await db.collection(EV_DIAGRAMS_COLLECTION)
+        .where('equipmentId', '==', equipment.id).get();
+      const urlById = {};
+      snap.docs.forEach((doc) => { urlById[doc.id] = doc.data().url; });
+      evViews = evViews
+        .map((v) => ({ ...v, url: v.url || urlById[v.id] || '' }))
+        .filter((v) => v.url);
+    } catch (err) {
+      console.error('Failed to load diagram images', err);
+    }
+  }
+
   evParts = [];
   evPendingPin = null;
   evEditingPartId = null;
@@ -2601,26 +2660,42 @@ function closeExplodedViewOverlay() {
 }
 evEl.closeX.addEventListener('click', closeExplodedViewOverlay);
 
-// Persists the current evViews array (and keeps the legacy explodedView
-// field pointed at the first diagram, in case anything old still reads it).
+// Persists the current evViews array: lightweight {id, label, order}
+// metadata goes on the equipment doc (small enough to never hit the 1MiB
+// cap), while each diagram's actual image is upserted into its own
+// EV_DIAGRAMS_COLLECTION doc. The legacy inline `explodedView` field is
+// dropped once an equipment record is saved through this path.
 async function persistEvViews() {
-  const data = {
-    explodedViews: evViews,
-    explodedView: evViews.length ? evViews[0].url : firebase.firestore.FieldValue.delete(),
-  };
-  await db.collection('equipment').doc(evEquipment.id).update(data);
-  evEquipment.explodedViews = evViews;
-  evEquipment.explodedView = evViews.length ? evViews[0].url : '';
+  const metadata = evViews.map((v, i) => ({ id: v.id, label: v.label || '', order: i }));
+  const batch = db.batch();
+  batch.update(db.collection('equipment').doc(evEquipment.id), {
+    explodedViews: metadata,
+    explodedView: firebase.firestore.FieldValue.delete(),
+  });
+  evViews.forEach((v, i) => {
+    batch.set(db.collection(EV_DIAGRAMS_COLLECTION).doc(v.id), {
+      equipmentId: evEquipment.id,
+      url: v.url,
+      label: v.label || '',
+      order: i,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+  await batch.commit();
+
+  evEquipment.explodedViews = metadata;
+  delete evEquipment.explodedView;
   const cached = equipmentCache.find((e) => e.id === evEquipment.id);
   if (cached) {
-    cached.explodedViews = evViews;
-    cached.explodedView = evEquipment.explodedView;
+    cached.explodedViews = metadata;
+    delete cached.explodedView;
   }
 }
 
 function renderEvTabs() {
   evEl.tabs.innerHTML = evViews.map((v, i) => `
     <div class="ev-tab${v.id === evActiveViewId ? ' is-active' : ''}" data-view-id="${escapeHtml(v.id)}">
+      <i class="fa-solid fa-grip-vertical ev-tab-drag-handle" draggable="true" title="Drag to reorder"></i>
       <input class="ev-tab-label-input" data-rename="${escapeHtml(v.id)}" value="${escapeHtml(v.label || `Diagram ${i + 1}`)}" placeholder="Diagram ${i + 1}" size="1">
       <button type="button" class="ev-tab-del" data-delete-view="${escapeHtml(v.id)}" title="Delete this diagram"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -2633,9 +2708,10 @@ function renderEvTabs() {
 
   evEl.tabs.querySelectorAll('.ev-tab').forEach((tabEl) => {
     tabEl.addEventListener('click', (ev) => {
-      if (ev.target.closest('[data-delete-view]') || ev.target.closest('.ev-tab-label-input')) return;
+      if (ev.target.closest('[data-delete-view]') || ev.target.closest('.ev-tab-label-input') || ev.target.closest('.ev-tab-drag-handle')) return;
       selectEvView(tabEl.dataset.viewId);
     });
+    wireEvTabDragReorder(tabEl);
   });
   evEl.tabs.querySelectorAll('[data-rename]').forEach((input) => {
     input.addEventListener('click', (ev) => ev.stopPropagation());
@@ -2669,6 +2745,11 @@ function renderEvTabs() {
       } catch (err) {
         console.error('Failed to delete parts for diagram', err);
       }
+      try {
+        await db.collection(EV_DIAGRAMS_COLLECTION).doc(viewId).delete();
+      } catch (err) {
+        console.error('Failed to delete diagram doc', err);
+      }
       evViews = evViews.filter((v) => v.id !== viewId);
       await persistEvViews();
       if (evViews.length) {
@@ -2681,6 +2762,48 @@ function renderEvTabs() {
     });
   });
   wireDiagramUpload(document.getElementById('evAddDiagramFile'), 'add');
+}
+
+// Drag-to-reorder: grab a tab by its grip handle (next to the name box) and
+// drop it on another tab to move it there. Reordering persists immediately.
+let evDraggedViewId = null;
+
+function wireEvTabDragReorder(tabEl) {
+  const handle = tabEl.querySelector('.ev-tab-drag-handle');
+  const viewId = tabEl.dataset.viewId;
+
+  handle.addEventListener('dragstart', (ev) => {
+    evDraggedViewId = viewId;
+    tabEl.classList.add('is-dragging');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', viewId); // required by Firefox to allow the drag
+  });
+  handle.addEventListener('dragend', () => {
+    tabEl.classList.remove('is-dragging');
+    evDraggedViewId = null;
+  });
+
+  tabEl.addEventListener('dragover', (ev) => {
+    if (!evDraggedViewId || evDraggedViewId === viewId) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+  });
+  tabEl.addEventListener('drop', async (ev) => {
+    if (!evDraggedViewId || evDraggedViewId === viewId) return;
+    ev.preventDefault();
+    const fromIdx = evViews.findIndex((v) => v.id === evDraggedViewId);
+    const toIdx = evViews.findIndex((v) => v.id === viewId);
+    evDraggedViewId = null;
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = evViews.splice(fromIdx, 1);
+    evViews.splice(toIdx, 0, moved);
+    renderEvTabs();
+    try {
+      await persistEvViews();
+    } catch (err) {
+      console.error('Failed to save new diagram order', err);
+    }
+  });
 }
 
 function selectEvView(viewId) {
