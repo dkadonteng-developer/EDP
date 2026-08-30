@@ -976,6 +976,33 @@ orderEl.form.addEventListener('submit', async (ev) => {
     const itemsListHtml = items.map(({ part, quantityRequested }) =>
       `<li>${escapeHtml(part.partName)} (${escapeHtml(part.modelNumber)}) x${quantityRequested} — Bin ${escapeHtml(part.binLocation || 'not set')}</li>`
     ).join('');
+    // A real HTML table, one row per item. EmailJS auto-escapes normal
+    // {{variable}} tags (so raw markup shows up as literal text, not a
+    // rendered table) — this is meant to be inserted with the triple-brace
+    // {{{items_table_html}}} syntax in the template, which tells EmailJS to
+    // insert it unescaped.
+    const itemsTableHtml = `
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 4px">
+        <thead>
+          <tr style="background:#f0f4f2;text-align:left">
+            <th style="padding:8px;border:1px solid #ddd">Part</th>
+            <th style="padding:8px;border:1px solid #ddd">Model No.</th>
+            <th style="padding:8px;border:1px solid #ddd;text-align:center">Qty</th>
+            <th style="padding:8px;border:1px solid #ddd">Bin Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(({ part, quantityRequested }) => `
+            <tr>
+              <td style="padding:8px;border:1px solid #ddd">${escapeHtml(part.partName)}</td>
+              <td style="padding:8px;border:1px solid #ddd">${escapeHtml(part.modelNumber)}</td>
+              <td style="padding:8px;border:1px solid #ddd;text-align:center">${quantityRequested}</td>
+              <td style="padding:8px;border:1px solid #ddd">${escapeHtml(part.binLocation || 'not set')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
     const totalQuantity = items.reduce((sum, i) => sum + i.quantityRequested, 0);
 
     // 2) Email Stores — full specs so they can prepare/pull every item.
@@ -987,6 +1014,7 @@ orderEl.form.addEventListener('submit', async (ev) => {
       total_quantity: totalQuantity,
       items_list: itemsListText,
       items_list_html: `<ul>${itemsListHtml}</ul>`,
+      items_table_html: itemsTableHtml,
       equipment_context: equipmentContext || '—',
       reason: reason,
       photo_data_url: orderPhotoDataUrl || '',
@@ -1003,6 +1031,7 @@ orderEl.form.addEventListener('submit', async (ev) => {
       total_quantity: totalQuantity,
       items_list: itemsListText,
       items_list_html: `<ul>${itemsListHtml}</ul>`,
+      items_table_html: itemsTableHtml,
       equipment_context: equipmentContext || '—',
       reason: reason,
       photo_data_url: orderPhotoDataUrl || '',
