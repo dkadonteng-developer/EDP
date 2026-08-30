@@ -508,6 +508,9 @@
       <button type="button" class="admin-tab-btn" data-tab="pmChecklistsPanel">
         <i class="fa-solid fa-clipboard-list"></i> PM Checklists
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="aiAssistantPanel">
+        <i class="fa-solid fa-robot"></i> AI Assistant
+      </button>
     </div>
 
     <!-- ---- Equipment panel ---- -->
@@ -672,6 +675,47 @@
           <span id="pmChecklistFormError" class="ef-error"></span>
           <button type="button" class="toolbar-btn outline" id="pmChecklistCancelBtn">Cancel</button>
           <button type="button" class="toolbar-btn" id="pmChecklistSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- AI Assistant panel ---- -->
+    <div class="admin-panel" id="aiAssistantPanel">
+      <div class="panel-toolbar">
+        <h2>AI Troubleshooting Assistant</h2>
+      </div>
+      <p class="panel-hint">
+        Add an API key for whichever AI provider(s) the company has access to.
+        Technicians pick from whichever providers have a key set here — no
+        personal key needed on their end anymore.
+      </p>
+      <p class="panel-hint" style="color:var(--danger)">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        These keys are stored in Firestore and used directly from each
+        technician's browser when they chat with the assistant — this gets
+        keys out of the app's source code, but a technician inspecting
+        network traffic while using the assistant could still read whichever
+        key their chosen provider is using. Use a key scoped to this app
+        only (not a personal/shared account key), and keep an eye on usage
+        from each provider's own dashboard.
+      </p>
+
+      <div class="ef-subsection" style="margin-top:0;padding-top:0;border-top:none">
+        <div class="ef-field" style="margin-bottom:14px">
+          <label for="aiGeminiKeyInput">Google Gemini API key</label>
+          <input type="password" id="aiGeminiKeyInput" placeholder="Leave blank to disable Gemini for technicians" autocomplete="off">
+        </div>
+        <div class="ef-field" style="margin-bottom:14px">
+          <label for="aiOpenaiKeyInput">OpenAI (ChatGPT) API key</label>
+          <input type="password" id="aiOpenaiKeyInput" placeholder="Leave blank to disable ChatGPT for technicians" autocomplete="off">
+        </div>
+        <div class="ef-field" style="margin-bottom:14px">
+          <label for="aiClaudeKeyInput">Anthropic (Claude) API key</label>
+          <input type="password" id="aiClaudeKeyInput" placeholder="Leave blank to disable Claude for technicians" autocomplete="off">
+        </div>
+        <div class="cf-actions">
+          <span id="aiConfigError" class="ef-error"></span>
+          <button type="button" class="toolbar-btn" id="aiConfigSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save</button>
         </div>
       </div>
     </div>
@@ -1189,6 +1233,7 @@ document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
     document.querySelectorAll('.admin-panel').forEach((p) => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'aiAssistantPanel') loadAiConfigPanel();
   });
 });
 
@@ -2171,6 +2216,62 @@ pmChecklistEl.saveBtn.addEventListener('click', async () => {
   } finally {
     pmChecklistEl.saveBtn.disabled = false;
     pmChecklistEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
+  }
+});
+
+// ================= AI Assistant (provider keys) =================
+//
+// One shared settings/aiConfig doc holds the API key for each provider
+// the admin has set up. Technicians on equipment.html read this (see the
+// note on that page) and pick from whichever providers have a key here —
+// no personal key needed on their end anymore.
+
+const aiConfigEl = {
+  gemini: document.getElementById('aiGeminiKeyInput'),
+  openai: document.getElementById('aiOpenaiKeyInput'),
+  claude: document.getElementById('aiClaudeKeyInput'),
+  error: document.getElementById('aiConfigError'),
+  saveBtn: document.getElementById('aiConfigSaveBtn'),
+};
+
+let aiConfigLoaded = false;
+
+async function loadAiConfigPanel() {
+  if (aiConfigLoaded) return;
+  try {
+    const doc = await db.collection('settings').doc('aiConfig').get();
+    const data = doc.exists ? doc.data() : {};
+    aiConfigEl.gemini.value = data.geminiKey || '';
+    aiConfigEl.openai.value = data.openaiKey || '';
+    aiConfigEl.claude.value = data.claudeKey || '';
+    aiConfigLoaded = true;
+  } catch (err) {
+    console.error('Failed to load AI config', err);
+    aiConfigEl.error.textContent = 'Could not load the current AI provider settings.';
+  }
+}
+
+aiConfigEl.saveBtn.addEventListener('click', async () => {
+  aiConfigEl.error.textContent = '';
+  aiConfigEl.saveBtn.disabled = true;
+  aiConfigEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    await db.collection('settings').doc('aiConfig').set({
+      geminiKey: aiConfigEl.gemini.value.trim(),
+      openaiKey: aiConfigEl.openai.value.trim(),
+      claudeKey: aiConfigEl.claude.value.trim(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    aiConfigEl.saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Saved';
+    setTimeout(() => {
+      aiConfigEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save';
+    }, 1500);
+  } catch (err) {
+    console.error('Failed to save AI config', err);
+    aiConfigEl.error.textContent = 'Could not save these settings. Please try again.';
+    aiConfigEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save';
+  } finally {
+    aiConfigEl.saveBtn.disabled = false;
   }
 });
 
