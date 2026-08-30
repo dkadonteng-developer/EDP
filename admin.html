@@ -884,6 +884,7 @@
 
       <div id="evCanvasSection" style="display:none;">
         <div class="ev-tabs" id="evTabs"></div>
+        <div class="ef-upload-progress" id="evTabsUploadProgress" style="display:none;"></div>
         <div class="ev-hint-row">
           <p class="ef-hint">Click anywhere on the diagram to add a part pin at that spot.</p>
           <label class="ev-replace-btn">
@@ -2848,7 +2849,13 @@ async function saveDiagramUrl(url, mode) {
 }
 
 function wireDiagramUpload(fileInput, mode) {
-  const progressEl = document.getElementById('evUploadProgress');
+  // 'first' happens on the empty-state uploader (inside evUploaderWrap);
+  // 'add'/'replace' happen from controls inside evCanvasSection, which is
+  // what's actually visible whenever there's already at least one diagram
+  // — evUploaderWrap (and its progress element) is display:none at that
+  // point, so those two modes need their own visible progress element or
+  // any success/failure message is invisible to the person uploading.
+  const progressEl = document.getElementById(mode === 'first' ? 'evUploadProgress' : 'evTabsUploadProgress');
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
     if (!file || !evEquipment) return;
@@ -2858,9 +2865,9 @@ function wireDiagramUpload(fileInput, mode) {
       // A bit larger/sharper than other images since this is a technical
       // diagram people need to zoom into to identify parts.
       const dataUrl = await compressImageToDataUrl(file, { maxDim: 1800, maxBytes: 550 * 1024 });
+      await saveDiagramUrl(dataUrl, mode);
       progressEl.textContent = 'Uploaded ✓';
       setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
-      await saveDiagramUrl(dataUrl, mode);
     } catch (err) {
       console.error('Diagram upload failed', err);
       progressEl.textContent = `Upload failed: ${err.message}`;
