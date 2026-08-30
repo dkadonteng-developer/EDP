@@ -422,6 +422,36 @@
   .import-status.new{background:#eaf6ee;color:#1a7a3d}
   .import-status.update{background:#eef4fb;color:#1c5fa8}
   .import-status.error{background:#fdeceb;color:#c0392b}
+
+  /* ---------- Orders panel ---------- */
+  .order-card{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:14px;
+  }
+  .order-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .order-card-head h4{margin:0 0 4px;font-size:.98rem}
+  .order-card-meta{color:var(--muted);font-size:.8rem;line-height:1.6}
+  .order-card-reason{background:#f7f8fa;border-radius:8px;padding:8px 12px;font-size:.83rem;margin-bottom:12px}
+  .order-item-line{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:9px 0;border-top:1px solid var(--border);
+  }
+  .order-item-line:first-of-type{border-top:none}
+  .order-item-line-info{font-size:.85rem}
+  .order-item-line-info b{font-weight:600}
+  .order-item-line-info .oil-meta{color:var(--muted);font-size:.78rem;display:block;margin-top:2px}
+  .order-item-line-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .order-status-badge{padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:600;white-space:nowrap}
+  .order-status-badge.pending{background:var(--amber-bg);color:var(--amber)}
+  .order-status-badge.fulfilled{background:#eaf6ee;color:#1a7a3d}
+  .order-status-badge.cancelled{background:#fdeceb;color:#c0392b}
+  .order-item-action-btn{
+    background:#fff;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-family:inherit;
+    font-size:.75rem;cursor:pointer;color:var(--text);
+  }
+  .order-item-action-btn:hover{border-color:var(--brand);color:var(--brand)}
+  .order-item-action-btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+  .order-photo-link{font-size:.78rem;color:var(--brand);text-decoration:none;font-weight:600}
+  .order-photo-link:hover{text-decoration:underline}
   #importConfirmBtn{
     background:var(--brand);color:#fff;border:none;border-radius:8px;padding:11px 20px;
     font-family:inherit;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
@@ -695,6 +725,9 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   }
 });
 const auth = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+  console.error('Failed to set auth persistence', err);
+});
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -721,18 +754,30 @@ db.collection('equipment').get().then((snap) => {
 // document at admins/{uid}. Same accounts as the main Admin page.
 
 let isAdmin = false;
+let adminCheckFailed = false;
+
+async function checkAdminStatus(uid, attempt = 1) {
+  try {
+    const doc = await db.collection('admins').doc(uid).get();
+    return { isAdmin: doc.exists, failed: false };
+  } catch (err) {
+    console.error(`Admin membership check failed (attempt ${attempt})`, err);
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      return checkAdminStatus(uid, attempt + 1);
+    }
+    return { isAdmin: false, failed: true };
+  }
+}
 
 auth.onAuthStateChanged(async (user) => {
   if (user && !user.isAnonymous) {
-    try {
-      const doc = await db.collection('admins').doc(user.uid).get();
-      isAdmin = doc.exists;
-    } catch (err) {
-      console.error('Admin membership check failed', err);
-      isAdmin = false;
-    }
+    const result = await checkAdminStatus(user.uid);
+    isAdmin = result.isAdmin;
+    adminCheckFailed = result.failed;
   } else {
     isAdmin = false;
+    adminCheckFailed = false;
   }
   renderAuthState(user);
 });
@@ -754,8 +799,13 @@ function renderAuthState(user) {
     dashboard.classList.remove('show');
     signOutBtn.classList.remove('show');
     if (user && !user.isAnonymous) {
-      document.getElementById('signInError').textContent = 'This account is not authorized as an admin.';
-      auth.signOut();
+      if (adminCheckFailed) {
+        document.getElementById('signInError').textContent =
+          'Could not verify admin access — check your connection and try signing in again.';
+      } else {
+        document.getElementById('signInError').textContent = 'This account is not authorized as an admin.';
+        auth.signOut();
+      }
     }
   }
 }
@@ -808,6 +858,8 @@ const el = {
   seedBar: document.getElementById('seedBar'),
   seedBtn: document.getElementById('seedDemoBtn'),
   addPartBtn: document.getElementById('addPartBtn'),
+  ordersList: document.getElementById('ordersListContainer'),
+  ordersFilterStatus: document.getElementById('ordersFilterStatus'),
 };
 
 const formEl = {
@@ -1359,6 +1411,142 @@ function invUpdateOfflineBanner() {
 window.addEventListener('online', invUpdateOfflineBanner);
 window.addEventListener('offline', invUpdateOfflineBanner);
 invUpdateOfflineBanner();
+
+// ---------- Orders panel ----------
+// Technicians submit orders from inventory.html; a batch order (several
+// parts at once) writes one partOrders doc per item, all sharing an
+// orderGroupId, so they're grouped back into one card per submission here
+// — but each item keeps its own status so a partially-fulfilled order
+// (e.g. 2 of 3 parts picked up) is trackable.
+let allPartOrders = [];
+
+async function loadPartOrders() {
+  el.ordersList.innerHTML = '<p class="loading-text">Loading orders…</p>';
+  try {
+    const snap = await db.collection('partOrders').orderBy('createdAt', 'desc').get();
+    allPartOrders = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    renderPartOrders();
+  } catch (err) {
+    console.error('Failed to load part orders', err);
+    el.ordersList.innerHTML = '<p class="empty-state">Could not load orders. Please check your connection and try again.</p>';
+  }
+}
+
+function formatOrderDate(createdAt) {
+  if (!createdAt) return '—';
+  // Firestore Timestamp has .toDate(); a serverTimestamp not yet resolved
+  // (just-created, still pending from the server) comes back null instead.
+  if (typeof createdAt.toDate === 'function') return createdAt.toDate().toLocaleString();
+  return '—';
+}
+
+function renderPartOrders() {
+  const statusFilter = el.ordersFilterStatus.value;
+
+  // Group individual item docs back into one card per submission.
+  const groups = new Map();
+  allPartOrders.forEach((item) => {
+    const groupId = item.orderGroupId || item.id; // legacy items with no group ID stand alone
+    if (!groups.has(groupId)) groups.set(groupId, []);
+    groups.get(groupId).push(item);
+  });
+
+  const cards = [];
+  groups.forEach((items) => {
+    const visibleItems = statusFilter ? items.filter((i) => i.status === statusFilter) : items;
+    if (!visibleItems.length) return;
+    // Sort groups by their most recent item's createdAt (already true
+    // overall since allPartOrders is already ordered desc, but items
+    // within a group can arrive in any order after grouping).
+    cards.push({ items, visibleItems, sortKey: items[0].createdAt ? items[0].createdAt.toMillis() : 0 });
+  });
+  cards.sort((a, b) => b.sortKey - a.sortKey);
+
+  if (!cards.length) {
+    el.ordersList.innerHTML = '<p class="empty-state">No orders match this filter.</p>';
+    return;
+  }
+
+  el.ordersList.innerHTML = '';
+  cards.forEach(({ items, visibleItems }) => {
+    const first = items[0];
+    const card = document.createElement('div');
+    card.className = 'order-card';
+    card.innerHTML = `
+      <div class="order-card-head">
+        <div>
+          <h4>${escapeHtml(first.fullName || 'Unknown')} <span style="color:var(--muted);font-weight:400">(${escapeHtml(first.staffId || '—')})</span></h4>
+          <div class="order-card-meta">
+            ${escapeHtml(first.department || '—')} · ${escapeHtml(first.equipmentContext || '—')}<br>
+            Submitted ${formatOrderDate(first.createdAt)}
+          </div>
+        </div>
+        ${first.photoDataUrl ? `<a class="order-photo-link" href="${escapeHtml(first.photoDataUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-image"></i> View Photo</a>` : ''}
+      </div>
+      ${first.reason ? `<div class="order-card-reason">${escapeHtml(first.reason)}</div>` : ''}
+      <div class="order-items"></div>
+    `;
+
+    const itemsWrap = card.querySelector('.order-items');
+    visibleItems.forEach((item) => {
+      const line = document.createElement('div');
+      line.className = 'order-item-line';
+      line.innerHTML = `
+        <div class="order-item-line-info">
+          <b>${escapeHtml(item.partName || 'Unnamed part')}</b> (${escapeHtml(item.modelNumber || '—')}) x${item.quantityRequested || 1}
+          <span class="oil-meta">Bin ${escapeHtml(item.binLocation || 'not set')}</span>
+        </div>
+        <div class="order-item-line-actions">
+          <span class="order-status-badge ${escapeHtml(item.status || 'pending')}">${escapeHtml(item.status || 'pending')}</span>
+        </div>
+      `;
+      const actions = line.querySelector('.order-item-line-actions');
+      if (item.status === 'pending' || !item.status) {
+        const fulfillBtn = document.createElement('button');
+        fulfillBtn.type = 'button';
+        fulfillBtn.className = 'order-item-action-btn';
+        fulfillBtn.innerHTML = '<i class="fa-solid fa-check"></i> Fulfilled';
+        fulfillBtn.addEventListener('click', () => updateOrderItemStatus(item.id, 'fulfilled'));
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'order-item-action-btn danger';
+        cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> Cancel';
+        cancelBtn.addEventListener('click', () => updateOrderItemStatus(item.id, 'cancelled'));
+        actions.prepend(cancelBtn);
+        actions.prepend(fulfillBtn);
+      } else {
+        const revertBtn = document.createElement('button');
+        revertBtn.type = 'button';
+        revertBtn.className = 'order-item-action-btn';
+        revertBtn.title = 'Move back to pending';
+        revertBtn.innerHTML = '<i class="fa-solid fa-rotate-left"></i>';
+        revertBtn.addEventListener('click', () => updateOrderItemStatus(item.id, 'pending'));
+        actions.prepend(revertBtn);
+      }
+      itemsWrap.appendChild(line);
+    });
+
+    el.ordersList.appendChild(card);
+  });
+}
+
+async function updateOrderItemStatus(itemId, status) {
+  try {
+    await db.collection('partOrders').doc(itemId).update({
+      status,
+      statusUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      statusUpdatedBy: auth.currentUser ? auth.currentUser.email : '',
+    });
+    const item = allPartOrders.find((i) => i.id === itemId);
+    if (item) item.status = status;
+    renderPartOrders();
+  } catch (err) {
+    console.error('Failed to update order status', err);
+    alert('Could not update this order. Please try again.');
+  }
+}
+
+el.ordersFilterStatus.addEventListener('change', renderPartOrders);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
