@@ -73,6 +73,14 @@ const LIVE_API_HOSTS = [
 // port. This is deliberately separate from the fetch handler below, which
 // is cache-first and would otherwise just hand back a stale cached copy
 // instead of actually refreshing it.
+//
+// Failures are classified (quota / http / network) instead of collapsed
+// into one generic error: on a low-storage device, caching a large batch
+// of PDFs and images can run the site out of its Cache Storage quota
+// partway through, and every item after that point fails with the same
+// QuotaExceededError — every time, regardless of connection quality. That
+// looked identical to a network problem before, so "try a better
+// connection" was often the wrong advice.
 self.addEventListener('message', (event) => {
   const data = event.data;
   if (!data || data.type !== 'CACHE_URL' || !data.url) return;
@@ -80,11 +88,19 @@ self.addEventListener('message', (event) => {
   event.waitUntil(
     fetch(data.url, { cache: 'reload' })
       .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          const err = new Error(`HTTP ${response.status}`);
+          err.errorType = 'http';
+          throw err;
+        }
         return caches.open(RUNTIME_CACHE).then((cache) => cache.put(data.url, response.clone()));
       })
       .then(() => { if (port) port.postMessage({ ok: true }); })
-      .catch((err) => { if (port) port.postMessage({ ok: false, error: err.message }); })
+      .catch((err) => {
+        let errorType = err.errorType || 'network';
+        if (err.name === 'QuotaExceededError') errorType = 'quota';
+        if (port) port.postMessage({ ok: false, error: err.message, errorType });
+      })
   );
 });
 
