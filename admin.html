@@ -368,6 +368,22 @@
   }
   .ef-add-row-btn:hover{border-color:var(--brand);color:var(--brand);}
 
+  .ev-component-row{
+    flex-direction:column;align-items:stretch;gap:10px;background:#fafafa;padding:14px;border-radius:8px;
+  }
+  .ev-component-row .ef-row{display:flex;gap:10px;}
+  .ev-component-row .ef-row .ef-field{flex:1;min-width:0;}
+  .ev-component-row textarea{
+    width:100%;font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border);
+    border-radius:7px;resize:vertical;min-height:50px;box-sizing:border-box;
+  }
+  .ec-photo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ec-photo-preview{width:56px;height:56px;object-fit:cover;border-radius:7px;border:1px solid var(--border);}
+  .ev-component-row .ef-repeat-remove{
+    width:auto;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;font-size:.78rem;
+    align-self:flex-start;
+  }
+
   .ef-error{color:var(--danger);font-size:.82rem;min-height:1.2em;margin-top:6px;}
   .cf-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
 
@@ -934,6 +950,12 @@
             <div id="evPartToolsRows"></div>
             <button type="button" class="ef-add-row-btn" id="evPartAddToolBtn"><i class="fa-solid fa-plus"></i> Add Tool</button>
           </div>
+          <div class="ef-subsection">
+            <h4><i class="fa-solid fa-list-check"></i> Spare Parts in This Assembly</h4>
+            <p class="ef-hint">The individual components that make up this part — each with its own photo, spec, and function.</p>
+            <div id="evPartComponentsRows"></div>
+            <button type="button" class="ef-add-row-btn" id="evPartAddComponentBtn"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+          </div>
           <div class="ef-error" id="evPartFormError"></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button type="button" class="ef-save-btn" id="evPartSaveBtn" style="flex:1;">
@@ -1015,6 +1037,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+// Firebase Auth's default web persistence is already LOCAL (survives page
+// refreshes/closes), but set it explicitly so a session only ever ends the
+// two ways described below — never as a side effect of a reload.
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+  console.error('Failed to set auth persistence', err);
+});
 
 // ================= GitHub-backed file storage =================
 //
@@ -1210,10 +1238,12 @@ function renderAuthState(user) {
     signedInAs.textContent = user.email;
     loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect).then(populatePmEquipmentSelect);
     loadHistoryEquipmentOptions();
+    startInactivityTracking();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
     signOutBtn.classList.remove('show');
+    stopInactivityTracking();
     if (user && !user.isAnonymous) {
       if (adminCheckFailed) {
         // Could not confirm either way (offline / transient error). Stay
@@ -1227,6 +1257,54 @@ function renderAuthState(user) {
       }
     }
   }
+}
+
+// ================= Inactivity auto sign-out =================
+// Signs the admin out after 5 minutes with no activity — clicks, taps,
+// key presses, or scrolling. The "last active" timestamp lives in
+// localStorage (not just a JS variable), so a page refresh resumes the
+// countdown from wherever it left off instead of restarting — refreshing
+// the page is never itself a reason to be signed out.
+const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
+const LAST_ACTIVE_KEY = 'infoport_admin_last_active';
+const ACTIVITY_EVENTS = ['click', 'keydown', 'touchstart', 'mousemove', 'scroll'];
+let inactivityTimer = null;
+let lastActivityWriteAt = 0;
+
+function markAdminActive() {
+  const now = Date.now();
+  if (now - lastActivityWriteAt < 5000) return; // throttle localStorage writes
+  lastActivityWriteAt = now;
+  localStorage.setItem(LAST_ACTIVE_KEY, String(now));
+}
+
+function scheduleInactivityCheck() {
+  clearTimeout(inactivityTimer);
+  if (!isAdmin) return;
+  const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY)) || Date.now();
+  const remaining = INACTIVITY_LIMIT_MS - (Date.now() - lastActive);
+  if (remaining <= 0) {
+    auth.signOut();
+    return;
+  }
+  // Re-checks once the current window's worth of inactivity would elapse;
+  // if activity happened in the meantime (this tab or another one sharing
+  // the same localStorage key) it just reschedules for the new remaining
+  // time instead of signing out.
+  inactivityTimer = setTimeout(scheduleInactivityCheck, remaining);
+}
+
+function startInactivityTracking() {
+  markAdminActive();
+  ACTIVITY_EVENTS.forEach((evt) => document.addEventListener(evt, markAdminActive, { passive: true }));
+  scheduleInactivityCheck();
+}
+
+function stopInactivityTracking() {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = null;
+  ACTIVITY_EVENTS.forEach((evt) => document.removeEventListener(evt, markAdminActive));
+  localStorage.removeItem(LAST_ACTIVE_KEY);
 }
 
 document.getElementById('signInForm').addEventListener('submit', async (e) => {
@@ -2553,6 +2631,7 @@ let evActiveViewId = null;
 let evParts = [];
 let evPendingPin = null;   // {x,y} percent — set while the part form is open
 let evEditingPartId = null;
+let evPartComponentsRemovedIds = []; // component doc IDs removed from the form, to delete on save
 
 const evEl = {
   overlay: document.getElementById('explodedViewOverlay'),
@@ -2572,6 +2651,7 @@ const evEl = {
   partImage: document.getElementById('evPartImage'),
   partFunction: document.getElementById('evPartFunction'),
   partToolsRows: document.getElementById('evPartToolsRows'),
+  partComponentsRows: document.getElementById('evPartComponentsRows'),
   partFormError: document.getElementById('evPartFormError'),
   partSaveBtn: document.getElementById('evPartSaveBtn'),
   partDeleteBtn: document.getElementById('evPartDeleteBtn'),
@@ -2911,9 +2991,17 @@ evEl.canvasWrap.addEventListener('click', (ev) => {
   openPartForm(null, { x, y });
 });
 
+// Spare parts that make up an exploded-view part (e.g. the individual
+// components inside an assembly). Kept in their own collection — same
+// reasoning as EV_DIAGRAMS_COLLECTION above: each can carry its own photo,
+// and several of those embedded inline on the equipmentParts doc could
+// again approach Firestore's 1MiB document cap.
+const PART_COMPONENTS_COLLECTION = 'partComponents';
+
 function openPartForm(existingPart, pendingPos) {
   evEditingPartId = existingPart ? existingPart.id : null;
   evPendingPin = existingPart ? { x: existingPart.x, y: existingPart.y } : pendingPos;
+  evPartComponentsRemovedIds = [];
   evEl.partFormError.textContent = '';
   evEl.partFormTitle.innerHTML = existingPart
     ? '<i class="fa-solid fa-pen"></i> Edit Part'
@@ -2925,6 +3013,10 @@ function openPartForm(existingPart, pendingPos) {
   evEl.partFunction.value = existingPart ? (existingPart.function || '') : '';
   evEl.partToolsRows.innerHTML = '';
   (existingPart && Array.isArray(existingPart.tools) ? existingPart.tools : []).forEach((t) => addPartToolRow(t.name, t.spec));
+  evEl.partComponentsRows.innerHTML = '';
+  if (existingPart) {
+    loadPartComponentsIntoForm(existingPart.id);
+  }
   evEl.partDeleteBtn.style.display = existingPart ? 'flex' : 'none';
   evEl.partForm.style.display = 'block';
   evEl.partForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2934,6 +3026,21 @@ function openPartForm(existingPart, pendingPos) {
     loadEvPartResources(existingPart.id);
   } else {
     evEl.partResourcesSection.style.display = 'none';
+  }
+}
+
+async function loadPartComponentsIntoForm(partId) {
+  evEl.partComponentsRows.innerHTML = '<p class="loading-text">Loading spare parts…</p>';
+  try {
+    const snap = await db.collection(PART_COMPONENTS_COLLECTION).where('partId', '==', partId).get();
+    const components = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+    evEl.partComponentsRows.innerHTML = '';
+    components.forEach((c) => addPartComponentRow(c));
+  } catch (err) {
+    console.error('Failed to load part components', err);
+    evEl.partComponentsRows.innerHTML = '<p class="empty-state">Could not load spare parts for this assembly.</p>';
   }
 }
 
@@ -2957,6 +3064,116 @@ function addPartToolRow(name = '', spec = '') {
   evEl.partToolsRows.appendChild(row);
 }
 document.getElementById('evPartAddToolBtn').addEventListener('click', () => addPartToolRow());
+
+// One row = one spare part that makes up the assembly being viewed —
+// name, spec, function, and an optional close-up photo. Each existing row
+// carries its Firestore doc id in data-component-id so saves can tell an
+// edit from a brand-new row.
+function addPartComponentRow(existing = {}) {
+  const row = document.createElement('div');
+  row.className = 'ef-repeat-row ev-component-row';
+  row.dataset.componentId = existing.id || '';
+  const name = existing.name || '';
+  const spec = existing.spec || '';
+  const fn = existing.function || '';
+  const image = existing.image || '';
+  row.innerHTML = `
+    <div class="ef-row">
+      <div class="ef-field">
+        <label>Spare Part Name *</label>
+        <input type="text" class="ec-name" placeholder="e.g. Drive Belt" value="${escapeHtml(name)}">
+      </div>
+      <div class="ef-field">
+        <label>Spec</label>
+        <input type="text" class="ec-spec" placeholder="e.g. size, material, part no." value="${escapeHtml(spec)}">
+      </div>
+    </div>
+    <div class="ef-field">
+      <label>Function</label>
+      <textarea class="ec-function" placeholder="What this spare part does">${escapeHtml(fn)}</textarea>
+    </div>
+    <div class="ef-field">
+      <label>Photo</label>
+      <div class="ec-photo-row">
+        <img class="ec-photo-preview" src="${escapeHtml(image)}" style="display:${image ? 'block' : 'none'}">
+        <label class="ef-upload-btn" style="margin-top:0;">
+          <i class="fa-solid fa-upload"></i> Upload Photo
+          <input type="file" accept="image/*" class="ec-photo-file" hidden>
+        </label>
+      </div>
+      <div class="ef-upload-progress ec-photo-progress" style="display:none;"></div>
+      <input type="hidden" class="ec-image-data" value="${escapeHtml(image)}">
+    </div>
+    <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i> Remove Spare Part</button>
+  `;
+
+  row.querySelector('.ef-repeat-remove').addEventListener('click', () => {
+    if (row.dataset.componentId) evPartComponentsRemovedIds.push(row.dataset.componentId);
+    row.remove();
+  });
+
+  const fileInput = row.querySelector('.ec-photo-file');
+  const progressEl = row.querySelector('.ec-photo-progress');
+  const imgPreview = row.querySelector('.ec-photo-preview');
+  const imageDataInput = row.querySelector('.ec-image-data');
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    progressEl.style.display = 'block';
+    progressEl.textContent = 'Uploading…';
+    try {
+      const dataUrl = await compressImageToDataUrl(file, { maxDim: 900, maxBytes: 150 * 1024 });
+      imageDataInput.value = dataUrl;
+      imgPreview.src = dataUrl;
+      imgPreview.style.display = 'block';
+      progressEl.textContent = 'Uploaded ✓';
+      setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+    } catch (err) {
+      console.error('Spare part photo upload failed', err);
+      progressEl.textContent = `Upload failed: ${err.message}`;
+    } finally {
+      fileInput.value = '';
+    }
+  });
+
+  evEl.partComponentsRows.appendChild(row);
+}
+document.getElementById('evPartAddComponentBtn').addEventListener('click', () => addPartComponentRow());
+
+// Syncs the component rows currently in the form to Firestore: creates new
+// docs for rows without a data-component-id, updates existing ones, and
+// deletes any whose row was removed from the form (tracked in
+// evPartComponentsRemovedIds as the "Remove" button is clicked).
+async function savePartComponents(partId) {
+  const rows = Array.from(evEl.partComponentsRows.querySelectorAll('.ev-component-row'));
+  const batch = db.batch();
+  let hasWrites = false;
+  rows.forEach((row, i) => {
+    const name = row.querySelector('.ec-name').value.trim();
+    if (!name) return; // skip rows left blank
+    const existingId = row.dataset.componentId;
+    const docRef = existingId
+      ? db.collection(PART_COMPONENTS_COLLECTION).doc(existingId)
+      : db.collection(PART_COMPONENTS_COLLECTION).doc();
+    batch.set(docRef, {
+      partId,
+      equipmentId: evEquipment.id,
+      name,
+      spec: row.querySelector('.ec-spec').value.trim(),
+      function: row.querySelector('.ec-function').value.trim(),
+      image: row.querySelector('.ec-image-data').value || '',
+      order: i,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    hasWrites = true;
+  });
+  evPartComponentsRemovedIds.forEach((id) => {
+    batch.delete(db.collection(PART_COMPONENTS_COLLECTION).doc(id));
+    hasWrites = true;
+  });
+  if (hasWrites) await batch.commit();
+  evPartComponentsRemovedIds = [];
+}
 
 // Resources linked to whichever part is currently being edited, drawn from
 // the same `internalResources` collection managed on the Resources tab.
@@ -3042,11 +3259,14 @@ evEl.partSaveBtn.addEventListener('click', async () => {
   evEl.partSaveBtn.disabled = true;
   evEl.partSaveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
   try {
-    if (evEditingPartId) {
-      await db.collection('equipmentParts').doc(evEditingPartId).update(data);
+    let partId = evEditingPartId;
+    if (partId) {
+      await db.collection('equipmentParts').doc(partId).update(data);
     } else {
-      await db.collection('equipmentParts').add(data);
+      const ref = await db.collection('equipmentParts').add(data);
+      partId = ref.id;
     }
+    await savePartComponents(partId);
     evEl.partForm.style.display = 'none';
     evEditingPartId = null;
     evPendingPin = null;
@@ -3066,6 +3286,10 @@ async function deleteExplodedViewPart(partId) {
     await db.collection('equipmentParts').doc(partId).delete();
     const linkedRes = await db.collection('internalResources').where('partId', '==', partId).get();
     await Promise.all(linkedRes.docs.map((doc) => doc.ref.update({ partId: null })));
+    const linkedComponents = await db.collection(PART_COMPONENTS_COLLECTION).where('partId', '==', partId).get();
+    const batch = db.batch();
+    linkedComponents.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
     evEl.partForm.style.display = 'none';
     evEditingPartId = null;
     evPendingPin = null;
