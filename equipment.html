@@ -379,6 +379,9 @@
   .doc:hover span.doc-name{color:var(--brand)}
   .doc.active{border-color:var(--brand-light);background:#f0faf4}
   .doc.active span.doc-name{color:var(--brand);font-weight:600}
+  .doc.static{cursor:default}
+  .doc.static span.doc-name{cursor:default}
+  .doc.static:hover span.doc-name{color:var(--text)}
 
   /* Search bar */
   .search-bar{
@@ -1288,6 +1291,12 @@
       </div>
     </div>
   </div>
+
+  <div class="section" id="toolsSection" style="display:none;">
+    <h2><i class="fa-solid fa-toolbox"></i> Tools Required</h2>
+    <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">General toolkit needed to work on this equipment.</p>
+    <div id="toolsList" class="doc-list"></div>
+  </div>
   </div>
 
   <div class="eq-tab-panel" id="eqPanelDiagrams">
@@ -1315,6 +1324,10 @@
       <div class="part-panel-function">
         <b>Function</b>
         <p id="partPanelFunction"></p>
+      </div>
+      <div class="part-panel-function" id="partPanelToolsSection" style="display:none;">
+        <b>Tools Needed for Replacement</b>
+        <div id="partPanelTools" class="doc-list"></div>
       </div>
       <div class="part-panel-function" id="partPanelResourcesSection" style="display:none;">
         <b>Resources</b>
@@ -1812,6 +1825,8 @@ const el = {
   manufacturer: document.getElementById('manufacturer'),
   model: document.getElementById('model'),
   heroDetailsGrid: document.getElementById('heroDetailsGrid'),
+  toolsSection: document.getElementById('toolsSection'),
+  toolsList: document.getElementById('toolsList'),
   serial: document.getElementById('serial'),
   installation: document.getElementById('installation'),
   eqTabs: document.getElementById('eqTabs'),
@@ -1830,6 +1845,8 @@ const el = {
   partPanelModel: document.getElementById('partPanelModel'),
   partPanelSerial: document.getElementById('partPanelSerial'),
   partPanelFunction: document.getElementById('partPanelFunction'),
+  partPanelToolsSection: document.getElementById('partPanelToolsSection'),
+  partPanelTools: document.getElementById('partPanelTools'),
   partPanelResourcesSection: document.getElementById('partPanelResourcesSection'),
   partPanelResources: document.getElementById('partPanelResources'),
   documents: document.getElementById('documents'),
@@ -1897,6 +1914,19 @@ function closeSafetyModal() {
 // Runs every time an equipment page loads, per equipment: uses that
 // equipment's own safetyRequirements from equipment.json if present,
 // otherwise falls back to the general baseline list above.
+function renderEquipmentTools(equipment) {
+  const tools = Array.isArray(equipment.tools) ? equipment.tools.filter(t => t && t.name) : [];
+  if (!tools.length) {
+    el.toolsSection.style.display = 'none';
+    el.toolsList.innerHTML = '';
+    return;
+  }
+  el.toolsSection.style.display = 'block';
+  el.toolsList.innerHTML = tools.map(t => `
+    <div class="doc static"><span class="doc-name" title="${escapeHtml(t.name)}"><i class="fa-solid fa-wrench"></i> ${escapeHtml(t.name)}${t.spec ? ` <span style="color:var(--muted);font-weight:400">— ${escapeHtml(t.spec)}</span>` : ''}</span></div>
+  `).join('');
+}
+
 function showSafetyModal(equipment) {
   const custom = Array.isArray(equipment.safetyRequirements) ? equipment.safetyRequirements.filter(Boolean) : [];
   currentSafetyRequirements = custom.length ? custom : DEFAULT_SAFETY_REQUIREMENTS;
@@ -2452,6 +2482,7 @@ function renderEquipment(e) {
   el.model.textContent = e.model || '—';
   el.serial.textContent = e.serial || '—';
   el.installation.textContent = formatDate(e.installation);
+  renderEquipmentTools(e);
 
   loadEquipmentLogs(e.id);
   loadSubscribers(e.id);
@@ -2798,6 +2829,17 @@ function openPartPanel(part, pinEl) {
   el.partPanelModel.textContent = part.modelNumber || '—';
   el.partPanelSerial.textContent = part.serialNumber || '—';
   el.partPanelFunction.textContent = part.function || 'No function description available.';
+
+  const partTools = Array.isArray(part.tools) ? part.tools.filter(t => t && t.name) : [];
+  if (partTools.length) {
+    el.partPanelToolsSection.style.display = 'block';
+    el.partPanelTools.innerHTML = partTools.map(t => `
+      <div class="doc static"><span class="doc-name" title="${escapeHtml(t.name)}"><i class="fa-solid fa-wrench"></i> ${escapeHtml(t.name)}${t.spec ? ` <span style="color:var(--muted);font-weight:400">— ${escapeHtml(t.spec)}</span>` : ''}</span></div>
+    `).join('');
+  } else {
+    el.partPanelToolsSection.style.display = 'none';
+    el.partPanelTools.innerHTML = '';
+  }
 
   const linkedResources = allInternalResources.filter((r) => r.partId === part.id);
   if (linkedResources.length) {
