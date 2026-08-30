@@ -171,6 +171,20 @@
   .safety-checklist-btn-primary:hover{background:#b8241a}
   .safety-checklist-signoff-count{font-size:.78rem;color:#7a1c14}
 
+  /* ---------- PM Checklist banner (routine, not safety-critical — green theme) ---------- */
+  .pm-checklist-section{
+    background:#eef7f1;border:1px solid #c9e6d3;padding:14px 18px;
+  }
+  .pm-checklist-bar-label{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:600;font-size:.92rem}
+  .pm-checklist-bar-label i{color:var(--brand);font-size:1.1rem;flex:0 0 auto}
+  .pm-checklist-btn-primary{
+    display:flex;align-items:center;gap:8px;background:var(--brand);color:#fff;border:none;
+    border-radius:8px;padding:9px 16px;font-family:inherit;font-size:.86rem;font-weight:700;
+    cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .pm-checklist-btn-primary:hover{background:#005229}
+  .pm-checklist-signoff-count{font-size:.78rem;color:var(--brand)}
+
   @media (max-width:480px){
     .safety-checklist-section{padding:12px 14px}
     .safety-checklist-bar-label span{font-size:.85rem}
@@ -213,11 +227,12 @@
   .cf-row:has(.cf-field:only-child){grid-template-columns:1fr}
   .cf-field{display:flex;flex-direction:column;gap:6px}
   .cf-field label{font-size:.78rem;font-weight:500;color:var(--muted)}
-  .cf-field input{
+  .cf-field input,.cf-field select,.cf-field textarea{
     border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;
     font-size:16px;outline:none;background:#fff;
   }
-  .cf-field input:focus{border-color:var(--brand-light)}
+  .cf-field input:focus,.cf-field select:focus,.cf-field textarea:focus{border-color:var(--brand-light)}
+  .cf-field textarea{resize:vertical;min-height:70px}
   .cf-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
   .cf-error{color:var(--danger);font-size:.82rem;flex:1}
 
@@ -1102,6 +1117,111 @@
   </div>
 </div>
 
+<div id="pmChecklistOverlay">
+  <div class="checklist-modal">
+    <div class="checklist-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-clipboard-list"></i> PM Checklist</h3>
+        <p id="pmChecklistEquipName">Equipment</p>
+      </div>
+      <div class="checklist-modal-head-actions">
+        <button type="button" id="pmChecklistEditBtn" class="checklist-admin-btn" title="Edit checklist (admin)"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="checklist-modal-close" id="pmChecklistCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="checklist-modal-body">
+
+      <div id="pmChecklistEmptyState" class="checklist-empty-state" style="display:none">
+        <i class="fa-solid fa-circle-info"></i>
+        <p>No PM checklist has been set up for this equipment yet. An admin needs to add one before technicians can fill it out.</p>
+      </div>
+
+      <form id="pmChecklistForm">
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="pmFullName">Full Name *</label>
+            <input type="text" id="pmFullName" required maxlength="99" placeholder="e.g. Kwame Mensah">
+          </div>
+          <div class="cf-field">
+            <label for="pmPartSelect">Equipment Part (optional)</label>
+            <select id="pmPartSelect">
+              <option value="">No specific part</option>
+            </select>
+          </div>
+        </div>
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="pmDate">Date *</label>
+            <input type="date" id="pmDate" required>
+          </div>
+          <div class="cf-field"></div>
+        </div>
+        <div class="cf-row">
+          <div class="cf-field">
+            <label for="pmStartTime">Time of PM Start *</label>
+            <input type="time" id="pmStartTime" required>
+          </div>
+          <div class="cf-field">
+            <label for="pmEndTime">Time of PM End *</label>
+            <input type="time" id="pmEndTime" required>
+          </div>
+        </div>
+
+        <div id="pmChecklistItemsList" class="checklist-items-list"></div>
+
+        <div class="cf-row">
+          <div class="cf-field" style="grid-column:1/-1">
+            <label for="pmComments">Comments</label>
+            <textarea id="pmComments" maxlength="1000" placeholder="Observations, parts replaced, follow-up needed…"></textarea>
+          </div>
+        </div>
+
+        <div class="cf-actions">
+          <span id="pmChecklistFormError" class="cf-error"></span>
+          <button type="submit" id="pmChecklistSubmitBtn" disabled><i class="fa-solid fa-signature"></i> Complete PM Checklist</button>
+        </div>
+      </form>
+
+      <div id="pmChecklistSuccess" class="checklist-success" style="display:none">
+        <i class="fa-solid fa-circle-check"></i>
+        <p>PM checklist recorded and saved to this equipment's history.</p>
+        <button type="button" id="pmChecklistDownloadPdfBtn"><i class="fa-solid fa-file-pdf"></i> Download PM Record (PDF)</button>
+        <button type="button" id="pmChecklistNewSignoffBtn" class="checklist-link-btn">Start another PM checklist</button>
+      </div>
+
+      <button type="button" id="pmChecklistHistoryToggle" class="log-history-toggle" style="margin-top:16px">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span id="pmChecklistHistoryLabel">View PM History</span>
+        <span id="pmChecklistHistoryCount" class="log-count-badge" style="display:none"></span>
+      </button>
+      <div id="pmChecklistHistoryPanel" class="log-history-panel" style="display:none">
+        <button type="button" id="pmChecklistShowArchivedBtn" class="log-export-btn" style="display:none;margin-bottom:10px"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
+        <div id="pmChecklistHistoryEntries"><p class="log-empty">Loading PM history…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pmChecklistEditOverlay">
+  <div class="checklist-edit-modal">
+    <div class="checklist-edit-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-pen"></i> Edit PM Checklist</h3>
+        <p>Write or adjust the routine checks technicians must complete during a PM on this equipment.</p>
+      </div>
+      <button type="button" class="checklist-edit-modal-close" id="pmChecklistEditCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="checklist-edit-modal-body">
+      <div id="pmChecklistEditItems" class="checklist-edit-items"></div>
+      <button type="button" id="pmChecklistAddItemBtn" class="checklist-add-item-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+      <div class="cf-actions" style="margin-top:16px">
+        <span id="pmChecklistEditError" class="cf-error"></span>
+        <button type="button" id="pmChecklistEditSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header>
   <a href="index.html" class="header-back" id="headerBackLink"><i class="fa-solid fa-arrow-left"></i> <span id="headerBackText">Dashboard</span></a>
   <div class="header-right">
@@ -1129,6 +1249,21 @@
           <i class="fa-solid fa-clipboard-check"></i> Open Checklist
         </button>
         <span id="safetyChecklistSignoffCount" class="safety-checklist-signoff-count"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section pm-checklist-section" id="pmChecklistSection">
+    <div class="safety-checklist-bar">
+      <div class="pm-checklist-bar-label">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <span>PM Checklist</span>
+      </div>
+      <div class="safety-checklist-actions">
+        <button type="button" id="openPmChecklistBtn" class="pm-checklist-btn-primary">
+          <i class="fa-solid fa-clipboard-check"></i> Open Checklist
+        </button>
+        <span id="pmChecklistSignoffCount" class="pm-checklist-signoff-count"></span>
       </div>
     </div>
   </div>
@@ -2295,6 +2430,7 @@ function renderEquipment(e) {
   loadEquipmentLogs(e.id);
   loadSubscribers(e.id);
   loadSafetyChecklist(e.id);
+  loadPmChecklist(e.id);
   loadExplodedView(e);
   showSafetyModal(e);
   loadInternalResources(e.id);
@@ -4332,6 +4468,447 @@ checklistEditEl.saveBtn.addEventListener('click', async () => {
   } finally {
     checklistEditEl.saveBtn.disabled = false;
     checklistEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
+  }
+});
+
+// ================= PM Checklist =================
+//
+// Two Firestore collections, same audit-trail pattern as the safety
+// checklist above:
+//   pmChecklists/{equipmentId}      — the checklist definition (admin-editable)
+//   pmChecklistCompletions/{autoId} — permanent PM records; archived (soft-deleted)
+//                                      before an admin can ever permanently delete one.
+
+function newPmChecklistItemId() {
+  return 'pmitem_' + Math.random().toString(36).slice(2, 10);
+}
+
+const pmEl = {
+  overlay: document.getElementById('pmChecklistOverlay'),
+  equipName: document.getElementById('pmChecklistEquipName'),
+  closeX: document.getElementById('pmChecklistCloseX'),
+  editBtn: document.getElementById('pmChecklistEditBtn'),
+  emptyState: document.getElementById('pmChecklistEmptyState'),
+  form: document.getElementById('pmChecklistForm'),
+  fullName: document.getElementById('pmFullName'),
+  partSelect: document.getElementById('pmPartSelect'),
+  date: document.getElementById('pmDate'),
+  startTime: document.getElementById('pmStartTime'),
+  endTime: document.getElementById('pmEndTime'),
+  comments: document.getElementById('pmComments'),
+  itemsList: document.getElementById('pmChecklistItemsList'),
+  submitBtn: document.getElementById('pmChecklistSubmitBtn'),
+  formError: document.getElementById('pmChecklistFormError'),
+  success: document.getElementById('pmChecklistSuccess'),
+  downloadPdfBtn: document.getElementById('pmChecklistDownloadPdfBtn'),
+  newSignoffBtn: document.getElementById('pmChecklistNewSignoffBtn'),
+  historyToggle: document.getElementById('pmChecklistHistoryToggle'),
+  historyLabel: document.getElementById('pmChecklistHistoryLabel'),
+  historyCount: document.getElementById('pmChecklistHistoryCount'),
+  historyPanel: document.getElementById('pmChecklistHistoryPanel'),
+  historyEntries: document.getElementById('pmChecklistHistoryEntries'),
+  showArchivedBtn: document.getElementById('pmChecklistShowArchivedBtn'),
+  openBtn: document.getElementById('openPmChecklistBtn'),
+  signoffCountBadge: document.getElementById('pmChecklistSignoffCount'),
+};
+
+const pmEditEl = {
+  overlay: document.getElementById('pmChecklistEditOverlay'),
+  closeX: document.getElementById('pmChecklistEditCloseX'),
+  itemsWrap: document.getElementById('pmChecklistEditItems'),
+  addItemBtn: document.getElementById('pmChecklistAddItemBtn'),
+  saveBtn: document.getElementById('pmChecklistEditSaveBtn'),
+  error: document.getElementById('pmChecklistEditError'),
+};
+
+let currentPmChecklist = null;   // { items } or null if none set up yet
+let pmCompletionsCache = [];     // loaded lazily when history panel opens
+let pmPartsCache = [];           // this equipment's exploded-view parts, for the optional picker
+let lastPmRecord = null;         // for the PDF download after a successful submission
+let pmShowArchived = false;
+
+function loadPmChecklist(equipmentId) {
+  db.collection('pmChecklists').doc(equipmentId).get()
+    .then(doc => {
+      currentPmChecklist = doc.exists ? doc.data() : null;
+      renderPmChecklistForm();
+      updatePmSignoffCountBadge(equipmentId);
+    })
+    .catch(err => {
+      console.error('Failed to load PM checklist', err);
+      currentPmChecklist = null;
+      renderPmChecklistForm();
+    });
+
+  db.collection('equipmentParts').where('equipmentId', '==', equipmentId).get()
+    .then(snapshot => {
+      pmPartsCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      pmEl.partSelect.innerHTML = '<option value="">No specific part</option>' +
+        pmPartsCache.map(p => `<option value="${p.id}">${escapeHtml(p.name || 'Unnamed part')}</option>`).join('');
+    })
+    .catch(err => console.error('Failed to load parts for PM checklist', err));
+}
+
+function updatePmSignoffCountBadge(equipmentId) {
+  db.collection('pmChecklistCompletions').where('equipmentId', '==', equipmentId).get()
+    .then(snapshot => {
+      const n = snapshot.docs.filter(d => !d.data().archived).length;
+      pmEl.signoffCountBadge.textContent = n
+        ? `${n} PM record${n === 1 ? '' : 's'} for this equipment`
+        : 'No PM records yet for this equipment';
+    })
+    .catch(() => { pmEl.signoffCountBadge.textContent = ''; });
+}
+
+function renderPmChecklistForm() {
+  const hasChecklist = currentPmChecklist && Array.isArray(currentPmChecklist.items) && currentPmChecklist.items.length > 0;
+
+  pmEl.emptyState.style.display = hasChecklist ? 'none' : 'block';
+  pmEl.form.style.display = hasChecklist ? 'block' : 'none';
+
+  if (!hasChecklist) {
+    pmEl.itemsList.innerHTML = '';
+    return;
+  }
+
+  pmEl.itemsList.innerHTML = currentPmChecklist.items.map(item => `
+    <label class="checklist-item-row">
+      <input type="checkbox" class="pm-checklist-check" data-id="${item.id}">
+      <span class="item-text">${escapeHtml(item.text)}</span>
+    </label>
+  `).join('');
+
+  pmEl.itemsList.querySelectorAll('.pm-checklist-check').forEach(cb => {
+    cb.addEventListener('change', updatePmSubmitState);
+  });
+  updatePmSubmitState();
+}
+
+function updatePmSubmitState() {
+  const boxes = pmEl.itemsList.querySelectorAll('.pm-checklist-check');
+  const allChecked = boxes.length > 0 && Array.from(boxes).every(cb => cb.checked);
+  pmEl.submitBtn.disabled = !allChecked;
+}
+
+function openPmChecklistModal() {
+  pmEl.equipName.textContent = currentEquipmentData ? currentEquipmentData.name : 'Equipment';
+  pmEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  pmEl.form.style.display = currentPmChecklist ? 'block' : 'none';
+  pmEl.success.style.display = 'none';
+  pmEl.date.value = new Date().toISOString().slice(0, 10);
+  if (currentEquipmentData) loadPmChecklist(currentEquipmentData.id);
+}
+
+function closePmChecklistModal() {
+  pmEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+pmEl.openBtn.addEventListener('click', openPmChecklistModal);
+pmEl.closeX.addEventListener('click', closePmChecklistModal);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && pmEl.overlay.classList.contains('is-open') && !pmEditEl.overlay.classList.contains('is-open')) {
+    closePmChecklistModal();
+  }
+});
+
+pmEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  pmEl.formError.textContent = '';
+
+  if (!currentEquipmentData || !currentPmChecklist) return;
+
+  const boxes = Array.from(pmEl.itemsList.querySelectorAll('.pm-checklist-check'));
+  if (!boxes.every(cb => cb.checked)) {
+    pmEl.formError.textContent = 'Every item must be checked before completing this PM checklist.';
+    return;
+  }
+
+  const itemsSnapshot = currentPmChecklist.items.map(item => ({ id: item.id, text: item.text, checked: true }));
+  const partId = pmEl.partSelect.value;
+  const part = partId ? pmPartsCache.find(p => p.id === partId) : null;
+
+  pmEl.submitBtn.disabled = true;
+  pmEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Recording…';
+
+  try {
+    const uid = await authReady;
+    const record = {
+      equipmentId: currentEquipmentData.id,
+      equipmentName: currentEquipmentData.name || '',
+      partId: partId || '',
+      partName: part ? (part.name || '') : '',
+      fullName: pmEl.fullName.value.trim(),
+      date: pmEl.date.value,
+      startTime: pmEl.startTime.value,
+      endTime: pmEl.endTime.value,
+      comments: pmEl.comments.value.trim(),
+      itemsSnapshot,
+      authorUid: uid,
+      archived: false,
+      completedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('pmChecklistCompletions').add(record);
+
+    lastPmRecord = { ...record, completedAtLocal: new Date() };
+    pmEl.form.style.display = 'none';
+    pmEl.success.style.display = 'block';
+    pmEl.form.reset();
+    updatePmSignoffCountBadge(currentEquipmentData.id);
+    if (pmEl.historyPanel.style.display !== 'none') loadPmChecklistHistory(currentEquipmentData.id, true);
+  } catch (err) {
+    console.error('Failed to record PM checklist', err);
+    pmEl.formError.textContent = 'Could not record this PM checklist right now. Please try again.';
+  } finally {
+    pmEl.submitBtn.disabled = false;
+    pmEl.submitBtn.innerHTML = '<i class="fa-solid fa-signature"></i> Complete PM Checklist';
+  }
+});
+
+pmEl.newSignoffBtn.addEventListener('click', () => {
+  pmEl.success.style.display = 'none';
+  pmEl.form.style.display = 'block';
+  pmEl.date.value = new Date().toISOString().slice(0, 10);
+  renderPmChecklistForm();
+});
+
+function exportPmRecordPdf(r, completedAtLocal) {
+  if (typeof window.jspdf === 'undefined') { alert('Export library failed to load. Check your connection and try again.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  doc.setFontSize(15);
+  doc.setTextColor(0, 105, 55);
+  doc.text('PM Checklist — Record', 40, 44);
+
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  let y = 68;
+  doc.text(`Equipment: ${r.equipmentName} (${r.equipmentId})`, 40, y); y += 16;
+  if (r.partName) { doc.text(`Part: ${r.partName}`, 40, y); y += 16; }
+  doc.text(`Completed by: ${r.fullName}`, 40, y); y += 16;
+  doc.text(`Date: ${r.date} — PM Start: ${r.startTime || '—'}, End: ${r.endTime || '—'}`, 40, y); y += 16;
+  if (r.comments) { doc.text(`Comments: ${r.comments}`, 40, y, { maxWidth: 515 }); y += 16; }
+  doc.text(`Recorded: ${completedAtLocal ? completedAtLocal.toLocaleString() : ''}`, 40, y); y += 12;
+
+  doc.autoTable({
+    startY: y + 12,
+    head: [['#', 'Checklist Item', 'Verified']],
+    body: r.itemsSnapshot.map((it, i) => [String(i + 1), it.text, '✓']),
+    styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 24 }, 2: { cellWidth: 50 } },
+    margin: { left: 40, right: 40 }
+  });
+
+  doc.save(`${r.equipmentId}-pm-checklist-${r.date || new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+pmEl.downloadPdfBtn.addEventListener('click', () => {
+  if (!lastPmRecord) return;
+  exportPmRecordPdf(lastPmRecord, lastPmRecord.completedAtLocal);
+});
+
+function loadPmChecklistHistory(equipmentId, forceReload) {
+  pmEl.historyEntries.innerHTML = '<p class="log-empty">Loading PM history…</p>';
+  db.collection('pmChecklistCompletions').where('equipmentId', '==', equipmentId).get()
+    .then(snapshot => {
+      pmCompletionsCache = [];
+      snapshot.forEach(d => pmCompletionsCache.push({ id: d.id, ...d.data() }));
+      pmCompletionsCache.sort((a, b) => {
+        const ta = a.completedAt && a.completedAt.toMillis ? a.completedAt.toMillis() : 0;
+        const tb = b.completedAt && b.completedAt.toMillis ? b.completedAt.toMillis() : 0;
+        return tb - ta;
+      });
+
+      pmEl.showArchivedBtn.style.display = adminUnlocked ? 'inline-flex' : 'none';
+
+      const visible = pmCompletionsCache.filter(r => !!r.archived === pmShowArchived);
+
+      pmEl.historyCount.style.display = visible.length ? 'inline-block' : 'none';
+      pmEl.historyCount.textContent = visible.length;
+
+      if (!visible.length) {
+        pmEl.historyEntries.innerHTML = pmShowArchived
+          ? '<p class="log-empty">No archived PM records.</p>'
+          : '<p class="log-empty">No PM checklists recorded yet for this equipment.</p>';
+        return;
+      }
+
+      pmEl.historyEntries.innerHTML = visible.map(r => `
+        <div class="checklist-signoff-record" data-record-id="${r.id}">
+          <div class="rec-head">
+            <span>${escapeHtml(r.fullName || 'Unknown')}${r.partName ? ' — ' + escapeHtml(r.partName) : ''}</span>
+            <span class="rec-meta">${escapeHtml(r.date || '')} ${r.startTime ? `(${escapeHtml(r.startTime)}–${escapeHtml(r.endTime || '')})` : ''}</span>
+          </div>
+          ${r.comments ? `<div>${escapeHtml(r.comments)}</div>` : ''}
+          <div class="rec-meta">${(r.itemsSnapshot || []).length} item(s) verified</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" class="log-entry-edit-btn" data-pdf-id="${r.id}"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+            ${adminUnlocked && !pmShowArchived ? `<button type="button" class="log-entry-archive-btn" data-archive-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>` : ''}
+            ${adminUnlocked && pmShowArchived ? `
+              <button type="button" class="log-entry-restore-btn" data-restore-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
+              <button type="button" class="log-entry-delete-btn" data-delete-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      pmEl.historyEntries.querySelectorAll('[data-pdf-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const r = pmCompletionsCache.find(x => x.id === btn.dataset.pdfId);
+          if (!r) return;
+          const completedAtLocal = r.completedAt && r.completedAt.toDate ? r.completedAt.toDate() : new Date();
+          exportPmRecordPdf(r, completedAtLocal);
+        });
+      });
+      pmEl.historyEntries.querySelectorAll('[data-archive-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Archive this PM record? It will be hidden from history but can be restored later.')) return;
+          try {
+            await db.collection('pmChecklistCompletions').doc(btn.dataset.archiveId).update({
+              archived: true,
+              archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              archivedBy: auth.currentUser ? auth.currentUser.email : '',
+            });
+            loadPmChecklistHistory(equipmentId, true);
+            updatePmSignoffCountBadge(equipmentId);
+          } catch (err) {
+            console.error('Failed to archive PM record', err);
+            alert('Could not archive this record. Please try again.');
+          }
+        });
+      });
+      pmEl.historyEntries.querySelectorAll('[data-restore-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await db.collection('pmChecklistCompletions').doc(btn.dataset.restoreId).update({
+              archived: false,
+              archivedAt: firebase.firestore.FieldValue.delete(),
+              archivedBy: firebase.firestore.FieldValue.delete(),
+            });
+            loadPmChecklistHistory(equipmentId, true);
+            updatePmSignoffCountBadge(equipmentId);
+          } catch (err) {
+            console.error('Failed to restore PM record', err);
+            alert('Could not restore this record. Please try again.');
+          }
+        });
+      });
+      pmEl.historyEntries.querySelectorAll('[data-delete-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirmPermanentDelete('this PM record')) return;
+          try {
+            await db.collection('pmChecklistCompletions').doc(btn.dataset.deleteId).delete();
+            loadPmChecklistHistory(equipmentId, true);
+          } catch (err) {
+            console.error('Failed to delete PM record', err);
+            alert('Could not delete this record. Please try again.');
+          }
+        });
+      });
+    })
+    .catch(err => {
+      console.error('Failed to load PM history', err);
+      pmEl.historyEntries.innerHTML = '<p class="log-empty">Could not load PM history right now.</p>';
+    });
+}
+
+pmEl.historyToggle.addEventListener('click', () => {
+  const isOpen = pmEl.historyPanel.style.display !== 'none';
+  pmEl.historyPanel.style.display = isOpen ? 'none' : 'block';
+  pmEl.historyLabel.textContent = isOpen ? 'View PM History' : 'Hide PM History';
+  if (!isOpen && currentEquipmentData) loadPmChecklistHistory(currentEquipmentData.id);
+});
+
+pmEl.showArchivedBtn.addEventListener('click', () => {
+  pmShowArchived = !pmShowArchived;
+  pmEl.showArchivedBtn.innerHTML = pmShowArchived
+    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
+    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
+  if (currentEquipmentData) loadPmChecklistHistory(currentEquipmentData.id, true);
+});
+
+// ---------- Admin: edit PM checklist ----------
+
+function renderPmChecklistEditItems(items) {
+  pmEditEl.itemsWrap.innerHTML = '';
+  items.forEach(item => appendPmChecklistEditRow(item));
+}
+
+function appendPmChecklistEditRow(item) {
+  const row = document.createElement('div');
+  row.className = 'checklist-edit-item-row';
+  row.dataset.id = item.id;
+  row.innerHTML = `
+    <textarea class="edit-item-text" placeholder="Checklist step…">${escapeHtml(item.text)}</textarea>
+    <div class="checklist-edit-item-controls">
+      <button type="button" class="checklist-remove-item-btn" title="Remove"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `;
+  row.querySelector('.checklist-remove-item-btn').addEventListener('click', () => row.remove());
+  pmEditEl.itemsWrap.appendChild(row);
+}
+
+function openPmChecklistEditModal() {
+  const items = (currentPmChecklist && Array.isArray(currentPmChecklist.items) && currentPmChecklist.items.length)
+    ? currentPmChecklist.items
+    : [];
+  renderPmChecklistEditItems(items);
+  pmEditEl.error.textContent = '';
+  pmEditEl.overlay.classList.add('is-open');
+}
+
+function closePmChecklistEditModal() {
+  pmEditEl.overlay.classList.remove('is-open');
+}
+
+pmEl.editBtn.addEventListener('click', () => {
+  if (!requireAdminUnlock()) return;
+  openPmChecklistEditModal();
+});
+
+pmEditEl.closeX.addEventListener('click', closePmChecklistEditModal);
+
+pmEditEl.addItemBtn.addEventListener('click', () => {
+  appendPmChecklistEditRow({ id: newPmChecklistItemId(), text: '' });
+});
+
+pmEditEl.saveBtn.addEventListener('click', async () => {
+  if (!currentEquipmentData) return;
+  pmEditEl.error.textContent = '';
+
+  const rows = Array.from(pmEditEl.itemsWrap.querySelectorAll('.checklist-edit-item-row'));
+  const items = rows.map(row => ({
+    id: row.dataset.id || newPmChecklistItemId(),
+    text: row.querySelector('.edit-item-text').value.trim()
+  })).filter(item => item.text.length > 0);
+
+  if (!items.length) {
+    pmEditEl.error.textContent = 'Add at least one checklist item before saving.';
+    return;
+  }
+
+  pmEditEl.saveBtn.disabled = true;
+  pmEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+  try {
+    await authReady;
+    await db.collection('pmChecklists').doc(currentEquipmentData.id).set({
+      equipmentId: currentEquipmentData.id,
+      items,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentPmChecklist = { equipmentId: currentEquipmentData.id, items };
+    renderPmChecklistForm();
+    closePmChecklistEditModal();
+  } catch (err) {
+    console.error('Failed to save PM checklist', err);
+    pmEditEl.error.textContent = 'Could not save the checklist right now. Please try again.';
+  } finally {
+    pmEditEl.saveBtn.disabled = false;
+    pmEditEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
   }
 });
 
