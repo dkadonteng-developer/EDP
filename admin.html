@@ -779,6 +779,12 @@
           <button type="button" class="ef-add-row-btn" id="efAddSafetyBtn"><i class="fa-solid fa-plus"></i> Add Requirement</button>
         </div>
 
+        <div class="ef-subsection">
+          <h4><i class="fa-solid fa-toolbox"></i> Tools Required (general toolkit)</h4>
+          <div id="efToolsRows"></div>
+          <button type="button" class="ef-add-row-btn" id="efAddToolBtn"><i class="fa-solid fa-plus"></i> Add Tool</button>
+        </div>
+
         <div class="ef-error" id="equipFormError"></div>
         <button type="submit" class="ef-save-btn" id="equipFormSaveBtn">
           <i class="fa-solid fa-floppy-disk"></i> Save Equipment
@@ -874,6 +880,11 @@
           <div class="ef-field">
             <label for="evPartFunction">Function</label>
             <textarea id="evPartFunction" placeholder="What this part does"></textarea>
+          </div>
+          <div class="ef-subsection">
+            <h4><i class="fa-solid fa-toolbox"></i> Tools Needed for Replacement</h4>
+            <div id="evPartToolsRows"></div>
+            <button type="button" class="ef-add-row-btn" id="evPartAddToolBtn"><i class="fa-solid fa-plus"></i> Add Tool</button>
           </div>
           <div class="ef-error" id="evPartFormError"></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1647,6 +1658,7 @@ const efEl = {
   image: document.getElementById('efImage'),
   documentsRows: document.getElementById('efDocumentsRows'),
   safetyRows: document.getElementById('efSafetyRows'),
+  toolsRows: document.getElementById('efToolsRows'),
   error: document.getElementById('equipFormError'),
   saveBtn: document.getElementById('equipFormSaveBtn'),
 };
@@ -1727,8 +1739,23 @@ function addSafetyRow(text = '') {
   efEl.safetyRows.appendChild(row);
 }
 
+function addToolRow(name = '', spec = '') {
+  const row = document.createElement('div');
+  row.className = 'ef-repeat-row ef-doc-row';
+  row.innerHTML = `
+    <div class="ef-doc-row-top">
+      <input type="text" placeholder="Tool name (e.g. Torque wrench)" class="ef-tool-name" value="${escapeHtml(name)}">
+      <input type="text" placeholder="Size/spec (optional, e.g. 17mm)" class="ef-tool-spec" value="${escapeHtml(spec)}">
+      <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  `;
+  row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
+  efEl.toolsRows.appendChild(row);
+}
+
 document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
 document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
+document.getElementById('efAddToolBtn').addEventListener('click', () => addToolRow());
 
 // ================= Internal Resources (per-equipment, admin-managed) =================
 // Manuals, procedures, CAD/2D drawings, training videos, or any other
@@ -2160,6 +2187,7 @@ function openEquipForm(existing) {
   efEl.form.reset();
   efEl.documentsRows.innerHTML = '';
   efEl.safetyRows.innerHTML = '';
+  efEl.toolsRows.innerHTML = '';
 
   if (existing) {
     efEl.title.innerHTML = '<i class="fa-solid fa-pen"></i> Edit Equipment';
@@ -2177,6 +2205,7 @@ function openEquipForm(existing) {
     efEl.image.value = existing.image || '';
     (existing.documents || []).forEach((d) => addDocumentRow(d.name, d.file));
     (existing.safetyRequirements || []).forEach((s) => addSafetyRow(s));
+    (existing.tools || []).forEach((t) => addToolRow(t.name, t.spec));
   } else {
     efEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Equipment';
     efEl.id.disabled = false;
@@ -2334,6 +2363,11 @@ efEl.form.addEventListener('submit', async (e) => {
     .map((row) => row.querySelector('.ef-safety-text').value.trim())
     .filter(Boolean);
 
+  const tools = Array.from(efEl.toolsRows.querySelectorAll('.ef-repeat-row')).map((row) => ({
+    name: row.querySelector('.ef-tool-name').value.trim(),
+    spec: row.querySelector('.ef-tool-spec').value.trim(),
+  })).filter((t) => t.name);
+
   // explodedView is managed separately via the Exploded View overlay (not this
   // form), but this save fully overwrites the document — so carry the existing
   // value forward or it would be silently wiped on every edit.
@@ -2354,6 +2388,7 @@ efEl.form.addEventListener('submit', async (e) => {
     image: efEl.image.value.trim(),
     documents,
     safetyRequirements,
+    tools,
     explodedView: (existingRecord && existingRecord.explodedView) || '',
     explodedViews: (existingRecord && existingRecord.explodedViews) || [],
   };
@@ -2405,6 +2440,7 @@ const evEl = {
   partSerial: document.getElementById('evPartSerial'),
   partImage: document.getElementById('evPartImage'),
   partFunction: document.getElementById('evPartFunction'),
+  partToolsRows: document.getElementById('evPartToolsRows'),
   partFormError: document.getElementById('evPartFormError'),
   partSaveBtn: document.getElementById('evPartSaveBtn'),
   partDeleteBtn: document.getElementById('evPartDeleteBtn'),
@@ -2656,6 +2692,8 @@ function openPartForm(existingPart, pendingPos) {
   evEl.partSerial.value = existingPart ? (existingPart.serialNumber || '') : '';
   evEl.partImage.value = existingPart ? (existingPart.image || '') : '';
   evEl.partFunction.value = existingPart ? (existingPart.function || '') : '';
+  evEl.partToolsRows.innerHTML = '';
+  (existingPart && Array.isArray(existingPart.tools) ? existingPart.tools : []).forEach((t) => addPartToolRow(t.name, t.spec));
   evEl.partDeleteBtn.style.display = existingPart ? 'flex' : 'none';
   evEl.partForm.style.display = 'block';
   evEl.partForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2673,6 +2711,21 @@ evEl.partCancelBtn.addEventListener('click', () => {
   evEditingPartId = null;
   evPendingPin = null;
 });
+
+function addPartToolRow(name = '', spec = '') {
+  const row = document.createElement('div');
+  row.className = 'ef-repeat-row ef-doc-row';
+  row.innerHTML = `
+    <div class="ef-doc-row-top">
+      <input type="text" placeholder="Tool name (e.g. Puller set)" class="ef-tool-name" value="${escapeHtml(name)}">
+      <input type="text" placeholder="Size/spec (optional)" class="ef-tool-spec" value="${escapeHtml(spec)}">
+      <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  `;
+  row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
+  evEl.partToolsRows.appendChild(row);
+}
+document.getElementById('evPartAddToolBtn').addEventListener('click', () => addPartToolRow());
 
 // Resources linked to whichever part is currently being edited, drawn from
 // the same `internalResources` collection managed on the Resources tab.
@@ -2746,6 +2799,10 @@ evEl.partSaveBtn.addEventListener('click', async () => {
     serialNumber: evEl.partSerial.value.trim(),
     image: evEl.partImage.value.trim(),
     function: evEl.partFunction.value.trim(),
+    tools: Array.from(evEl.partToolsRows.querySelectorAll('.ef-repeat-row')).map((row) => ({
+      name: row.querySelector('.ef-tool-name').value.trim(),
+      spec: row.querySelector('.ef-tool-spec').value.trim(),
+    })).filter((t) => t.name),
     x: evPendingPin.x,
     y: evPendingPin.y,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
