@@ -1913,19 +1913,24 @@ t5UpdateOfflineBanner();
   dlStatus.textContent = formatLastDownload();
 
   // Simple concurrency-limited queue so we don't fire 60+ requests at once
-  // on a slow connection.
+  // on a slow connection. Tracks *why* each failure happened (not just
+  // that it did) so the final message can tell the difference between
+  // "your connection dropped" and "your device ran out of storage" —
+  // those need very different advice, and used to get the same generic
+  // "try a better connection" text no matter which one actually happened.
   async function runQueue(tasks, concurrency, onProgress) {
     let index = 0;
     let completed = 0;
-    let failed = 0;
+    const failuresByType = { quota: 0, http: 0, network: 0 };
     async function worker() {
       while (index < tasks.length) {
         const i = index++;
         try {
           await tasks[i]();
         } catch (err) {
-          failed++;
-          console.warn('Offline download: an item failed', err);
+          const type = err && err.errorType && failuresByType.hasOwnProperty(err.errorType) ? err.errorType : 'network';
+          failuresByType[type]++;
+          console.warn('Offline download: an item failed', type, err);
         }
         completed++;
         onProgress(completed, tasks.length);
@@ -1933,7 +1938,7 @@ t5UpdateOfflineBanner();
     }
     const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, worker);
     await Promise.all(workers);
-    return { failed };
+    return failuresByType;
   }
 
   // Previously this just called fetch(url) and hoped the service worker's
@@ -1955,16 +1960,27 @@ t5UpdateOfflineBanner();
   function cacheUrlViaServiceWorker(url) {
     return new Promise((resolve, reject) => {
       if (!swRegistration || !swRegistration.active) {
-        reject(new Error('Service worker not available'));
+        const err = new Error('Service worker not available');
+        err.errorType = 'network';
+        reject(err);
         return;
       }
       const channel = new MessageChannel();
-      const timeout = setTimeout(() => reject(new Error(`${url} -> timed out`)), 30000);
+      const timeout = setTimeout(() => {
+        const err = new Error(`${url} -> timed out`);
+        err.errorType = 'network';
+        reject(err);
+      }, 45000);
       channel.port1.onmessage = (event) => {
         clearTimeout(timeout);
         const data = event.data || {};
-        if (data.ok) resolve();
-        else reject(new Error(data.error || `${url} -> failed`));
+        if (data.ok) {
+          resolve();
+        } else {
+          const err = new Error(data.error || `${url} -> failed`);
+          err.errorType = data.errorType || 'network';
+          reject(err);
+        }
       };
       swRegistration.active.postMessage({ type: 'CACHE_URL', url }, [channel.port2]);
     });
@@ -1993,6 +2009,28 @@ t5UpdateOfflineBanner();
         swRegistration = await navigator.serviceWorker.ready;
       } catch (err) {
         console.warn('Service worker not ready, falling back to direct fetch', err);
+      }
+    }
+
+    // Ask upfront to persist storage (reduces the chance the browser evicts
+    // the cache under storage pressure) and warn early if the device
+    // clearly doesn't have much room left — better than silently failing
+    // partway through a long download.
+    if (navigator.storage) {
+      if (navigator.storage.persist) {
+        try { await navigator.storage.persist(); } catch (err) { /* best-effort */ }
+      }
+      if (navigator.storage.estimate) {
+        try {
+          const { usage, quota } = await navigator.storage.estimate();
+          const availableMB = (quota - usage) / (1024 * 1024);
+          if (availableMB < 60) {
+            const proceed = confirm(
+              `Your device only has about ${Math.max(0, Math.round(availableMB))} MB of storage available for offline files, and this download can be 60 MB or more. It may stop partway through. Free up space first, or continue anyway?`
+            );
+            if (!proceed) return;
+          }
+        } catch (err) { /* best-effort — proceed without the estimate */ }
       }
     }
 
@@ -2027,16 +2065,36 @@ t5UpdateOfflineBanner();
       const t5Cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
       tasks.push(() => t5db.collection('takeFiveAssessments').where('createdAt', '>=', t5Cutoff).get({ source: 'server' }));
 
-      const { failed } = await runQueue(tasks, 4, (done, total) => {
+      const failuresByType = await runQueue(tasks, 4, (done, total) => {
         progressLabel.textContent = `Downloading… ${done} of ${total}`;
         progressFill.style.width = `${Math.round((done / total) * 100)}%`;
       });
 
       localStorage.setItem(LAST_DL_KEY, String(Date.now()));
       dlStatus.textContent = formatLastDownload();
-      progressLabel.textContent = failed
-        ? `Done — ${failed} item${failed === 1 ? '' : 's'} couldn't be downloaded. Try again on a better connection if something's missing offline.`
-        : 'Done — everything is available offline.';
+
+      const totalFailed = failuresByType.quota + failuresByType.http + failuresByType.network;
+      if (!totalFailed) {
+        progressLabel.textContent = 'Done — everything is available offline.';
+      } else {
+        // Lead with whichever cause explains the most failures — that's
+        // almost always the real story, and it's frequently NOT the
+        // connection: caching dozens of PDFs/images on a low-storage
+        // device commonly runs out of Cache Storage quota partway
+        // through, and every remaining item fails the same way from then
+        // on regardless of signal strength.
+        const parts = [];
+        if (failuresByType.quota) {
+          parts.push(`${failuresByType.quota} item${failuresByType.quota === 1 ? '' : 's'} couldn't be saved — your device is low on storage. Free up space and try again.`);
+        }
+        if (failuresByType.network) {
+          parts.push(`${failuresByType.network} item${failuresByType.network === 1 ? '' : 's'} couldn't be downloaded — try again on a better connection.`);
+        }
+        if (failuresByType.http) {
+          parts.push(`${failuresByType.http} item${failuresByType.http === 1 ? '' : 's'} pointed to a file that's missing on the server — an admin needs to check ${failuresByType.http === 1 ? 'it' : 'these'}.`);
+        }
+        progressLabel.textContent = `Done, with issues: ${parts.join(' ')}`;
+      }
     } catch (err) {
       console.error('Offline download failed', err);
       progressLabel.textContent = 'Something went wrong. Please check your connection and try again.';
