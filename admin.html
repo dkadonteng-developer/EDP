@@ -360,6 +360,17 @@
   }
   .ef-upload-btn:hover{background:#e0f0e6;}
   .ef-upload-progress{font-size:.72rem;color:var(--muted);margin-top:6px;}
+  .ef-test-link-btn{
+    display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--text);border:1px solid var(--border);
+    padding:7px 12px;border-radius:7px;font-size:.75rem;font-weight:600;cursor:pointer;
+    width:fit-content;margin-top:8px;font-family:inherit;
+  }
+  .ef-test-link-btn:hover{border-color:var(--brand);color:var(--brand);}
+  .ef-test-link-btn:disabled{opacity:.6;cursor:default;}
+  .ef-link-test-result{font-size:.78rem;margin-top:6px;line-height:1.4;}
+  .ef-link-test-result.ok{color:#1a7a3d;}
+  .ef-link-test-result.warn{color:#b45309;}
+  .ef-link-test-result.bad{color:var(--danger);}
   .ef-repeat-row input{flex:1;font-family:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;}
   .ef-repeat-remove{background:#fdeceb;color:var(--danger);border:none;width:32px;height:32px;border-radius:7px;cursor:pointer;flex-shrink:0;}
   .ef-add-row-btn{
@@ -642,6 +653,12 @@
           </select>
         </div>
         <input type="text" id="resFileInput" placeholder="File path/URL, or paste a video link" style="width:100%;margin-bottom:8px">
+        <p class="ef-hint" style="margin-top:-4px">
+          Same rule as equipment documents: this must be viewable <b>without signing in</b> and be a <b>direct file link</b>,
+          not a share/preview page — set sharing to "Anyone with the link," not "people in your organization."
+        </p>
+        <button type="button" class="ef-test-link-btn" id="resTestLinkBtn"><i class="fa-solid fa-link"></i> Test Link</button>
+        <div class="ef-link-test-result" id="resLinkTestResult" style="display:none;"></div>
         <label class="ef-upload-btn">
           <i class="fa-solid fa-upload"></i> Upload File
           <input type="file" id="resFileUploadInput" hidden>
@@ -831,6 +848,13 @@
 
         <div class="ef-subsection">
           <h4><i class="fa-solid fa-file-pdf"></i> Documents (manuals, drawings, etc.)</h4>
+          <p class="ef-hint" style="margin-top:-4px">
+            Pasting a link from Google Drive, OneDrive/SharePoint, or Dropbox? Technicians open these
+            <b>without signing in</b>, so the link must be set to <b>"Anyone with the link can view"</b>
+            (not "people in your organization") — and it needs to be the <b>direct file link</b>, not the share/preview page,
+            or the built-in viewer won't be able to open it. Dropbox's is usually the most reliable: copy the share link and
+            change the <code>?dl=0</code> at the end to <code>?dl=1</code>.
+          </p>
           <div id="efDocumentsRows"></div>
           <button type="button" class="ef-add-row-btn" id="efAddDocumentBtn"><i class="fa-solid fa-plus"></i> Add Document</button>
         </div>
@@ -1182,6 +1206,51 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
+}
+
+// Checks whether a pasted external link (Google Drive, OneDrive, Dropbox,
+// etc.) actually resolves to a real file our in-app preview can read — the
+// same kind of request equipment.html's PDF/image/video viewer performs —
+// rather than a share/preview webpage. This CANNOT fully confirm "opens
+// without sign-in": this browser may already be signed into the admin's
+// own Google/Microsoft account, which can mask a link that would prompt a
+// login for anyone else. It's still a strong, honest signal: if the fetch
+// itself fails or returns HTML instead of a file, the real preview will
+// almost certainly fail too, for anyone.
+async function testDocumentLink(url, resultEl) {
+  resultEl.style.display = 'block';
+  resultEl.className = 'ef-link-test-result';
+  resultEl.textContent = 'Testing…';
+  try {
+    const res = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store' });
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    if (!res.ok) {
+      resultEl.className = 'ef-link-test-result bad';
+      resultEl.textContent = `Could not load this link (HTTP ${res.status}). Double-check the URL.`;
+    } else if (contentType.startsWith('text/html')) {
+      resultEl.className = 'ef-link-test-result warn';
+      resultEl.textContent = 'This returned a webpage, not the file itself — likely a share/preview link rather than a direct file link. Use the "direct download" link format instead (see the note above).';
+    } else {
+      resultEl.className = 'ef-link-test-result ok';
+      resultEl.textContent = `Loads as a real file (${contentType || 'unknown type'}). Note: this browser may already be signed in to Drive/OneDrive — for full certainty that it needs no sign-in, also try the link in a private/incognito window.`;
+    }
+  } catch (err) {
+    resultEl.className = 'ef-link-test-result warn';
+    resultEl.textContent = "Couldn't check this link from here (likely blocked by the host's cross-origin policy). That doesn't always mean it's broken, but it does mean the in-app preview may not be able to load it either — worth double-checking by opening the link directly in a private/incognito browser window.";
+  }
+}
+
+function wireTestLinkButton(btn, urlInput, resultEl) {
+  btn.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (!url) {
+      resultEl.style.display = 'block';
+      resultEl.className = 'ef-link-test-result bad';
+      resultEl.textContent = 'Paste a link first.';
+      return;
+    }
+    testDocumentLink(url, resultEl);
+  });
 }
 
 // ================= Real admin authentication =================
@@ -1865,11 +1934,15 @@ function addDocumentRow(name = '', file = '') {
       <input type="text" placeholder="File path or URL" class="ef-doc-file" value="${escapeHtml(file)}">
       <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <label class="ef-upload-btn">
-      <i class="fa-solid fa-upload"></i> Upload PDF
-      <input type="file" accept="application/pdf" class="ef-doc-file-input" hidden>
-    </label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <label class="ef-upload-btn">
+        <i class="fa-solid fa-upload"></i> Upload PDF
+        <input type="file" accept="application/pdf" class="ef-doc-file-input" hidden>
+      </label>
+      <button type="button" class="ef-test-link-btn"><i class="fa-solid fa-link"></i> Test Link</button>
+    </div>
     <div class="ef-upload-progress" style="display:none;"></div>
+    <div class="ef-link-test-result" style="display:none;"></div>
   `;
   row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
   wireFileUpload(
@@ -1877,6 +1950,11 @@ function addDocumentRow(name = '', file = '') {
     row.querySelector('.ef-doc-file'),
     row.querySelector('.ef-upload-progress'),
     'documents'
+  );
+  wireTestLinkButton(
+    row.querySelector('.ef-test-link-btn'),
+    row.querySelector('.ef-doc-file'),
+    row.querySelector('.ef-link-test-result')
   );
   efEl.documentsRows.appendChild(row);
 }
@@ -1941,6 +2019,7 @@ const resEl = {
   list: document.getElementById('resourceListContainer'),
   selectHint: document.getElementById('resSelectEquipmentHint'),
 };
+wireTestLinkButton(document.getElementById('resTestLinkBtn'), resEl.file, document.getElementById('resLinkTestResult'));
 
 let resPartsCache = []; // parts for the currently-selected equipment
 let currentResourceRows = []; // resources currently rendered, for edit lookup
