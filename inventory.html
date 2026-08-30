@@ -466,8 +466,8 @@ auth.signInAnonymously().catch((err) => console.error('Anonymous sign-in failed'
 // Templates) and paste the real IDs in here; see the chat message for the
 // exact variable names each template should reference.
 const EMAILJS_SERVICE_ID = 'service_07ex199';
-const EMAILJS_TEMPLATE_ORDER_STORES = 'template_order_stores';   // TODO: replace with real template ID
-const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_order_mcc';      // TODO: replace with real template ID
+const EMAILJS_TEMPLATE_ORDER_STORES = 'template_6xwtqaa';
+const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_80c6c19';
 // Stores/MCC recipient addresses are set as the fixed "To Email" on each
 // EmailJS template (Templates > [template] > Settings > To Email) — not
 // passed from here — so a request can't be redirected by editing this page.
@@ -1019,14 +1019,42 @@ orderEl.form.addEventListener('submit', async (ev) => {
       : `Pick ticket needed (${items.length} items, qty ${totalQuantity} total): ${items.map(({ part, quantityRequested }) => `${part.partName} x${quantityRequested}`).join('; ')} — requested by ${fullName} (${staffId}).`;
     const mccSmsSend = sendMccPickTicketSms(smsMessage);
 
-    await Promise.all([storesSend, mccSend, mccSmsSend]);
+    // The order itself is already safely recorded in Firestore at this
+    // point (step 1). Emails/SMS are best-effort notifications on top of
+    // that, so a single failing channel (e.g. an unconfigured EmailJS
+    // template ID) must never make the order look like it failed
+    // entirely — allSettled lets each channel fail independently.
+    const [storesResult, mccResult] = await Promise.allSettled([storesSend, mccSend]);
+    await mccSmsSend; // already catches its own errors internally
+
+    const failedChannels = [];
+    if (storesResult.status === 'rejected') {
+      console.error('Stores notification email failed', storesResult.reason);
+      failedChannels.push('Stores email');
+    }
+    if (mccResult.status === 'rejected') {
+      console.error('MCC notification email failed', mccResult.reason);
+      failedChannels.push('MCC email');
+    }
 
     orderEl.form.style.display = 'none';
     orderEl.success.classList.add('show');
+    if (failedChannels.length) {
+      // Order is saved either way — just let them know a notification
+      // may not have gone out, so they can follow up if needed.
+      orderEl.success.querySelector('.order-success-note')?.remove();
+      const note = document.createElement('p');
+      note.className = 'order-success-note';
+      note.style.cssText = 'color:var(--danger, #c0392b);font-size:.82rem;margin-top:8px;';
+      note.textContent = `Order saved, but ${failedChannels.join(' and ')} could not be sent — you may want to follow up with Stores directly.`;
+      orderEl.success.appendChild(note);
+    }
     selectedPartIds.clear();
     updateCartBar();
     renderParts();
   } catch (err) {
+    // Only Firestore step 1 (or auth) throwing lands here now — the order
+    // itself genuinely was not recorded.
     console.error('Failed to submit spare part order', err);
     orderEl.error.textContent = 'Could not send this order right now. Please try again, or contact Stores directly.';
   } finally {
