@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>InfoPort — Handover &amp; Report Log</title>
+<title>InfoPort — Handover Log</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="manifest" href="manifest.json">
@@ -57,8 +57,16 @@
     padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
   }
   header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
-  header h1{font-size:1.05rem;font-weight:600;margin:0;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+  header h1{font-size:1.05rem;font-weight:600;margin:0;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
+  header h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .header-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:110px;justify-content:flex-end}
+
+  @media(max-width:520px){
+    header{padding:12px 16px}
+    header a.header-back{font-size:.85rem;padding:8px 13px}
+    header h1{font-size:.95rem}
+    .header-right{min-width:0}
+  }
 
   .container{max-width:900px;margin:auto;padding:22px 20px 100px}
 
@@ -85,16 +93,24 @@
   }
   .pf-field input:focus,.pf-field select:focus{border-color:var(--brand-light)}
 
-  .stoppage-row{
-    display:grid;grid-template-columns:1fr 100px 100px 80px 34px;gap:8px;align-items:end;
-    background:#f7f8fa;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;
+  .stoppage-row{background:#f7f8fa;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+  .stoppage-row-top{display:flex;gap:8px;margin-bottom:8px}
+  .stoppage-row-top input{
+    flex:1;min-width:0;border:1px solid var(--border);border-radius:6px;padding:9px 10px;
+    font-family:inherit;font-size:15px;background:#fff;
   }
-  .stoppage-row label{font-size:.7rem;color:var(--muted);font-weight:600;display:block;margin-bottom:4px}
-  .stoppage-row input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;font-family:inherit;font-size:14px}
-  .stoppage-duration{font-weight:700;color:var(--brand);font-size:.9rem;text-align:center;padding-bottom:8px}
+  .stoppage-report{
+    width:100%;border:1px solid var(--border);border-radius:6px;padding:9px 10px;font-family:inherit;
+    font-size:14px;resize:vertical;min-height:52px;margin-bottom:8px;background:#fff;
+  }
+  .stoppage-row-times{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+  .stoppage-row-times .pf-field{flex:1;min-width:100px;margin-bottom:0}
+  .stoppage-row-times .pf-field label{font-size:.68rem;margin-bottom:3px}
+  .stoppage-row-times input{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px;font-family:inherit;font-size:14px;background:#fff}
+  .stoppage-duration{font-weight:700;color:var(--brand);font-size:.85rem;padding-bottom:9px;white-space:nowrap}
   .stoppage-remove{
     background:none;border:1px solid var(--border);border-radius:6px;color:var(--danger);
-    width:34px;height:36px;cursor:pointer;
+    width:36px;height:36px;cursor:pointer;flex:0 0 auto;
   }
   .stoppage-remove:hover{background:#fdecea}
   .add-stoppage-btn{
@@ -110,6 +126,53 @@
   }
 
   .pf-error{color:var(--danger);font-size:.82rem;min-height:1.2em}
+
+  /* ---------- Equipment picker ---------- */
+  .equip-picker-btn{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+    border:1px solid var(--border);border-radius:8px;padding:11px 12px;font-family:inherit;
+    font-size:15px;background:#fff;color:var(--text);cursor:pointer;text-align:left;
+  }
+  .equip-picker-btn:hover{border-color:var(--brand-light)}
+  .equip-picker-btn i{color:var(--muted);flex:0 0 auto}
+  #equipmentPickerOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #equipmentPickerOverlay.is-open{display:flex}
+  .equip-picker-modal{
+    background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:82vh;
+    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
+  }
+  .equip-picker-head{background:var(--brand);color:#fff;padding:16px 18px;position:relative;flex:0 0 auto}
+  .equip-picker-head h3{margin:0;font-size:1rem}
+  .equip-picker-close{
+    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;cursor:pointer;
+  }
+  .equip-picker-close:hover{background:rgba(255,255,255,.35)}
+  .equip-picker-controls{padding:14px 16px 8px;flex:0 0 auto}
+  .equip-picker-controls input[type="text"]{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;
+    font-size:16px;margin-bottom:10px;
+  }
+  .equip-picker-sortgroup{display:flex;gap:8px}
+  .equip-picker-sortgroup select{
+    flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;
+    font-size:.8rem;background:#fff;
+  }
+  .equip-picker-list{overflow-y:auto;flex:1;padding:6px 16px 16px;-webkit-overflow-scrolling:touch}
+  .equip-picker-group-label{
+    font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--brand);
+    margin:14px 0 6px;
+  }
+  .equip-picker-row{
+    display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;background:none;border:none;
+    border-bottom:1px solid var(--border);padding:11px 4px;cursor:pointer;font-family:inherit;
+  }
+  .equip-picker-row:hover{background:#f7f8fa}
+  .equip-picker-row-name{font-size:.9rem;font-weight:600;color:var(--text)}
+  .equip-picker-row-meta{font-size:.76rem;color:var(--muted)}
   .pf-submit-btn{
     background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;width:100%;
     font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;
@@ -221,12 +284,6 @@
   @media(max-width:600px){
     .container{padding:16px 14px 100px}
     .pf-row,.pf-row-3{grid-template-columns:1fr}
-    .stoppage-row{grid-template-columns:1fr 1fr;grid-template-areas:"reason reason" "start end" "dur remove"}
-    .stoppage-row .pf-field:nth-child(1){grid-area:reason}
-    .stoppage-row .pf-field:nth-child(2){grid-area:start}
-    .stoppage-row .pf-field:nth-child(3){grid-area:end}
-    .stoppage-duration{grid-area:dur;text-align:left}
-    .stoppage-remove{grid-area:remove;justify-self:end}
   }
 </style>
 </head>
@@ -242,7 +299,7 @@
 
 <header>
   <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
-  <h1><i class="fa-solid fa-clipboard-list"></i> Handover &amp; Report Log</h1>
+  <h1><i class="fa-solid fa-clipboard-list"></i> <span>Handover Log</span></h1>
   <div class="header-right"></div>
 </header>
 
@@ -250,13 +307,14 @@
 
   <div class="view-toggle">
     <button type="button" class="view-toggle-btn is-active" id="showEntryViewBtn"><i class="fa-solid fa-pen-to-square"></i> New Log Entry</button>
+    <button type="button" class="view-toggle-btn" id="showHistoryViewBtn"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
     <button type="button" class="view-toggle-btn" id="showAdminViewBtn"><i class="fa-solid fa-user-shield"></i> Admin View</button>
   </div>
 
   <!-- ================= NEW LOG ENTRY ================= -->
   <div id="entryView">
     <div class="card">
-      <h2><i class="fa-solid fa-industry"></i> Milling Department Shift Log</h2>
+      <h2><i class="fa-solid fa-clipboard-list"></i> Equipment Handover / Shift Log</h2>
       <p class="card-hint">Log stoppages for this shift — total downtime is calculated automatically.</p>
 
       <div class="pf-success" id="entrySuccess">
@@ -267,18 +325,17 @@
       </div>
 
       <form id="entryForm">
-        <div class="pf-row-3">
-          <div class="pf-field">
-            <label for="millSelect">Mill *</label>
-            <select id="millSelect" required>
-              <option value="">Select mill…</option>
-              <option>Mill 1</option>
-              <option>Mill 2</option>
-              <option>Mill 3</option>
-              <option>Mill 4</option>
-              <option>Mill 5</option>
-            </select>
+        <div class="pf-row">
+          <div class="pf-field" style="grid-column:1/-1">
+            <label for="equipmentPickerBtn">Equipment *</label>
+            <button type="button" class="equip-picker-btn" id="equipmentPickerBtn">
+              <span id="equipmentPickerLabel">Select equipment…</span>
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
           </div>
+        </div>
+
+        <div class="pf-row">
           <div class="pf-field">
             <label for="shiftSelect">Shift *</label>
             <select id="shiftSelect" required>
@@ -319,6 +376,15 @@
     </div>
   </div>
 
+  <!-- ================= HISTORY ================= -->
+  <div id="historyView" style="display:none">
+    <div class="card">
+      <h2><i class="fa-solid fa-clock-rotate-left"></i> Log History</h2>
+      <p class="card-hint" id="historyHint">Showing entries from the last 7 days.</p>
+      <div id="historyListContainer"><p class="loading-text">Loading…</p></div>
+    </div>
+  </div>
+
   <!-- ================= ADMIN VIEW ================= -->
   <div id="adminView" style="display:none">
     <div class="card" id="adminGate">
@@ -337,7 +403,7 @@
       <!-- Overview -->
       <div class="admin-panel active" id="overviewPanel">
         <div class="stat-cards" id="statCards"></div>
-        <div class="chart-card"><h3>Downtime by mill (hrs)</h3><canvas id="chartByMill"></canvas></div>
+        <div class="chart-card"><h3>Downtime by equipment (hrs)</h3><canvas id="chartByMill"></canvas></div>
         <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
         <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
       </div>
@@ -345,7 +411,7 @@
       <!-- Log Entries -->
       <div class="admin-panel" id="entriesPanel">
         <div class="history-filter">
-          <select id="filterMill"><option value="">All mills</option></select>
+          <select id="filterMill"><option value="">All equipment</option></select>
           <select id="filterShift"><option value="">All shifts</option></select>
           <button type="button" class="toolbar-btn outline" id="clearFiltersBtn">Clear filters</button>
         </div>
@@ -364,6 +430,30 @@
     </div>
   </div>
 
+</div>
+
+<div id="equipmentPickerOverlay">
+  <div class="equip-picker-modal">
+    <div class="equip-picker-head">
+      <h3><i class="fa-solid fa-toolbox"></i> Select Equipment</h3>
+      <button type="button" class="equip-picker-close" id="equipPickerCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="equip-picker-controls">
+      <input type="text" id="equipPickerSearch" placeholder="Search equipment…">
+      <div class="equip-picker-sortgroup">
+        <select id="equipPickerSort">
+          <option value="name-asc">Sort: Name (A–Z)</option>
+          <option value="name-desc">Sort: Name (Z–A)</option>
+        </select>
+        <select id="equipPickerGroup">
+          <option value="none">Group: None</option>
+          <option value="department">Group: Department</option>
+          <option value="group">Group: Equipment Group</option>
+        </select>
+      </div>
+    </div>
+    <div class="equip-picker-list" id="equipPickerList"><p class="loading-text">Loading equipment…</p></div>
+  </div>
 </div>
 
 <div id="adminSignInOverlay">
@@ -426,29 +516,115 @@ function confirmPermanentDelete(label) {
   return typed === 'DELETE';
 }
 
-// ---------- View toggle: New Log Entry vs Admin View ----------
+// ---------- View toggle: New Log Entry / History / Admin View ----------
 const entryView = document.getElementById('entryView');
+const historyView = document.getElementById('historyView');
 const adminView = document.getElementById('adminView');
 const showEntryBtn = document.getElementById('showEntryViewBtn');
+const showHistoryBtn = document.getElementById('showHistoryViewBtn');
 const showAdminBtn = document.getElementById('showAdminViewBtn');
 
-showEntryBtn.addEventListener('click', () => {
-  entryView.style.display = 'block';
-  adminView.style.display = 'none';
-  showEntryBtn.classList.add('is-active');
-  showAdminBtn.classList.remove('is-active');
-});
-showAdminBtn.addEventListener('click', () => {
-  entryView.style.display = 'none';
-  adminView.style.display = 'block';
-  showAdminBtn.classList.add('is-active');
-  showEntryBtn.classList.remove('is-active');
+function setActiveView(view) {
+  entryView.style.display = view === 'entry' ? 'block' : 'none';
+  historyView.style.display = view === 'history' ? 'block' : 'none';
+  adminView.style.display = view === 'admin' ? 'block' : 'none';
+  showEntryBtn.classList.toggle('is-active', view === 'entry');
+  showHistoryBtn.classList.toggle('is-active', view === 'history');
+  showAdminBtn.classList.toggle('is-active', view === 'admin');
+  if (view === 'history') loadHistoryView();
+}
+showEntryBtn.addEventListener('click', () => setActiveView('entry'));
+showHistoryBtn.addEventListener('click', () => setActiveView('history'));
+showAdminBtn.addEventListener('click', () => setActiveView('admin'));
+
+// ---------- Known equipment (for the picker below, and for admin filters/exports) ----------
+let EQUIPMENT_LIST = [];
+db.collection('equipment').get().then((snap) => {
+  EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
+  renderEquipPicker();
+}).catch((err) => console.error('Failed to load equipment list', err));
+
+let selectedEquipmentId = '';
+let selectedEquipmentName = '';
+
+function equipRowHtml(e) {
+  return `<button type="button" class="equip-picker-row" data-equip-id="${escapeHtml(e.id)}" data-equip-name="${escapeHtml(e.name || e.id)}">
+    <span class="equip-picker-row-name">${escapeHtml(e.name || e.id)}</span>
+    <span class="equip-picker-row-meta">${escapeHtml(e.department || '')}</span>
+  </button>`;
+}
+
+function renderEquipPicker() {
+  const search = document.getElementById('equipPickerSearch').value.trim().toLowerCase();
+  const sort = document.getElementById('equipPickerSort').value;
+  const groupBy = document.getElementById('equipPickerGroup').value;
+  const list = document.getElementById('equipPickerList');
+
+  let items = EQUIPMENT_LIST.filter((e) => {
+    if (!search) return true;
+    const hay = `${e.name || ''} ${e.id} ${e.department || ''} ${(e.groups || []).join(' ')}`.toLowerCase();
+    return hay.includes(search);
+  });
+
+  items = items.slice().sort((a, b) => {
+    const cmp = (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base' });
+    return sort === 'name-desc' ? -cmp : cmp;
+  });
+
+  if (!items.length) {
+    list.innerHTML = '<p class="empty-state">No equipment matches your search.</p>';
+    return;
+  }
+
+  if (groupBy === 'none') {
+    list.innerHTML = items.map(equipRowHtml).join('');
+  } else {
+    const buckets = new Map();
+    items.forEach((e) => {
+      const keys = groupBy === 'department'
+        ? [e.department || 'No Department']
+        : ((Array.isArray(e.groups) && e.groups.length) ? e.groups : (e.group ? [e.group] : ['Ungrouped']));
+      keys.forEach((k) => {
+        if (!buckets.has(k)) buckets.set(k, []);
+        buckets.get(k).push(e);
+      });
+    });
+    const bucketKeys = Array.from(buckets.keys()).sort((a, b) => a.localeCompare(b));
+    list.innerHTML = bucketKeys.map((k) => `
+      <div class="equip-picker-group-label">${escapeHtml(k)}</div>
+      ${buckets.get(k).map(equipRowHtml).join('')}
+    `).join('');
+  }
+
+  list.querySelectorAll('[data-equip-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedEquipmentId = btn.dataset.equipId;
+      selectedEquipmentName = btn.dataset.equipName;
+      document.getElementById('equipmentPickerLabel').textContent = selectedEquipmentName;
+      closeEquipPicker();
+    });
+  });
+}
+
+function openEquipPicker() {
+  document.getElementById('equipmentPickerOverlay').classList.add('is-open');
+  renderEquipPicker();
+}
+function closeEquipPicker() {
+  document.getElementById('equipmentPickerOverlay').classList.remove('is-open');
+}
+document.getElementById('equipmentPickerBtn').addEventListener('click', openEquipPicker);
+document.getElementById('equipPickerCloseX').addEventListener('click', closeEquipPicker);
+document.getElementById('equipPickerSearch').addEventListener('input', renderEquipPicker);
+document.getElementById('equipPickerSort').addEventListener('change', renderEquipPicker);
+document.getElementById('equipPickerGroup').addEventListener('change', renderEquipPicker);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && document.getElementById('equipmentPickerOverlay').classList.contains('is-open')) closeEquipPicker();
 });
 
 // ---------- New Log Entry form ----------
 const entryEl = {
   form: document.getElementById('entryForm'),
-  mill: document.getElementById('millSelect'),
   shift: document.getElementById('shiftSelect'),
   date: document.getElementById('recordedDateInput'),
   supervisor: document.getElementById('supervisorInput'),
@@ -464,7 +640,7 @@ const entryEl = {
 
 entryEl.date.value = new Date().toISOString().slice(0, 10);
 
-let stoppageRows = []; // [{id, reason, start, end}]
+let stoppageRows = []; // [{id, reason, report, start, end}]
 let stoppageRowSeq = 0;
 
 function parseTimeToMinutes(t) {
@@ -483,7 +659,7 @@ function stoppageDurationHrs(start, end) {
 }
 
 function addStoppageRow() {
-  stoppageRows.push({ id: ++stoppageRowSeq, reason: '', start: '', end: '' });
+  stoppageRows.push({ id: ++stoppageRowSeq, reason: '', report: '', start: '', end: '' });
   renderStoppageRows();
 }
 
@@ -491,20 +667,22 @@ function renderStoppageRows() {
   entryEl.noStoppagesMsg.style.display = stoppageRows.length ? 'none' : 'block';
   entryEl.stoppagesList.innerHTML = stoppageRows.map((row) => `
     <div class="stoppage-row" data-row-id="${row.id}">
-      <div class="pf-field">
-        <label>Reason</label>
-        <input type="text" class="stoppage-reason" placeholder="e.g. Belt jam" value="${escapeHtml(row.reason)}" maxlength="150">
+      <div class="stoppage-row-top">
+        <input type="text" class="stoppage-reason" placeholder="Reason (e.g. Belt jam)" value="${escapeHtml(row.reason)}" maxlength="150">
+        <button type="button" class="stoppage-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="pf-field">
-        <label>Start</label>
-        <input type="time" class="stoppage-start" value="${escapeHtml(row.start)}">
+      <textarea class="stoppage-report" placeholder="Report / additional details (optional)" maxlength="1000">${escapeHtml(row.report)}</textarea>
+      <div class="stoppage-row-times">
+        <div class="pf-field">
+          <label>Start</label>
+          <input type="time" class="stoppage-start" value="${escapeHtml(row.start)}">
+        </div>
+        <div class="pf-field">
+          <label>End</label>
+          <input type="time" class="stoppage-end" value="${escapeHtml(row.end)}">
+        </div>
+        <div class="stoppage-duration">${stoppageDurationHrs(row.start, row.end).toFixed(1)}h</div>
       </div>
-      <div class="pf-field">
-        <label>End</label>
-        <input type="time" class="stoppage-end" value="${escapeHtml(row.end)}">
-      </div>
-      <div class="stoppage-duration">${stoppageDurationHrs(row.start, row.end).toFixed(1)}h</div>
-      <button type="button" class="stoppage-remove" title="Remove"><i class="fa-solid fa-xmark"></i></button>
     </div>
   `).join('');
 
@@ -512,6 +690,7 @@ function renderStoppageRows() {
     const id = Number(rowEl.dataset.rowId);
     const row = stoppageRows.find((r) => r.id === id);
     rowEl.querySelector('.stoppage-reason').addEventListener('input', (ev) => { row.reason = ev.target.value; });
+    rowEl.querySelector('.stoppage-report').addEventListener('input', (ev) => { row.report = ev.target.value; });
     rowEl.querySelector('.stoppage-start').addEventListener('input', (ev) => { row.start = ev.target.value; updateStoppageDuration(rowEl, row); });
     rowEl.querySelector('.stoppage-end').addEventListener('input', (ev) => { row.end = ev.target.value; updateStoppageDuration(rowEl, row); });
     rowEl.querySelector('.stoppage-remove').addEventListener('click', () => {
@@ -539,13 +718,12 @@ entryEl.form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
   entryEl.error.textContent = '';
 
-  const mill = entryEl.mill.value;
   const shift = entryEl.shift.value;
   const recordedDate = entryEl.date.value;
   const supervisorName = entryEl.supervisor.value.trim();
 
-  if (!mill || !shift || !recordedDate || !supervisorName) {
-    entryEl.error.textContent = 'Mill, shift, recorded date, and supervisor name are required.';
+  if (!selectedEquipmentId || !shift || !recordedDate || !supervisorName) {
+    entryEl.error.textContent = 'Equipment, shift, recorded date, and supervisor name are required.';
     return;
   }
   for (const row of stoppageRows) {
@@ -557,7 +735,7 @@ entryEl.form.addEventListener('submit', async (ev) => {
 
   const stoppages = stoppageRows
     .filter((r) => r.start && r.end)
-    .map((r) => ({ reason: r.reason.trim(), startTime: r.start, endTime: r.end, durationHrs: stoppageDurationHrs(r.start, r.end) }));
+    .map((r) => ({ reason: r.reason.trim(), report: r.report.trim(), startTime: r.start, endTime: r.end, durationHrs: stoppageDurationHrs(r.start, r.end) }));
   const totalDowntimeHrs = stoppages.reduce((sum, s) => sum + s.durationHrs, 0);
 
   entryEl.submitBtn.disabled = true;
@@ -565,7 +743,9 @@ entryEl.form.addEventListener('submit', async (ev) => {
   try {
     const uid = await authReady;
     await db.collection('millLogs').add({
-      mill, shift, recordedDate, supervisorName,
+      equipmentId: selectedEquipmentId,
+      equipmentName: selectedEquipmentName,
+      shift, recordedDate, supervisorName,
       stoppages, totalDowntimeHrs,
       submittedBy: uid,
       archived: false,
@@ -585,6 +765,9 @@ entryEl.form.addEventListener('submit', async (ev) => {
 entryEl.doneBtn.addEventListener('click', () => {
   entryEl.form.reset();
   entryEl.date.value = new Date().toISOString().slice(0, 10);
+  selectedEquipmentId = '';
+  selectedEquipmentName = '';
+  document.getElementById('equipmentPickerLabel').textContent = 'Select equipment…';
   stoppageRows = [];
   renderStoppageRows();
   entryEl.form.style.display = '';
@@ -666,6 +849,40 @@ document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
 let allMillLogs = [];
 let millCharts = { mill: null, shift: null, reason: null };
 
+// ---------- History view (open to everyone; non-admins only see the last
+// 7 days, admins see everything — same as their full Admin View access) ----------
+async function loadHistoryView() {
+  const container = document.getElementById('historyListContainer');
+  const hint = document.getElementById('historyHint');
+  container.innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    const snap = await db.collection('millLogs').where('archived', '==', false).get();
+    let rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    if (isAdmin) {
+      hint.textContent = 'Showing all entries (admin access).';
+    } else {
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      rows = rows.filter((r) => {
+        const d = new Date(r.recordedDate);
+        return !Number.isNaN(d.getTime()) && d.getTime() >= cutoff;
+      });
+      hint.textContent = 'Showing entries from the last 7 days.';
+    }
+
+    rows.sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
+
+    if (!rows.length) {
+      container.innerHTML = '<p class="empty-state">No log entries to show.</p>';
+      return;
+    }
+    container.innerHTML = rows.map((r) => logCardHtml(r, '')).join('');
+  } catch (err) {
+    console.error('Failed to load log history', err);
+    container.innerHTML = '<p class="empty-state">Could not load log history.</p>';
+  }
+}
+
 async function loadAllMillLogs() {
   document.getElementById('entriesListContainer').innerHTML = '<p class="loading-text">Loading entries…</p>';
   document.getElementById('binListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
@@ -690,10 +907,10 @@ async function loadAllMillLogs() {
 function populateFilterOptions() {
   const millSel = document.getElementById('filterMill');
   const shiftSel = document.getElementById('filterShift');
-  const mills = Array.from(new Set(allMillLogs.map((l) => l.mill).filter(Boolean))).sort();
+  const equipNames = Array.from(new Set(allMillLogs.map((l) => l.equipmentName).filter(Boolean))).sort();
   const shifts = Array.from(new Set(allMillLogs.map((l) => l.shift).filter(Boolean))).sort();
   const curMill = millSel.value, curShift = shiftSel.value;
-  millSel.innerHTML = '<option value="">All mills</option>' + mills.map((m) => `<option>${escapeHtml(m)}</option>`).join('');
+  millSel.innerHTML = '<option value="">All equipment</option>' + equipNames.map((m) => `<option>${escapeHtml(m)}</option>`).join('');
   shiftSel.innerHTML = '<option value="">All shifts</option>' + shifts.map((s) => `<option>${escapeHtml(s)}</option>`).join('');
   millSel.value = curMill;
   shiftSel.value = curShift;
@@ -703,9 +920,9 @@ function activeLogs() { return allMillLogs.filter((l) => !l.archived); }
 function archivedLogs() { return allMillLogs.filter((l) => !!l.archived); }
 
 function filteredEntries() {
-  const mill = document.getElementById('filterMill').value;
+  const equipName = document.getElementById('filterMill').value;
   const shift = document.getElementById('filterShift').value;
-  return activeLogs().filter((l) => (!mill || l.mill === mill) && (!shift || l.shift === shift));
+  return activeLogs().filter((l) => (!equipName || l.equipmentName === equipName) && (!shift || l.shift === shift));
 }
 
 document.getElementById('filterMill').addEventListener('change', renderEntriesList);
@@ -729,7 +946,7 @@ function renderOverview() {
   `;
 
   const byMill = {};
-  rows.forEach((r) => { byMill[r.mill] = (byMill[r.mill] || 0) + (r.totalDowntimeHrs || 0); });
+  rows.forEach((r) => { byMill[r.equipmentName] = (byMill[r.equipmentName] || 0) + (r.totalDowntimeHrs || 0); });
   const byShift = {};
   rows.forEach((r) => { byShift[r.shift] = (byShift[r.shift] || 0) + (r.totalDowntimeHrs || 0); });
   const byReason = {};
@@ -759,28 +976,42 @@ function drawBarChart(key, canvasId, labels, data, color) {
   });
 }
 
-function renderEntriesList() {
-  const container = document.getElementById('entriesListContainer');
-  const rows = filteredEntries();
-  if (!rows.length) {
-    container.innerHTML = '<p class="empty-state">No log entries match your filter.</p>';
-    return;
-  }
-  container.innerHTML = rows.map((r) => `
+function stoppagesSummaryHtml(stoppages) {
+  if (!(stoppages || []).length) return '<div class="log-row-stoppages" style="color:var(--muted)">No stoppages logged.</div>';
+  return `<div class="log-row-stoppages">${stoppages.map((s) => `
+    <div>
+      <strong>${escapeHtml(s.startTime)}–${escapeHtml(s.endTime)} (${(s.durationHrs || 0).toFixed(1)}h)</strong> — ${escapeHtml(s.reason || 'No reason given')}
+      ${s.report ? `<div style="color:var(--muted);margin-top:2px">${escapeHtml(s.report)}</div>` : ''}
+    </div>
+  `).join('')}</div>`;
+}
+
+function logCardHtml(r, actionsHtml) {
+  return `
     <div class="log-row">
       <div class="log-row-head">
         <div>
-          <div class="log-row-title">${escapeHtml(r.mill)} — ${escapeHtml(r.shift)}</div>
+          <div class="log-row-title">${escapeHtml(r.equipmentName || 'Unknown equipment')} — ${escapeHtml(r.shift)}</div>
           <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Supervisor: ${escapeHtml(r.supervisorName)}</div>
         </div>
         <span class="log-row-badge">${(r.totalDowntimeHrs || 0).toFixed(1)}h downtime</span>
       </div>
-      ${(r.stoppages || []).length ? `<div class="log-row-stoppages">${r.stoppages.map((s) => `<div>${escapeHtml(s.startTime)}–${escapeHtml(s.endTime)} (${s.durationHrs.toFixed(1)}h) — ${escapeHtml(s.reason || 'No reason given')}</div>`).join('')}</div>` : '<div class="log-row-stoppages" style="color:var(--muted)">No stoppages logged.</div>'}
-      <div class="log-row-btns">
-        <button type="button" class="row-icon-btn" title="Archive" data-archive-log="${r.id}"><i class="fa-solid fa-box-archive"></i></button>
-      </div>
+      ${stoppagesSummaryHtml(r.stoppages)}
+      ${actionsHtml ? `<div class="log-row-btns">${actionsHtml}</div>` : ''}
     </div>
-  `).join('');
+  `;
+}
+
+function renderEntriesList() {
+  const container = document.getElementById('entriesListContainer');
+  const rows = filteredEntries().sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
+  if (!rows.length) {
+    container.innerHTML = '<p class="empty-state">No log entries match your filter.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((r) => logCardHtml(r,
+    `<button type="button" class="row-icon-btn" title="Archive" data-archive-log="${r.id}"><i class="fa-solid fa-box-archive"></i></button>`
+  )).join('');
 
   container.querySelectorAll('[data-archive-log]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -802,26 +1033,15 @@ function renderEntriesList() {
 
 function renderBinList() {
   const container = document.getElementById('binListContainer');
-  const rows = archivedLogs();
+  const rows = archivedLogs().sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
   if (!rows.length) {
     container.innerHTML = '<p class="empty-state">Recycle bin is empty.</p>';
     return;
   }
-  container.innerHTML = rows.map((r) => `
-    <div class="log-row">
-      <div class="log-row-head">
-        <div>
-          <div class="log-row-title">${escapeHtml(r.mill)} — ${escapeHtml(r.shift)}</div>
-          <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Supervisor: ${escapeHtml(r.supervisorName)}</div>
-        </div>
-        <span class="log-row-badge">${(r.totalDowntimeHrs || 0).toFixed(1)}h downtime</span>
-      </div>
-      <div class="log-row-btns">
-        <button type="button" class="row-icon-btn" title="Restore" data-restore-log="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
-        <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-log="${r.id}"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
+  container.innerHTML = rows.map((r) => logCardHtml(r, `
+    <button type="button" class="row-icon-btn" title="Restore" data-restore-log="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
+    <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-log="${r.id}"><i class="fa-solid fa-trash"></i></button>
+  `)).join('');
 
   container.querySelectorAll('[data-restore-log]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -853,24 +1073,28 @@ function renderBinList() {
 }
 
 // ---------- Export (Excel / PDF) — active, filtered entries only ----------
-function exportRows() { return filteredEntries(); }
+function exportRows() { return filteredEntries().sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || '')); }
+
+function stoppagesExportText(stoppages) {
+  return (stoppages || []).map((s) => `${s.startTime}-${s.endTime} (${s.durationHrs}h): ${s.reason}${s.report ? ' — ' + s.report : ''}`).join('; ');
+}
 
 document.getElementById('exportExcelBtn').addEventListener('click', () => {
   const rows = exportRows();
   if (!rows.length) { alert('No entries to export with the current filter.'); return; }
   const sheetRows = rows.map((r) => ({
-    Mill: r.mill,
+    Equipment: r.equipmentName,
     Shift: r.shift,
     'Recorded Date': r.recordedDate,
     Supervisor: r.supervisorName,
     'Total Downtime (hrs)': r.totalDowntimeHrs || 0,
-    Stoppages: (r.stoppages || []).map((s) => `${s.startTime}-${s.endTime} (${s.durationHrs}h): ${s.reason}`).join('; '),
+    Stoppages: stoppagesExportText(r.stoppages),
   }));
   const ws = XLSX.utils.json_to_sheet(sheetRows);
-  ws['!cols'] = [{ wch: 10 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 60 }];
+  ws['!cols'] = [{ wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 70 }];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Mill Log');
-  XLSX.writeFile(wb, `mill-log-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, 'Handover Log');
+  XLSX.writeFile(wb, `handover-log-${new Date().toISOString().slice(0, 10)}.xlsx`);
 });
 
 document.getElementById('exportPdfBtn').addEventListener('click', () => {
@@ -882,16 +1106,16 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   doc.setFontSize(14);
   doc.setTextColor(0, 105, 55);
-  doc.text('Milling Department Handover & Report Log', 40, 40);
+  doc.text('Equipment Handover & Report Log', 40, 40);
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
   doc.text(`Exported ${new Date().toLocaleString()} • ${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`, 40, 56);
 
-  const head = ['Mill', 'Shift', 'Date', 'Supervisor', 'Downtime (h)', 'Stoppages'];
+  const head = ['Equipment', 'Shift', 'Date', 'Supervisor', 'Downtime (h)', 'Stoppages'];
   const body = rows.map((r) => [
-    r.mill, r.shift, r.recordedDate, r.supervisorName,
+    r.equipmentName, r.shift, r.recordedDate, r.supervisorName,
     (r.totalDowntimeHrs || 0).toFixed(1),
-    (r.stoppages || []).map((s) => `${s.startTime}-${s.endTime} (${s.durationHrs}h): ${s.reason}`).join('; '),
+    stoppagesExportText(r.stoppages),
   ]);
 
   doc.autoTable({
@@ -899,7 +1123,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
     styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
     headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [247, 248, 250] },
-    columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 110 }, 2: { cellWidth: 70 }, 3: { cellWidth: 90 }, 4: { cellWidth: 70 }, 5: { cellWidth: 'auto' } },
+    columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 110 }, 2: { cellWidth: 70 }, 3: { cellWidth: 90 }, 4: { cellWidth: 70 }, 5: { cellWidth: 'auto' } },
     margin: { left: 40, right: 40 },
   });
 
