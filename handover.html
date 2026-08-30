@@ -742,7 +742,7 @@ entryEl.form.addEventListener('submit', async (ev) => {
   entryEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
   try {
     const uid = await authReady;
-    await db.collection('millLogs').add({
+    await db.collection('handoverLogs').add({
       equipmentId: selectedEquipmentId,
       equipmentName: selectedEquipmentName,
       shift, recordedDate, supervisorName,
@@ -791,7 +791,7 @@ auth.onAuthStateChanged(async (user) => {
   }
   document.getElementById('adminGate').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('adminDashboard').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) loadAllMillLogs();
+  if (isAdmin) loadAllHandoverLogs();
 });
 
 document.getElementById('adminSignInBtn').addEventListener('click', () => {
@@ -846,7 +846,7 @@ document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
 });
 
 // ---------- Admin data: load, filter, render ----------
-let allMillLogs = [];
+let allHandoverLogs = [];
 let millCharts = { mill: null, shift: null, reason: null };
 
 // ---------- History view (open to everyone; non-admins only see the last
@@ -856,7 +856,7 @@ async function loadHistoryView() {
   const hint = document.getElementById('historyHint');
   container.innerHTML = '<p class="loading-text">Loading…</p>';
   try {
-    const snap = await db.collection('millLogs').where('archived', '==', false).get();
+    const snap = await db.collection('handoverLogs').where('archived', '==', false).get();
     let rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
     if (isAdmin) {
@@ -883,13 +883,13 @@ async function loadHistoryView() {
   }
 }
 
-async function loadAllMillLogs() {
+async function loadAllHandoverLogs() {
   document.getElementById('entriesListContainer').innerHTML = '<p class="loading-text">Loading entries…</p>';
   document.getElementById('binListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
   try {
-    const snap = await db.collection('millLogs').get();
-    allMillLogs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    allMillLogs.sort((a, b) => {
+    const snap = await db.collection('handoverLogs').get();
+    allHandoverLogs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    allHandoverLogs.sort((a, b) => {
       const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
       const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
       return tb - ta;
@@ -907,8 +907,8 @@ async function loadAllMillLogs() {
 function populateFilterOptions() {
   const millSel = document.getElementById('filterMill');
   const shiftSel = document.getElementById('filterShift');
-  const equipNames = Array.from(new Set(allMillLogs.map((l) => l.equipmentName).filter(Boolean))).sort();
-  const shifts = Array.from(new Set(allMillLogs.map((l) => l.shift).filter(Boolean))).sort();
+  const equipNames = Array.from(new Set(allHandoverLogs.map((l) => l.equipmentName).filter(Boolean))).sort();
+  const shifts = Array.from(new Set(allHandoverLogs.map((l) => l.shift).filter(Boolean))).sort();
   const curMill = millSel.value, curShift = shiftSel.value;
   millSel.innerHTML = '<option value="">All equipment</option>' + equipNames.map((m) => `<option>${escapeHtml(m)}</option>`).join('');
   shiftSel.innerHTML = '<option value="">All shifts</option>' + shifts.map((s) => `<option>${escapeHtml(s)}</option>`).join('');
@@ -916,8 +916,8 @@ function populateFilterOptions() {
   shiftSel.value = curShift;
 }
 
-function activeLogs() { return allMillLogs.filter((l) => !l.archived); }
-function archivedLogs() { return allMillLogs.filter((l) => !!l.archived); }
+function activeLogs() { return allHandoverLogs.filter((l) => !l.archived); }
+function archivedLogs() { return allHandoverLogs.filter((l) => !!l.archived); }
 
 function filteredEntries() {
   const equipName = document.getElementById('filterMill').value;
@@ -1017,12 +1017,12 @@ function renderEntriesList() {
     btn.addEventListener('click', async () => {
       if (!confirm('Archive this log entry? It will move to the recycle bin and can be restored later.')) return;
       try {
-        await db.collection('millLogs').doc(btn.dataset.archiveLog).update({
+        await db.collection('handoverLogs').doc(btn.dataset.archiveLog).update({
           archived: true,
           archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
           archivedBy: auth.currentUser ? auth.currentUser.email : '',
         });
-        loadAllMillLogs();
+        loadAllHandoverLogs();
       } catch (err) {
         console.error('Failed to archive log entry', err);
         alert('Could not archive this entry. Please try again.');
@@ -1046,12 +1046,12 @@ function renderBinList() {
   container.querySelectorAll('[data-restore-log]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       try {
-        await db.collection('millLogs').doc(btn.dataset.restoreLog).update({
+        await db.collection('handoverLogs').doc(btn.dataset.restoreLog).update({
           archived: false,
           archivedAt: firebase.firestore.FieldValue.delete(),
           archivedBy: firebase.firestore.FieldValue.delete(),
         });
-        loadAllMillLogs();
+        loadAllHandoverLogs();
       } catch (err) {
         console.error('Failed to restore log entry', err);
         alert('Could not restore this entry. Please try again.');
@@ -1062,8 +1062,8 @@ function renderBinList() {
     btn.addEventListener('click', async () => {
       if (!confirmPermanentDelete('this log entry')) return;
       try {
-        await db.collection('millLogs').doc(btn.dataset.deleteLog).delete();
-        loadAllMillLogs();
+        await db.collection('handoverLogs').doc(btn.dataset.deleteLog).delete();
+        loadAllHandoverLogs();
       } catch (err) {
         console.error('Failed to delete log entry', err);
         alert('Could not delete this entry. Please try again.');
