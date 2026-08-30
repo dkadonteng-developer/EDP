@@ -207,6 +207,15 @@
   .checklist-modal-head h3{margin:0 0 3px;font-size:1.05rem}
   .checklist-modal-head p{margin:0;font-size:.82rem;opacity:.92}
   .checklist-modal-head-actions{display:flex;gap:8px;flex:0 0 auto}
+
+  /* ---------- PM checklist fill-out modal ---------- */
+  #pmChecklistOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #pmChecklistOverlay.is-open{display:flex}
+  #pmChecklistOverlay .checklist-modal-head{background:var(--brand)}
+
   .checklist-admin-btn,.checklist-modal-close{
     background:rgba(255,255,255,.2);border:none;color:#fff;
     width:30px;height:30px;border-radius:50%;cursor:pointer;flex:0 0 auto;
