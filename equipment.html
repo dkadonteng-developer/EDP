@@ -763,6 +763,43 @@
     display:none;align-items:center;justify-content:center;padding:16px;
   }
   #resourcesOverlay.is-open{display:flex}
+
+  /* ---------- Universal resource preview (image/PDF/video/other) ---------- */
+  #resourcePreviewOverlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2500;
+    display:none;align-items:center;justify-content:center;padding:16px;
+  }
+  #resourcePreviewOverlay.is-open{display:flex}
+  #resourcePreviewWrap{
+    background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  }
+  #resourcePreviewWrap.fake-fullscreen,#resourcePreviewWrap:fullscreen{
+    max-width:none;max-height:none;width:100vw;height:100vh;border-radius:0;
+  }
+  .resource-preview-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;
+    background:var(--brand);color:#fff;flex:0 0 auto;
+  }
+  .resource-preview-head span{
+    font-weight:600;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+  }
+  .resource-preview-actions{display:flex;gap:8px;flex:0 0 auto}
+  .resource-preview-actions a,.resource-preview-actions button{
+    background:rgba(255,255,255,.18);border:none;color:#fff;width:32px;height:32px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;
+  }
+  .resource-preview-actions a:hover,.resource-preview-actions button:hover{background:rgba(255,255,255,.3)}
+  .resource-preview-body{
+    flex:1;min-height:0;overflow:auto;background:#f0f2f4;display:flex;align-items:center;justify-content:center;
+  }
+  .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
+  .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
+  .resource-preview-body video{max-width:100%;max-height:100%}
+  @media(max-width:600px){
+    #resourcePreviewOverlay{padding:0}
+    #resourcePreviewWrap{max-width:none;max-height:none;width:100vw;height:100vh;border-radius:0}
+  }
   .log-history-modal{
     background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:88vh;
     display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
@@ -1598,6 +1635,20 @@
         <p class="log-empty">Loading resources…</p>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="resourcePreviewOverlay">
+  <div id="resourcePreviewWrap">
+    <div class="resource-preview-head">
+      <span id="resourcePreviewTitle">Resource</span>
+      <div class="resource-preview-actions">
+        <a id="resourcePreviewOpenTab" href="#" target="_blank" rel="noopener" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i></a>
+        <button type="button" id="resourcePreviewFullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
+        <button type="button" id="resourcePreviewCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="resource-preview-body" id="resourcePreviewBody"></div>
   </div>
 </div>
 
@@ -2472,7 +2523,7 @@ function renderInternalResources() {
     const div = document.createElement('div');
     div.className = 'doc';
     div.innerHTML = `<span class="doc-name" title="Open"><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i> ${escapeHtml(r.name)}</span>`;
-    div.addEventListener('click', () => window.open(r.url, '_blank', 'noopener'));
+    div.addEventListener('click', () => openResourcePreview(r));
     resourcesEl.list.appendChild(div);
   });
 }
@@ -2505,6 +2556,134 @@ document.addEventListener('keydown', (ev) => {
     document.body.style.overflow = '';
   }
 });
+
+// ---------- Universal resource preview (image/PDF/video/other, in-page) ----------
+const resourcePreviewEl = {
+  overlay: document.getElementById('resourcePreviewOverlay'),
+  wrap: document.getElementById('resourcePreviewWrap'),
+  title: document.getElementById('resourcePreviewTitle'),
+  body: document.getElementById('resourcePreviewBody'),
+  openTab: document.getElementById('resourcePreviewOpenTab'),
+  fullscreenBtn: document.getElementById('resourcePreviewFullscreenBtn'),
+  closeX: document.getElementById('resourcePreviewCloseX'),
+};
+
+function guessResourceKind(url) {
+  if (/^data:image\//i.test(url)) return 'image';
+  const clean = url.split('?')[0].split('#')[0].toLowerCase();
+  if (/\.(png|jpe?g|gif|webp|svg|bmp)$/.test(clean)) return 'image';
+  if (/\.pdf$/.test(clean)) return 'pdf';
+  if (/\.(mp4|webm|ogg|mov)$/.test(clean)) return 'video';
+  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+  if (/vimeo\.com/i.test(url)) return 'vimeo';
+  return 'other';
+}
+
+function youtubeEmbedUrl(url) {
+  const m1 = url.match(/[?&]v=([^&]+)/);
+  const m2 = url.match(/youtu\.be\/([^?&]+)/);
+  const id = (m1 && m1[1]) || (m2 && m2[1]) || '';
+  return id ? `https://www.youtube.com/embed/${id}` : url;
+}
+function vimeoEmbedUrl(url) {
+  const m = url.match(/vimeo\.com\/(\d+)/);
+  return m ? `https://player.vimeo.com/video/${m[1]}` : url;
+}
+
+function openResourcePreview(resource) {
+  resourcePreviewEl.title.textContent = resource.name || 'Resource';
+  resourcePreviewEl.openTab.href = resource.url;
+  const kind = guessResourceKind(resource.url);
+  const safeName = escapeHtml(resource.name || '');
+  const safeUrl = escapeHtml(resource.url);
+
+  let html;
+  if (kind === 'image') {
+    html = `<img src="${safeUrl}" alt="${safeName}">`;
+  } else if (kind === 'video') {
+    html = `<video src="${safeUrl}" controls autoplay playsinline></video>`;
+  } else if (kind === 'youtube') {
+    html = `<iframe src="${escapeHtml(youtubeEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else if (kind === 'vimeo') {
+    html = `<iframe src="${escapeHtml(vimeoEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  } else {
+    // PDFs and anything else the browser can render inline (most modern
+    // browsers show PDFs natively in an iframe). "Open in new tab" above
+    // is always available as a fallback if a given host blocks embedding.
+    html = `<iframe src="${safeUrl}" title="${safeName}"></iframe>`;
+  }
+
+  resourcePreviewEl.body.innerHTML = html;
+  resourcePreviewEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeResourcePreview() {
+  if (isResourcePreviewFullscreen()) exitResourcePreviewFullscreen();
+  resourcePreviewEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+  resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
+}
+
+resourcePreviewEl.closeX.addEventListener('click', closeResourcePreview);
+resourcePreviewEl.overlay.addEventListener('click', (ev) => {
+  if (ev.target === resourcePreviewEl.overlay) closeResourcePreview();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && resourcePreviewEl.overlay.classList.contains('is-open')) closeResourcePreview();
+});
+
+// Fullscreen toggle, with a CSS-only fallback ("fake-fullscreen") for
+// browsers (notably iOS Safari) that don't support the Fullscreen API on
+// arbitrary elements.
+let resourcePreviewUsingFakeFullscreen = false;
+
+function isResourcePreviewFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement) || resourcePreviewUsingFakeFullscreen;
+}
+
+function exitResourcePreviewFullscreen() {
+  if (resourcePreviewUsingFakeFullscreen) {
+    resourcePreviewUsingFakeFullscreen = false;
+    resourcePreviewEl.wrap.classList.remove('fake-fullscreen');
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  }
+  updateResourcePreviewFullscreenBtn();
+}
+
+async function toggleResourcePreviewFullscreen() {
+  if (isResourcePreviewFullscreen()) {
+    exitResourcePreviewFullscreen();
+    return;
+  }
+  if (resourcePreviewEl.wrap.requestFullscreen) {
+    try {
+      await resourcePreviewEl.wrap.requestFullscreen();
+    } catch (err) {
+      resourcePreviewUsingFakeFullscreen = true;
+      resourcePreviewEl.wrap.classList.add('fake-fullscreen');
+    }
+  } else if (resourcePreviewEl.wrap.webkitRequestFullscreen) {
+    resourcePreviewEl.wrap.webkitRequestFullscreen();
+  } else {
+    resourcePreviewUsingFakeFullscreen = true;
+    resourcePreviewEl.wrap.classList.add('fake-fullscreen');
+  }
+  updateResourcePreviewFullscreenBtn();
+}
+
+function updateResourcePreviewFullscreenBtn() {
+  const active = isResourcePreviewFullscreen();
+  resourcePreviewEl.fullscreenBtn.innerHTML = active ? '<i class="fa-solid fa-compress"></i>' : '<i class="fa-solid fa-expand"></i>';
+  resourcePreviewEl.fullscreenBtn.title = active ? 'Exit full screen' : 'Toggle full screen';
+}
+
+resourcePreviewEl.fullscreenBtn.addEventListener('click', toggleResourcePreviewFullscreen);
+document.addEventListener('fullscreenchange', updateResourcePreviewFullscreenBtn);
+document.addEventListener('webkitfullscreenchange', updateResourcePreviewFullscreenBtn);
 
 // ---------- Equipment page tabs ----------
 function showEqTab(tab) {
@@ -2628,7 +2807,7 @@ function openPartPanel(part, pinEl) {
       const div = document.createElement('div');
       div.className = 'doc';
       div.innerHTML = `<span class="doc-name" title="Open"><i class="fa-solid ${RESOURCE_CATEGORY_ICON[r.category] || 'fa-circle-info'}"></i> ${escapeHtml(r.name)}</span>`;
-      div.addEventListener('click', () => window.open(r.url, '_blank', 'noopener'));
+      div.addEventListener('click', () => openResourcePreview(r));
       el.partPanelResources.appendChild(div);
     });
   } else {
