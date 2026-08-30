@@ -389,7 +389,7 @@
             <label for="shiftSelect">Shift *</label>
             <select id="shiftSelect" required>
               <option value="">Select shift…</option>
-              <option value="Day Shift (08:00–17:00)">Day Shift (08:00–17:00)</option>
+              <option value="Straight Day">Straight Day</option>
               <option value="Morning (06:00–14:00)">Morning (06:00–14:00)</option>
               <option value="Afternoon (14:00–22:00)">Afternoon (14:00–22:00)</option>
               <option value="Night (22:00–06:00)">Night (22:00–06:00)</option>
@@ -541,6 +541,14 @@
       </div>
     </div>
     <div class="equip-picker-list" id="equipPickerList"><p class="loading-text">Loading equipment…</p></div>
+    <div class="equip-picker-other" id="equipPickerOtherRow" style="display:none;padding:14px 16px;border-top:1px solid var(--border)">
+      <label style="font-size:.78rem;font-weight:500;color:var(--muted);display:block;margin-bottom:6px">Equipment name</label>
+      <input type="text" id="equipPickerOtherInput" placeholder="Type the equipment name…" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:16px;margin-bottom:10px;box-sizing:border-box">
+      <div style="display:flex;gap:8px">
+        <button type="button" class="toolbar-btn outline" id="equipPickerOtherBack" style="flex:1">Back</button>
+        <button type="button" class="toolbar-btn" id="equipPickerOtherConfirm" style="flex:1">Use This Name</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -704,7 +712,19 @@ function renderEquipPicker() {
   });
 
   if (!items.length) {
-    list.innerHTML = '<p class="empty-state">No equipment matches your search.</p>';
+    list.innerHTML = `
+      <p class="empty-state">No equipment matches your search.</p>
+      <button type="button" class="equip-picker-row" id="equipPickerOtherBtn">
+        <span class="equip-picker-row-name"><i class="fa-solid fa-pen"></i> Other — equipment not listed</span>
+        <span class="equip-picker-row-meta">Type the name yourself</span>
+      </button>
+    `;
+    document.getElementById('equipPickerOtherBtn').addEventListener('click', () => {
+      document.getElementById('equipPickerList').style.display = 'none';
+      document.getElementById('equipPickerOtherRow').style.display = 'block';
+      document.getElementById('equipPickerOtherInput').value = '';
+      document.getElementById('equipPickerOtherInput').focus();
+    });
     return;
   }
 
@@ -728,6 +748,21 @@ function renderEquipPicker() {
     `).join('');
   }
 
+  // Pinned at the end regardless of search/group — lets someone log a
+  // report for equipment that isn't in the list yet.
+  list.insertAdjacentHTML('beforeend', `
+    <button type="button" class="equip-picker-row" id="equipPickerOtherBtn">
+      <span class="equip-picker-row-name"><i class="fa-solid fa-pen"></i> Other — equipment not listed</span>
+      <span class="equip-picker-row-meta">Type the name yourself</span>
+    </button>
+  `);
+  document.getElementById('equipPickerOtherBtn').addEventListener('click', () => {
+    document.getElementById('equipPickerList').style.display = 'none';
+    document.getElementById('equipPickerOtherRow').style.display = 'block';
+    document.getElementById('equipPickerOtherInput').value = '';
+    document.getElementById('equipPickerOtherInput').focus();
+  });
+
   list.querySelectorAll('[data-equip-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
       selectedEquipmentId = btn.dataset.equipId;
@@ -740,6 +775,8 @@ function renderEquipPicker() {
 
 function openEquipPicker() {
   document.getElementById('equipmentPickerOverlay').classList.add('is-open');
+  document.getElementById('equipPickerList').style.display = '';
+  document.getElementById('equipPickerOtherRow').style.display = 'none';
   renderEquipPicker();
 }
 function closeEquipPicker() {
@@ -750,6 +787,21 @@ document.getElementById('equipPickerCloseX').addEventListener('click', closeEqui
 document.getElementById('equipPickerSearch').addEventListener('input', renderEquipPicker);
 document.getElementById('equipPickerSort').addEventListener('change', renderEquipPicker);
 document.getElementById('equipPickerGroup').addEventListener('change', renderEquipPicker);
+document.getElementById('equipPickerOtherBack').addEventListener('click', () => {
+  document.getElementById('equipPickerOtherRow').style.display = 'none';
+  document.getElementById('equipPickerList').style.display = '';
+});
+document.getElementById('equipPickerOtherConfirm').addEventListener('click', () => {
+  const name = document.getElementById('equipPickerOtherInput').value.trim();
+  if (!name) {
+    document.getElementById('equipPickerOtherInput').focus();
+    return;
+  }
+  selectedEquipmentId = 'other';
+  selectedEquipmentName = name;
+  document.getElementById('equipmentPickerLabel').textContent = selectedEquipmentName;
+  closeEquipPicker();
+});
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && document.getElementById('equipmentPickerOverlay').classList.contains('is-open')) closeEquipPicker();
 });
