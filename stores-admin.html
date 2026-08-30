@@ -16,6 +16,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <style>
   #pageLoadingOverlay{
@@ -585,14 +587,50 @@
     <div class="admin-panel" id="ordersPanel">
       <div class="panel-toolbar">
         <h2>Spare Part Orders</h2>
-        <select id="ordersFilterStatus" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit">
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="fulfilled">Fulfilled</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <div class="admin-controls">
+          <button type="button" id="exportOrdersExcelBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" id="exportOrdersPdfBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+        </div>
       </div>
-      <p class="panel-hint">Requests technicians submit from the Spare Parts Inventory page — mark them fulfilled once picked up, or cancel a bad request.</p>
+      <p class="panel-hint">Requests technicians submit from the Spare Parts Inventory page — mark them fulfilled once picked up, or cancel a bad request. Exports include whatever the filters below are currently set to.</p>
+
+      <div class="controls">
+        <div class="controls-left">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="ordersSearchInput" placeholder="Search by staff name/ID, part, or equipment…">
+          </div>
+          <select id="ordersFilterStatus">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="fulfilled">Fulfilled</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select id="ordersFilterDepartment">
+            <option value="">All departments</option>
+          </select>
+          <select id="ordersFilterEquipment">
+            <option value="">All equipment</option>
+          </select>
+          <select id="ordersSortSelect">
+            <option value="date-desc">Sort: Newest first</option>
+            <option value="date-asc">Sort: Oldest first</option>
+            <option value="name-asc">Sort: Staff Name (A–Z)</option>
+            <option value="name-desc">Sort: Staff Name (Z–A)</option>
+            <option value="department-asc">Sort: Department (A–Z)</option>
+          </select>
+        </div>
+        <div class="admin-controls">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)">
+            From <input type="date" id="ordersFilterFrom" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-family:inherit">
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)">
+            To <input type="date" id="ordersFilterTo" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-family:inherit">
+          </label>
+        </div>
+      </div>
+
+      <p class="results-count" id="ordersResultsCount"></p>
       <div id="ordersListContainer"><p class="loading-text">Loading orders…</p></div>
     </div>
 
@@ -860,6 +898,13 @@ const el = {
   addPartBtn: document.getElementById('addPartBtn'),
   ordersList: document.getElementById('ordersListContainer'),
   ordersFilterStatus: document.getElementById('ordersFilterStatus'),
+  ordersSearch: document.getElementById('ordersSearchInput'),
+  ordersFilterDepartment: document.getElementById('ordersFilterDepartment'),
+  ordersFilterEquipment: document.getElementById('ordersFilterEquipment'),
+  ordersSortSelect: document.getElementById('ordersSortSelect'),
+  ordersFilterFrom: document.getElementById('ordersFilterFrom'),
+  ordersFilterTo: document.getElementById('ordersFilterTo'),
+  ordersResultsCount: document.getElementById('ordersResultsCount'),
 };
 
 const formEl = {
@@ -1425,11 +1470,35 @@ async function loadPartOrders() {
   try {
     const snap = await db.collection('partOrders').orderBy('createdAt', 'desc').get();
     allPartOrders = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    populateOrderFilterOptions();
     renderPartOrders();
   } catch (err) {
     console.error('Failed to load part orders', err);
     el.ordersList.innerHTML = '<p class="empty-state">Could not load orders. Please check your connection and try again.</p>';
   }
+}
+
+// Departments/equipment options are derived from whatever orders exist,
+// same pattern as the category filter on the Spare Parts panel — keeps the
+// dropdown limited to values that actually appear instead of a hardcoded
+// list going stale.
+function populateOrderFilterOptions() {
+  const departments = new Set();
+  const equipment = new Set();
+  allPartOrders.forEach((o) => {
+    if (o.department) departments.add(o.department);
+    if (o.equipmentContext) equipment.add(o.equipmentContext);
+  });
+
+  const deptCurrent = el.ordersFilterDepartment.value;
+  el.ordersFilterDepartment.innerHTML = '<option value="">All departments</option>' +
+    Array.from(departments).sort().map((d) => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+  if (departments.has(deptCurrent)) el.ordersFilterDepartment.value = deptCurrent;
+
+  const equipCurrent = el.ordersFilterEquipment.value;
+  el.ordersFilterEquipment.innerHTML = '<option value="">All equipment</option>' +
+    Array.from(equipment).sort().map((eq) => `<option value="${escapeHtml(eq)}">${escapeHtml(eq)}</option>`).join('');
+  if (equipment.has(equipCurrent)) el.ordersFilterEquipment.value = equipCurrent;
 }
 
 function formatOrderDate(createdAt) {
@@ -1440,10 +1509,17 @@ function formatOrderDate(createdAt) {
   return '—';
 }
 
-function renderPartOrders() {
+// Single source of truth for "what matches the current filters, in the
+// current sort order" — used by both the on-screen list and both exports,
+// so an export always reflects exactly what's on screen.
+function getFilteredOrderGroups() {
   const statusFilter = el.ordersFilterStatus.value;
+  const deptFilter = el.ordersFilterDepartment.value;
+  const equipFilter = el.ordersFilterEquipment.value;
+  const searchTerm = el.ordersSearch.value.trim().toLowerCase();
+  const fromDate = el.ordersFilterFrom.value ? new Date(`${el.ordersFilterFrom.value}T00:00:00`) : null;
+  const toDate = el.ordersFilterTo.value ? new Date(`${el.ordersFilterTo.value}T23:59:59`) : null;
 
-  // Group individual item docs back into one card per submission.
   const groups = new Map();
   allPartOrders.forEach((item) => {
     const groupId = item.orderGroupId || item.id; // legacy items with no group ID stand alone
@@ -1451,25 +1527,58 @@ function renderPartOrders() {
     groups.get(groupId).push(item);
   });
 
-  const cards = [];
+  const result = [];
   groups.forEach((items) => {
-    const visibleItems = statusFilter ? items.filter((i) => i.status === statusFilter) : items;
-    if (!visibleItems.length) return;
-    // Sort groups by their most recent item's createdAt (already true
-    // overall since allPartOrders is already ordered desc, but items
-    // within a group can arrive in any order after grouping).
-    cards.push({ items, visibleItems, sortKey: items[0].createdAt ? items[0].createdAt.toMillis() : 0 });
-  });
-  cards.sort((a, b) => b.sortKey - a.sortKey);
+    const first = items[0];
+    if (deptFilter && first.department !== deptFilter) return;
+    if (equipFilter && first.equipmentContext !== equipFilter) return;
 
-  if (!cards.length) {
+    const createdDate = first.createdAt && typeof first.createdAt.toDate === 'function' ? first.createdAt.toDate() : null;
+    if (fromDate && (!createdDate || createdDate < fromDate)) return;
+    if (toDate && (!createdDate || createdDate > toDate)) return;
+
+    let visibleItems = statusFilter ? items.filter((i) => i.status === statusFilter) : items.slice();
+    if (!visibleItems.length) return;
+
+    if (searchTerm) {
+      const groupHaystack = `${first.fullName || ''} ${first.staffId || ''} ${first.department || ''} ${first.equipmentContext || ''}`.toLowerCase();
+      if (!groupHaystack.includes(searchTerm)) {
+        visibleItems = visibleItems.filter((i) =>
+          `${i.partName || ''} ${i.modelNumber || ''}`.toLowerCase().includes(searchTerm)
+        );
+      }
+      if (!visibleItems.length) return;
+    }
+
+    result.push({ items, visibleItems, first, sortKey: createdDate ? createdDate.getTime() : 0 });
+  });
+
+  const sortMode = el.ordersSortSelect.value;
+  result.sort((a, b) => {
+    if (sortMode === 'date-asc') return a.sortKey - b.sortKey;
+    if (sortMode === 'name-asc') return (a.first.fullName || '').localeCompare(b.first.fullName || '');
+    if (sortMode === 'name-desc') return (b.first.fullName || '').localeCompare(a.first.fullName || '');
+    if (sortMode === 'department-asc') return (a.first.department || '').localeCompare(b.first.department || '');
+    return b.sortKey - a.sortKey; // date-desc, default
+  });
+
+  return result;
+}
+
+function renderPartOrders() {
+  const groups = getFilteredOrderGroups();
+  const totalItems = groups.reduce((sum, g) => sum + g.visibleItems.length, 0);
+  el.ordersResultsCount.textContent = groups.length
+    ? `${groups.length} order${groups.length === 1 ? '' : 's'} · ${totalItems} item${totalItems === 1 ? '' : 's'}`
+    : '';
+
+  if (!groups.length) {
     el.ordersList.innerHTML = '<p class="empty-state">No orders match this filter.</p>';
     return;
   }
 
   el.ordersList.innerHTML = '';
-  cards.forEach(({ items, visibleItems }) => {
-    const first = items[0];
+  groups.forEach(({ items, visibleItems, first }) => {
     const card = document.createElement('div');
     card.className = 'order-card';
     card.innerHTML = `
@@ -1546,7 +1655,74 @@ async function updateOrderItemStatus(itemId, status) {
   }
 }
 
-el.ordersFilterStatus.addEventListener('change', renderPartOrders);
+[el.ordersFilterStatus, el.ordersFilterDepartment, el.ordersFilterEquipment, el.ordersSortSelect, el.ordersFilterFrom, el.ordersFilterTo]
+  .forEach((control) => control.addEventListener('change', renderPartOrders));
+el.ordersSearch.addEventListener('input', renderPartOrders);
+
+// One row per line item — same flattening for both export formats, built
+// from whatever's currently passing the filters above.
+function buildOrderExportRows() {
+  const rows = [];
+  getFilteredOrderGroups().forEach(({ visibleItems, first }) => {
+    const dateStr = formatOrderDate(first.createdAt);
+    visibleItems.forEach((item) => {
+      rows.push({
+        Date: dateStr,
+        'Staff Name': first.fullName || '',
+        'Staff ID': first.staffId || '',
+        Department: first.department || '',
+        Equipment: first.equipmentContext || '',
+        'Part Name': item.partName || '',
+        'Model No.': item.modelNumber || '',
+        Qty: item.quantityRequested || 1,
+        'Bin Location': item.binLocation || 'not set',
+        Status: item.status || 'pending',
+        Reason: first.reason || '',
+      });
+    });
+  });
+  return rows;
+}
+
+document.getElementById('exportOrdersExcelBtn').addEventListener('click', () => {
+  const rows = buildOrderExportRows();
+  if (!rows.length) { alert('No orders to export with the current filters.'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+  XLSX.writeFile(wb, `spare-part-orders-${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+document.getElementById('exportOrdersPdfBtn').addEventListener('click', () => {
+  const rows = buildOrderExportRows();
+  if (!rows.length) { alert('No orders to export with the current filters.'); return; }
+  if (typeof window.jspdf === 'undefined') { alert('Export library failed to load. Check your connection and try again.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.setFontSize(14);
+  doc.setTextColor(0, 105, 55);
+  doc.text('Spare Part Order History', 40, 40);
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Exported ${new Date().toLocaleString()} • ${rows.length} item${rows.length === 1 ? '' : 's'}`, 40, 56);
+
+  const head = ['Date', 'Staff', 'Department', 'Equipment', 'Part', 'Model No.', 'Qty', 'Bin', 'Status'];
+  const body = rows.map((r) => [
+    r.Date, `${r['Staff Name']} (${r['Staff ID']})`, r.Department, r.Equipment,
+    r['Part Name'], r['Model No.'], r.Qty, r['Bin Location'], r.Status,
+  ]);
+
+  doc.autoTable({
+    head: [head], body, startY: 70,
+    styles: { fontSize: 7.5, cellPadding: 4, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [247, 248, 250] },
+    margin: { left: 40, right: 40 },
+  });
+
+  doc.save(`spare-part-orders-${new Date().toISOString().slice(0, 10)}.pdf`);
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
