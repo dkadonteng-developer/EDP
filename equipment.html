@@ -1747,9 +1747,13 @@
     <select id="aiProviderSelect">
       <option value="">Loading available providers…</option>
     </select>
-    <label for="aiModelInput">Model</label>
+    <label for="aiModelInput" id="aiModelLabel">Model</label>
     <input type="text" id="aiModelInput" list="aiModelSuggestions" placeholder="Model ID">
     <datalist id="aiModelSuggestions"></datalist>
+    <p class="ai-settings-note" id="aiModelLockedNote" style="display:none">
+      <i class="fa-solid fa-lock"></i>
+      Model is fixed to <strong>Gemini 3.5 Flash-Lite</strong> for all technicians.
+    </p>
     <div class="ai-settings-actions">
       <button type="button" id="aiSaveKeyBtn">Save</button>
     </div>
@@ -3077,7 +3081,10 @@ const AI_PROVIDER_MODEL_SUGGESTIONS = {
   openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-5-mini'],
   claude: ['claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-opus-5'],
 };
-const AI_PROVIDER_DEFAULT_MODEL = { gemini: 'gemini-flash-latest', openai: 'gpt-4o-mini', claude: 'claude-sonnet-5' };
+const AI_PROVIDER_DEFAULT_MODEL = { gemini: 'gemini-3.5-flash-lite', openai: 'gpt-4o-mini', claude: 'claude-sonnet-5' };
+// Gemini's model is locked plant-wide — no technician (and no stale
+// localStorage value from before this was locked) can override it.
+const GEMINI_LOCKED_MODEL = 'gemini-3.5-flash-lite';
 
 const ai = {
   launcher: document.getElementById('aiLauncher'),
@@ -3087,6 +3094,8 @@ const ai = {
   settingsPane: document.getElementById('aiSettingsPane'),
   providerSelect: document.getElementById('aiProviderSelect'),
   modelInput: document.getElementById('aiModelInput'),
+  modelLabel: document.getElementById('aiModelLabel'),
+  modelLockedNote: document.getElementById('aiModelLockedNote'),
   modelSuggestions: document.getElementById('aiModelSuggestions'),
   saveKeyBtn: document.getElementById('aiSaveKeyBtn'),
   settingsNote: document.getElementById('aiSettingsNote'),
@@ -3114,6 +3123,7 @@ function getStoredProvider() {
   try { return localStorage.getItem(AI_PROVIDER_STORAGE_KEY) || ''; } catch (e) { return ''; }
 }
 function getStoredModelForProvider(provider) {
+  if (provider === 'gemini') return GEMINI_LOCKED_MODEL;
   try { return localStorage.getItem(AI_MODEL_STORAGE_KEY_PREFIX + provider) || AI_PROVIDER_DEFAULT_MODEL[provider] || ''; } catch (e) { return AI_PROVIDER_DEFAULT_MODEL[provider] || ''; }
 }
 
@@ -3149,6 +3159,10 @@ function renderAiProviderOptions() {
 }
 
 function renderAiModelOptionsFor(provider) {
+  const isLockedGemini = provider === 'gemini';
+  ai.modelLabel.style.display = isLockedGemini ? 'none' : '';
+  ai.modelInput.style.display = isLockedGemini ? 'none' : '';
+  ai.modelLockedNote.style.display = isLockedGemini ? 'block' : 'none';
   const suggestions = AI_PROVIDER_MODEL_SUGGESTIONS[provider] || [];
   ai.modelSuggestions.innerHTML = suggestions.map(m => `<option value="${m}"></option>`).join('');
   ai.modelInput.value = getStoredModelForProvider(provider);
@@ -3175,7 +3189,7 @@ ai.saveKeyBtn.addEventListener('click', () => {
   const model = ai.modelInput.value.trim();
   try {
     if (provider) localStorage.setItem(AI_PROVIDER_STORAGE_KEY, provider);
-    if (provider && model) localStorage.setItem(AI_MODEL_STORAGE_KEY_PREFIX + provider, model);
+    if (provider && model && provider !== 'gemini') localStorage.setItem(AI_MODEL_STORAGE_KEY_PREFIX + provider, model);
   } catch (e) { /* localStorage unavailable — choice will just live in memory for this session */ }
   ai.settingsPane.style.display = 'none';
 });
@@ -3563,7 +3577,7 @@ async function sendAiMessage() {
 
   try {
     const eqId = currentEquipmentData.id;
-    const model = ai.modelInput.value.trim() || getStoredModelForProvider(provider);
+    const model = provider === 'gemini' ? GEMINI_LOCKED_MODEL : (ai.modelInput.value.trim() || getStoredModelForProvider(provider));
 
     // The manual is only ever read (PDF text extraction) when it's actually
     // needed — not automatically at the start of a chat. It's considered
