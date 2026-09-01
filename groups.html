@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>InfoPort — Equipment Groups</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#006937">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="InfoPort">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  #pageLoadingOverlay{
+    position:fixed;inset:0;z-index:99999;background:#006937;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    transition:opacity .3s ease;
+  }
+  #pageLoadingOverlay.is-hidden{opacity:0;pointer-events:none}
+  #pageLoadingOverlay img{width:64px;height:64px;border-radius:50%;background:#dacb04;object-fit:cover}
+  #pageLoadingOverlay .plo-spinner{
+    width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+    animation:ploSpin .7s linear infinite;
+  }
+  @keyframes ploSpin{to{transform:rotate(360deg)}}
+  #pageLoadingOverlay .plo-label{color:#fff;font-family:'Poppins',Arial,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.3px}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Poppins,sans-serif;
+background:#f5f7fa;
+color:#333;
+overflow-x:hidden;
+}
+
+/* NAVBAR */
+
+nav{
+background:#006937;
+padding:15px 40px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+color:white;
+position:sticky;
+top:0;
+z-index:999;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:15px;
+}
+
+.logo img{
+width:50px;
+height:50px;
+border-radius:50%;
+background:rgb(218, 203, 4);
+object-fit:cover;
+}
+
+.logo h2{
+font-size:22px;
+}
+
+.nav-link{
+display:flex;
+align-items:center;
+gap:8px;
+color:white;
+text-decoration:none;
+font-size:14px;
+font-weight:600;
+background:rgba(255,255,255,.14);
+padding:10px 18px;
+border-radius:20px;
+transition:background .15s ease;
+white-space:nowrap;
+}
+
+.nav-link:hover{
+background:rgba(255,255,255,.26);
+}
+
+/* HERO */
+
+.hero{
+
+height:420px;
+
+background:
+
+linear-gradient(rgba(0,70,40,.75),
+
+rgba(0,70,40,.75)),
+
+url("assets/ghacem-banner.jpeg");
+
+background-size:cover;
+
+background-position:center;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+text-align:center;
+
+color:white;
+
+padding:30px;
+
+}
+
+.hero h1{
+
+font-size:48px;
+
+margin-bottom:20px;
+
+}
+
+.hero p{
+
+font-size:20px;
+
+opacity:.9;
+
+}
+
+/* CONTROLS: search, sort, filter */
+
+.controls{
+
+max-width:1200px;
+
+margin:40px auto 0;
+
+padding:0 20px;
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:16px;
+
+align-items:center;
+
+justify-content:space-between;
+
+}
+
+.controls-left{
+
+display:flex;
+
+flex-wrap:wrap;
+
+gap:12px;
+
+flex:1;
+
+min-width:260px;
+
+}
+
+.search-box{
+
+position:relative;
+
+flex:1;
+
+min-width:0;
+
+max-width:360px;
+
+}
+
+.search-box i{
+
+position:absolute;
+
+left:16px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+color:#999;
+
+}
+
+.search-box input{
+
+width:100%;
+
+padding:12px 14px 12px 42px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:16px;
+
+outline:none;
+
+background:white;
+
+transition:.2s;
+
+}
+
+.search-box input:focus{
+
+border-color:#006937;
+
+box-shadow:0 0 0 3px rgba(0,105,55,.12);
+
+}
+
+.sort-box select{
+
+padding:12px 16px;
+
+border:1px solid #ddd;
+
+border-radius:30px;
+
+font-family:inherit;
+
+font-size:16px;
+
+background:white;
+
+color:#333;
+
+outline:none;
+
+cursor:pointer;
+
+}
+
+.sort-box select:focus{
+
+border-color:#006937;
+
+}
+
+.select-row{
+
+display:flex;
+
+gap:12px;
+
+}
+
+.select-row .sort-box{
+
+flex:1;
+
+min-width:0;
+
+}
+
+.select-row .sort-box select{
+
+width:100%;
+
+}
+
+.results-count{
+
+max-width:1200px;
+
+margin:18px auto 0;
+
+padding:0 20px;
+
+color:#777;
+
+font-size:14px;
+
+}
+
+.no-results{
+
+grid-column:1/-1;
+
+text-align:center;
+
+padding:60px 20px;
+
+color:#888;
+
+}
+
+.no-results i{
+
+font-size:40px;
+
+color:#ccc;
+
+margin-bottom:14px;
+
+display:block;
+
+}
+
+@media(max-width:600px){
+
+.controls{
+
+flex-direction:column;
+
+align-items:stretch;
+
+}
+
+.controls-left{
+
+flex-direction:column;
+
+align-items:stretch;
+
+}
+
+.search-box{
+
+max-width:none;
+
+}
+
+}
+
+/* EQUIPMENT */
+
+.container{
+
+max-width:1200px;
+
+margin:50px auto;
+
+padding:20px;
+
+}
+
+.section-title{
+
+font-size:1.6rem;
+font-weight:600;
+margin-bottom:24px;
+
+color:#006937;
+
+}
+
+.cards{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+
+gap:30px;
+
+}
+
+.card{
+
+background:white;
+
+border-radius:14px;
+
+overflow:hidden;
+
+box-shadow:0 6px 16px rgba(0,0,0,.06);
+border:1px solid #e6e9ec;
+
+transition:.2s;
+
+}
+
+.card:hover{
+
+transform: translateY(-4px);
+box-shadow: 0 10px 24px rgba(0,0,0,.1);
+
+}
+
+.card img{
+
+width:100%;
+
+height:220px;
+
+object-fit:cover;
+
+background:#ddd;
+
+}
+
+.card-content{
+
+padding:14px 16px 16px;
+
+}
+
+.badge{
+display:inline-block;
+background:#00a651;
+color:white;
+padding:4px 10px;
+border-radius:30px;
+font-size:11px;
+font-weight:600;
+margin-bottom:6px;
+}
+
+.card h3{
+
+margin:0 0 4px;
+font-size:1rem;
+line-height:1.25;
+
+}
+
+.card p{
+
+margin:2px 0;
+font-size:.85rem;
+
+color:#666;
+
+}
+
+.card a{
+
+display:inline-block;
+
+margin-top:10px;
+
+text-decoration:none;
+
+background:#006937;
+
+color:white;
+
+padding:8px 16px;
+font-size:.9rem;
+
+border-radius:8px;
+
+}
+
+
+/* FOOTER */
+
+footer{
+
+background:#006937;
+
+color:white;
+
+padding:20px;
+
+text-align:center;
+
+margin-top:60px;
+
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+.hero h1{
+
+font-size:32px;
+
+}
+
+nav{
+
+padding:15px;
+
+}
+
+.logo h2{
+
+font-size:18px;
+
+}
+
+.nav-link{
+
+font-size:0;
+
+padding:10px 12px;
+
+gap:0;
+
+}
+
+.nav-link i{
+
+font-size:16px;
+
+}
+
+}
+
+
+/* ---------- Stores shortcut — rounded floating button ---------- */
+.stores-fab{
+  position:fixed;right:20px;bottom:84px;z-index:1400;
+  display:flex;align-items:center;gap:8px;
+  background:#006937;color:#fff;border:none;
+  padding:12px 18px;border-radius:30px;
+  font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;text-decoration:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
+}
+.stores-fab:hover{background:#00552c;transform:scale(1.04);text-decoration:none;color:#fff;}
+.stores-fab i{font-size:1rem}
+@media(max-width:640px){
+  .stores-fab{right:14px;bottom:78px;padding:11px 16px;}
+}
+
+/* ---------- Bottom tab bar: Main / Equipment Group / Handover & Reports ---------- */
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+.home-tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:1500;
+  display:flex;background:#fff;border-top:1px solid #e6e9ec;
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  max-width:600px;margin:0 auto;
+}
+.home-tab-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:9px 4px 8px;border:none;background:none;font-family:inherit;text-decoration:none;
+  font-size:.68rem;font-weight:600;color:#6b7280;cursor:pointer;
+}
+.home-tab-btn i{font-size:1.15rem}
+.home-tab-btn:hover{color:#1f2a24;text-decoration:none}
+.home-tab-btn.is-active{color:#006937}
+
+/* ================= PWA INSTALL PROMPT ================= */
+
+#pwaInstallOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2500;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#pwaInstallOverlay.is-open{display:flex;}
+
+.pwa-install-modal{max-width:440px;}
+
+.pwa-step{
+  display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;
+  padding:14px;background:#f8faf9;border-radius:12px;
+}
+.pwa-step-num{
+  width:28px;height:28px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;
+}
+.pwa-step-icon{
+  width:36px;height:36px;flex-shrink:0;background:#e7f3ec;color:#006937;
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.pwa-step-text{flex:1;font-size:14px;color:#444;line-height:1.5;padding-top:4px;}
+.pwa-step-text b{color:#222;}
+
+.pwa-install-native-btn{
+  width:100%;background:#006937;color:#fff;border:none;padding:15px;
+  border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.2s;
+}
+.pwa-install-native-btn:hover{background:#00552c;}
+
+.pwa-note{
+  background:#fff6e5;color:#a05a00;font-size:13px;padding:12px 14px;
+  border-radius:10px;margin-bottom:14px;line-height:1.5;
+}
+
+.pwa-dont-show{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:#888;
+  margin-top:18px;cursor:pointer;
+}
+.pwa-dont-show input{width:16px;height:16px;cursor:pointer;flex-shrink:0;}
+
+/* Shared modal shell — still used by the PWA install prompt above */
+.t5-modal{
+  background:#fff;border-radius:18px;max-width:760px;width:100%;
+  overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);margin-bottom:30px;
+}
+.t5-modal-head{
+  background:#006937;color:#fff;padding:20px 24px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+}
+.t5-modal-head h3{font-size:19px;margin-bottom:4px;}
+.t5-modal-head p{font-size:13px;opacity:.9;margin:0;}
+.t5-modal-close{
+  background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
+}
+.t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;}
+
+@media(max-width:600px){
+  .t5-modal-head{padding:16px 18px;}
+  .t5-modal-head h3{font-size:16px;}
+  .t5-modal-head p{font-size:12px;}
+  .t5-modal-body{padding:16px;max-height:none;}
+
+  /* Install prompt stays a small centered popup on phones — it's just a
+     few short steps, not the multi-page content the rule above is for. */
+  #pwaInstallOverlay{align-items:center;padding:16px;}
+  .pwa-install-modal{
+    max-width:400px;width:100%;min-height:0;border-radius:18px;margin-bottom:0;
+  }
+  .pwa-install-modal .t5-modal-head{border-radius:18px 18px 0 0;}
+}
+
+@media(max-width:400px){
+  .t5-modal-head{flex-wrap:wrap;}
+  .t5-modal-close{margin-left:auto;}
+}
+#offlineBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:3000;
+  background:#d92d20;color:#fff;text-align:center;
+  padding:9px 12px;font-family:'Poppins',Arial,sans-serif;font-size:13px;font-weight:600;
+}
+#offlineBanner.show{display:block;}
+</style>
+
+</head>
+
+<body>
+
+<div id="pageLoadingOverlay">
+  <img src="assets/logo.png" alt="">
+  <div class="plo-spinner"></div>
+  <span class="plo-label">Loading…</span>
+</div>
+
+<div id="offlineBanner">You're offline — showing the last saved data.</div>
+
+<nav>
+
+<div class="logo">
+
+<img src="assets/logo.png">
+
+<h2>InfoPort</h2>
+
+</div>
+
+<div>
+
+</div>
+
+</nav>
+
+<section class="hero">
+
+<div>
+
+<h1>Equipment Groups</h1>
+
+<p>Browse equipment by group, department, or search by name</p>
+
+</div>
+
+</section>
+
+<a href="inventory.html" class="stores-fab" title="Stores" aria-label="Stores">
+  <i class="fa-solid fa-cart-shopping"></i> Stores
+</a>
+
+<div class="controls">
+
+<div class="controls-left">
+
+<div class="search-box">
+
+<i class="fa-solid fa-magnifying-glass"></i>
+
+<input type="text" id="searchInput" placeholder="Search by group or equipment name…">
+
+</div>
+
+<div class="select-row">
+
+<div class="sort-box">
+
+<select id="sortSelect">
+
+<option value="name-asc">Sort: Name (A–Z)</option>
+
+<option value="name-desc">Sort: Name (Z–A)</option>
+
+</select>
+
+</div>
+
+<div class="sort-box">
+
+<select id="departmentFilterSelect">
+
+<option value="all">All Departments</option>
+
+<option value="packing-plant">Packing Plant</option>
+
+<option value="milling">Milling</option>
+
+<option value="material-transport">Material Transport</option>
+
+<option value="others">Others</option>
+
+</select>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<p class="results-count" id="resultsCount"></p>
+
+<div class="container">
+
+<div class="cards" id="cardsGrid"><p class="loading-text" style="padding:30px;color:#888;grid-column:1/-1;text-align:center;">Loading equipment…</p></div>
+
+</div>
+
+<footer>
+
+GHACEM LTD © 2026
+
+<br>
+
+Engineering Documentation Portal
+
+</footer>
+
+<div id="pwaInstallOverlay">
+  <div class="t5-modal pwa-install-modal">
+    <div class="t5-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-mobile-screen-button"></i> Install InfoPort</h3>
+        <p>Add it to your home screen for one-tap access — even offline.</p>
+      </div>
+      <button type="button" class="t5-modal-close" id="pwaInstallCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="t5-modal-body">
+      <div id="pwaInstallContent"></div>
+      <label class="pwa-dont-show">
+        <input type="checkbox" id="pwaDontShowAgain"> Don't show this again on this device
+      </label>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
+<script>
+// ---------- Process of the Plant: collapsible + scroll-driven progress ----------
+(function () {
+  const toggleBtn = document.getElementById('processToggleBtn');
+  const body = document.getElementById('processBody');
+  const chevron = document.getElementById('processToggleChevron');
+  const timeline = document.getElementById('processTimeline');
+  const fill = document.getElementById('processProgressFill');
+  const arrow = document.getElementById('processProgressArrow');
+  if (!toggleBtn || !body || !timeline || !fill || !arrow) return;
+
+  let isOpen = false;
+  let scrollBound = false;
+  let ticking = false;
+
+  function updateProgress() {
+    ticking = false;
+    const rect = timeline.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    // 0 when the timeline's top is at ~65% down the viewport, 1 when its
+    // bottom has scrolled up to ~25% from the top — keeps the fill/arrow
+    // tracking roughly with what's on screen as the user scrolls.
+    const startAt = vh * 0.65;
+    const endAt = vh * 0.25;
+    const total = (rect.height + startAt - endAt) || 1;
+    let progress = (startAt - rect.top) / total;
+    progress = Math.max(0, Math.min(1, progress));
+    fill.style.height = (progress * 100) + '%';
+    arrow.style.top = (progress * 100) + '%';
+    arrow.style.opacity = progress > 0.005 ? '1' : '0';
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(updateProgress);
+    }
+  }
+
+  function openProcess() {
+    isOpen = true;
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    chevron.classList.add('is-open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    updateProgress();
+    if (!scrollBound) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      scrollBound = true;
+    }
+  }
+
+  function closeProcess() {
+    isOpen = false;
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    chevron.classList.remove('is-open');
+    body.style.maxHeight = '0px';
+    if (scrollBound) {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      scrollBound = false;
+    }
+  }
+
+  toggleBtn.addEventListener('click', function () {
+    if (isOpen) closeProcess(); else openProcess();
+  });
+
+  // Keep the expanded height correct if content reflows (e.g. font load).
+  window.addEventListener('load', function () {
+    if (isOpen) body.style.maxHeight = body.scrollHeight + 'px';
+  });
+})();
+</script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
+
+function escapeHtmlCard(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+(async function () {
+  const cardsGrid = document.getElementById('cardsGrid');
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
+  const departmentFilterSelect = document.getElementById('departmentFilterSelect');
+  const resultsCount = document.getElementById('resultsCount');
+
+  const DEPARTMENT_MAP = {
+    'packing plant': 'packing-plant',
+    'milling': 'milling',
+    'material transport': 'material-transport'
+  };
+
+  // ---------- Load equipment + groups from Firestore (editable via admin.html) ----------
+  let equipmentData = [];
+  let groupPictures = {};
+  try {
+    const [equipSnap, groupsSnap] = await Promise.all([
+      db.collection('equipment').orderBy('name').get(),
+      db.collection('groups').get(),
+    ]);
+    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
+    groupsSnap.docs.forEach((doc) => {
+      const g = doc.data();
+      if (g.name && g.image) groupPictures[g.name] = g.image;
+    });
+  } catch (err) {
+    console.error('Failed to load equipment/groups list', err);
+  }
+
+  if (!equipmentData.length) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No equipment found. If this is unexpected, check your connection and try again.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 groups';
+    return;
+  }
+
+  // ---------- Group equipment by the admin-set "Groups" field ----------
+  // Equipment can belong to more than one group, so it can appear on more
+  // than one tile. Equipment with no group set falls back into its own
+  // "Ungrouped" tile so nothing goes missing from the dashboard. Each tile
+  // shows the group's own picture if the admin set one (Groups tab in
+  // admin.html), otherwise falls back to one of its equipment's photos —
+  // plus how many pieces of equipment sit inside it, and the department
+  // most of its equipment belongs to (used for the existing department
+  // filter chips).
+  const getGroupNames = (e) => {
+    if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+    if (e.group && e.group.trim()) return [e.group.trim()];
+    return ['Ungrouped'];
+  };
+  const groupMap = new Map();
+  equipmentData.forEach((e) => {
+    getGroupNames(e).forEach((groupName) => {
+      if (!groupMap.has(groupName)) groupMap.set(groupName, []);
+      groupMap.get(groupName).push(e);
+    });
+  });
+
+  const groups = Array.from(groupMap.entries()).map(([name, items]) => {
+    const deptCounts = {};
+    items.forEach((e) => {
+      const d = (e.department || '').trim();
+      if (d) deptCounts[d] = (deptCounts[d] || 0) + 1;
+    });
+    const topDepartment = Object.keys(deptCounts).sort((a, b) => deptCounts[b] - deptCounts[a])[0] || '';
+    const departmentKey = DEPARTMENT_MAP[topDepartment.toLowerCase()] || 'others';
+    const image = groupPictures[name] || (items.find((e) => e.image) || {}).image || '';
+
+    return {
+      name,
+      items,
+      count: items.length,
+      department: topDepartment,
+      departmentKey,
+      image,
+      searchText: `${name} ${items.map((e) => `${e.name || ''} ${e.id || ''}`).join(' ')}`.toLowerCase(),
+    };
+  });
+
+  cardsGrid.innerHTML = groups.map((g) => `
+    <div class="card">
+      <img src="${escapeHtmlCard(g.image)}" alt="${escapeHtmlCard(g.name)}" onerror="this.style.display='none'">
+      <div class="card-content">
+        <span class="badge">${g.count} equipment</span>
+        <h3>${escapeHtmlCard(g.name)}</h3>
+        <p><strong>Location:</strong> ${escapeHtmlCard(g.department || '—')}</p>
+        <a href="group.html?group=${encodeURIComponent(g.name)}">View Equipment</a>
+      </div>
+    </div>
+  `).join('');
+
+  // ---------- Search / sort / filter ----------
+  const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
+    el,
+    name: groups[i].name,
+    searchText: groups[i].searchText,
+    department: groups[i].departmentKey,
+  }));
+
+  let currentFilter = 'all';
+
+  function applyFiltersAndSort() {
+    const query = searchInput.value.trim().toLowerCase();
+
+    const visible = cards.filter(c =>
+      (currentFilter === 'all' || c.department === currentFilter) &&
+      (!query || c.searchText.includes(query))
+    );
+
+    const [, dir] = sortSelect.value.split('-');
+    visible.sort((a, b) => {
+      const av = a.name.toLowerCase();
+      const bv = b.name.toLowerCase();
+      const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+      return dir === 'desc' ? -cmp : cmp;
+    });
+
+    // Hide everything, then re-append the visible set in sorted order —
+    // CSS grid re-flows automatically, no layout math needed.
+    cards.forEach(c => { c.el.style.display = 'none'; });
+    const existingEmptyState = cardsGrid.querySelector('.no-results');
+    if (existingEmptyState) existingEmptyState.remove();
+
+    if (visible.length === 0) {
+      cardsGrid.insertAdjacentHTML('beforeend', `
+        <div class="no-results">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <p>No groups match your search/filter.</p>
+        </div>
+      `);
+    } else {
+      visible.forEach(c => {
+        c.el.style.display = '';
+        cardsGrid.appendChild(c.el);
+      });
+    }
+
+    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} groups`;
+  }
+
+  searchInput.addEventListener('input', applyFiltersAndSort);
+  sortSelect.addEventListener('change', applyFiltersAndSort);
+
+  departmentFilterSelect.addEventListener('change', () => {
+    currentFilter = departmentFilterSelect.value;
+    applyFiltersAndSort();
+  });
+
+  applyFiltersAndSort();
+})();
+</script>
+
+
+<script>
+
+function t5UpdateOfflineBanner() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) banner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', t5UpdateOfflineBanner);
+window.addEventListener('offline', t5UpdateOfflineBanner);
+t5UpdateOfflineBanner();
+
+
+// ================= PWA Install Prompt =================
+//
+// Shows a one-time (per device) "how to install" prompt, tailored to the
+// visitor's actual phone/browser. Never shows once the site is genuinely
+// installed (detected via standalone display-mode, the browser's
+// appinstalled event, or navigator.standalone on iOS). Dismissing without
+// checking the box just snoozes it for 7 days; checking the box opts out
+// permanently on this device.
+
+const PWA_INSTALLED_KEY = 'infoport_pwa_installed';
+const PWA_OPTOUT_KEY = 'infoport_pwa_optout';
+const PWA_DISMISS_UNTIL_KEY = 'infoport_pwa_dismiss_until';
+
+let pwaDeferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaDeferredPrompt = e;
+});
+
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+  pwaCloseModal();
+});
+
+function pwaIsStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function pwaDetectPlatform() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isIPadOS13 = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  const isAndroid = /Android/.test(ua);
+  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  if (isIOS || isIPadOS13) return isSafari ? 'ios-safari' : 'ios-other';
+  if (isAndroid) return 'android';
+  return 'desktop';
+}
+
+const pwaEl = {
+  overlay: document.getElementById('pwaInstallOverlay'),
+  closeX: document.getElementById('pwaInstallCloseX'),
+  content: document.getElementById('pwaInstallContent'),
+  dontShowAgain: document.getElementById('pwaDontShowAgain'),
+};
+
+function pwaStep(num, icon, html) {
+  return `
+    <div class="pwa-step">
+      <div class="pwa-step-num">${num}</div>
+      <div class="pwa-step-icon"><i class="fa-solid ${icon}"></i></div>
+      <div class="pwa-step-text">${html}</div>
+    </div>
+  `;
+}
+
+function pwaRenderContent(platform) {
+  if (platform === 'ios-safari') {
+    pwaEl.content.innerHTML =
+      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
+      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
+      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
+    return;
+  }
+  if (platform === 'ios-other') {
+    pwaEl.content.innerHTML =
+      '<div class="pwa-note"><i class="fa-solid fa-triangle-exclamation"></i> "Add to Home Screen" works best in Safari on iPhone/iPad. Open this page in Safari, then:</div>' +
+      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
+      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
+      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
+    return;
+  }
+  if (platform === 'android') {
+    if (pwaDeferredPrompt) {
+      pwaEl.content.innerHTML = `
+        <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Tap below and confirm — Chrome will add InfoPort straight to your home screen.</p>
+        <button type="button" class="pwa-install-native-btn" id="pwaNativeInstallBtn">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
+      `;
+      document.getElementById('pwaNativeInstallBtn').addEventListener('click', async () => {
+        if (!pwaDeferredPrompt) return;
+        pwaDeferredPrompt.prompt();
+        const { outcome } = await pwaDeferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+          pwaCloseModal();
+        }
+        pwaDeferredPrompt = null;
+      });
+    } else {
+      pwaEl.content.innerHTML =
+        pwaStep(1, 'fa-ellipsis-vertical', 'Tap the <b>menu</b> (⋮) in the top right of Chrome.') +
+        pwaStep(2, 'fa-square-plus', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>).') +
+        pwaStep(3, 'fa-check', 'Tap <b>Install</b> to confirm.');
+    }
+    return;
+  }
+}
+
+function pwaCloseModal() {
+  pwaEl.overlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+function pwaDismiss() {
+  if (pwaEl.dontShowAgain.checked) {
+    localStorage.setItem(PWA_OPTOUT_KEY, 'true');
+  } else {
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem(PWA_DISMISS_UNTIL_KEY, String(Date.now() + sevenDays));
+  }
+  pwaCloseModal();
+}
+
+pwaEl.closeX.addEventListener('click', pwaDismiss);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && pwaEl.overlay.classList.contains('is-open')) pwaDismiss();
+});
+
+function pwaMaybeShowPrompt() {
+  if (pwaIsStandalone()) {
+    localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+    return;
+  }
+  if (localStorage.getItem(PWA_INSTALLED_KEY) === 'true') return;
+  if (localStorage.getItem(PWA_OPTOUT_KEY) === 'true') return;
+
+  const dismissUntil = parseInt(localStorage.getItem(PWA_DISMISS_UNTIL_KEY) || '0', 10);
+  if (Date.now() < dismissUntil) return;
+
+  const platform = pwaDetectPlatform();
+  if (platform === 'desktop') return; // phone-only prompt
+
+  setTimeout(() => {
+    pwaRenderContent(platform);
+    pwaEl.overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  }, 1800);
+}
+
+pwaMaybeShowPrompt();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch((err) => console.warn('Service worker registration failed:', err));
+  });
+}
+</script>
+
+<div class="home-tabs">
+  <a href="index.html" class="home-tab-btn"><i class="fa-solid fa-house"></i> Main</a>
+  <a href="groups.html" class="home-tab-btn is-active"><i class="fa-solid fa-layer-group"></i> Equipment Group</a>
+  <a href="handover.html" class="home-tab-btn"><i class="fa-solid fa-clipboard-list"></i> Handover</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<script src="search.js" defer></script>
+<script src="pull-to-refresh.js" defer></script>
+<script src="loading-screen.js" defer></script>
+
+</body>
+
+</html>
