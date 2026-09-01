@@ -476,6 +476,89 @@ border-radius:8px;
 
 }
 
+/* ================= HOME DASHBOARD — stats, shortcuts, activity ================= */
+
+.home-stats-row{
+display:flex;flex-wrap:wrap;gap:14px;
+margin:28px auto 0;padding:0 20px;
+}
+
+.home-stat-card{
+flex:1;min-width:150px;
+display:flex;align-items:center;gap:12px;
+background:#fff;border-radius:14px;padding:16px 18px;
+box-shadow:0 6px 16px rgba(0,0,0,.05);
+}
+
+.home-stat-card i{
+width:42px;height:42px;flex:0 0 auto;border-radius:12px;
+background:#e8f5ee;color:#006937;
+display:flex;align-items:center;justify-content:center;font-size:1.05rem;
+}
+
+.home-stat-card-alert i{background:#fdecea;color:#d92d20;}
+
+.home-stat-card strong{display:block;font-size:1.4rem;font-weight:700;color:#1f2a24;line-height:1.1}
+.home-stat-card span{display:block;font-size:.76rem;color:#888;margin-top:2px}
+
+.home-shortcuts-row{
+display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+margin:16px auto 0;padding:0 20px;
+}
+
+.home-shortcut-card{
+display:flex;align-items:center;gap:12px;
+background:#fff;border-radius:14px;padding:16px 18px;
+box-shadow:0 6px 16px rgba(0,0,0,.05);
+text-decoration:none;color:inherit;
+transition:transform .15s ease,box-shadow .15s ease;
+}
+.home-shortcut-card:hover{
+transform:translateY(-2px);
+box-shadow:0 10px 22px rgba(0,0,0,.09);
+text-decoration:none;color:inherit;
+}
+
+.home-shortcut-card>i:first-child{
+width:42px;height:42px;flex:0 0 auto;border-radius:12px;
+background:#e8f5ee;color:#006937;
+display:flex;align-items:center;justify-content:center;font-size:1.05rem;
+}
+
+.home-shortcut-card div{flex:1;min-width:0}
+.home-shortcut-card strong{display:block;font-size:.92rem;color:#1f2a24}
+.home-shortcut-card span{display:block;font-size:.76rem;color:#888;margin-top:2px}
+.home-shortcut-arrow{color:#c8ccd0;font-size:.85rem;flex:0 0 auto}
+
+@media(max-width:820px){
+  .home-shortcuts-row{grid-template-columns:1fr;}
+}
+
+.home-activity-section{margin-top:44px}
+
+.home-activity-list{
+background:#fff;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.05);
+overflow:hidden;
+}
+
+.home-activity-item{
+display:flex;align-items:flex-start;gap:12px;
+padding:14px 18px;border-bottom:1px solid #f0f2f4;
+}
+.home-activity-item:last-child{border-bottom:none}
+
+.home-activity-item i{
+width:34px;height:34px;flex:0 0 auto;border-radius:50%;
+background:#e8f5ee;color:#006937;
+display:flex;align-items:center;justify-content:center;font-size:.85rem;
+margin-top:2px;
+}
+
+.home-activity-body{flex:1;min-width:0}
+.home-activity-body strong{font-size:.86rem;color:#1f2a24}
+.home-activity-body p{margin:2px 0 0;font-size:.82rem;color:#666;line-height:1.4}
+.home-activity-meta{font-size:.72rem;color:#999;margin-top:4px}
+
 /* PROCESS OF THE PLANT — collapsible, scroll-driven timeline */
 
 .process-section{
@@ -492,20 +575,11 @@ gap:12px;
 background:linear-gradient(135deg,#00a651,#006937 70%);
 border:none;
 border-radius:16px;
-cursor:pointer;
 padding:18px 20px;
 text-align:left;
 font-family:inherit;
 box-shadow:0 10px 26px rgba(0,105,55,.28);
-transition:transform .2s ease, box-shadow .2s ease;
 }
-
-.process-toggle:hover{
-transform:translateY(-2px);
-box-shadow:0 14px 30px rgba(0,105,55,.34);
-}
-
-.process-toggle:active{transform:translateY(0)}
 
 .process-toggle-left{
 display:flex;
@@ -545,19 +619,9 @@ font-size:.85rem;
 margin:2px 0 0;
 }
 
-.process-toggle-chevron{
-color:#fff;
-font-size:1.1rem;
-flex:0 0 auto;
-transition:transform .25s ease;
-}
-
-.process-toggle-chevron.is-open{transform:rotate(180deg)}
-
 .process-body{
-overflow:hidden;
-max-height:0;
-transition:max-height .35s ease;
+overflow:visible;
+max-height:none;
 }
 
 .process-body-inner{
@@ -1029,18 +1093,59 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
   </button>
 </div>
 
+<div class="container home-stats-row" id="homeStatsRow">
+  <div class="home-stat-card">
+    <i class="fa-solid fa-layer-group"></i>
+    <div><strong id="homeStatGroups">—</strong><span>Equipment Groups</span></div>
+  </div>
+  <div class="home-stat-card">
+    <i class="fa-solid fa-gears"></i>
+    <div><strong id="homeStatEquipment">—</strong><span>Total Equipment</span></div>
+  </div>
+  <div class="home-stat-card home-stat-card-alert">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div><strong id="homeStatDown">—</strong><span>Down / Under Maintenance</span></div>
+  </div>
+</div>
+
+<div class="container home-shortcuts-row">
+  <a href="groups.html" class="home-shortcut-card">
+    <i class="fa-solid fa-layer-group"></i>
+    <div>
+      <strong>Equipment Groups</strong>
+      <span>Browse equipment by group or department</span>
+    </div>
+    <i class="fa-solid fa-chevron-right home-shortcut-arrow"></i>
+  </a>
+  <a href="inventory.html" class="home-shortcut-card">
+    <i class="fa-solid fa-cart-shopping"></i>
+    <div>
+      <strong>Stores</strong>
+      <span>Spare parts inventory &amp; requests</span>
+    </div>
+    <i class="fa-solid fa-chevron-right home-shortcut-arrow"></i>
+  </a>
+  <a href="handover.html" class="home-shortcut-card">
+    <i class="fa-solid fa-clipboard-list"></i>
+    <div>
+      <strong>Handover &amp; Reports</strong>
+      <span>Shift handover notes and reports</span>
+    </div>
+    <i class="fa-solid fa-chevron-right home-shortcut-arrow"></i>
+  </a>
+</div>
+
 <section class="process-section">
   <div class="container" style="margin:0 auto;padding:0 20px;">
-    <button type="button" class="process-toggle" id="processToggleBtn" aria-expanded="false" aria-controls="processBody">
+    <div class="process-toggle" id="processToggleBtn">
       <span class="process-toggle-left">
         <i class="fa-solid fa-industry"></i>
         <span>
           <h2>Process of the Plant</h2>
-          <p class="process-toggle-sub">Tap to see how raw material becomes finished cement</p>
+          <p class="process-toggle-sub">How raw material becomes finished cement</p>
         </span>
       </span>
-      <i class="fa-solid fa-chevron-down process-toggle-chevron" id="processToggleChevron"></i>
-    </button>
+    </div>
 
     <div class="process-body" id="processBody">
       <div class="process-body-inner">
@@ -1187,6 +1292,13 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
   </div>
 </section>
 
+<div class="container home-activity-section">
+  <h2 class="section-title"><i class="fa-solid fa-bolt"></i> Recent Activity</h2>
+  <div class="home-activity-list" id="homeActivityList">
+    <p class="loading-text" style="padding:20px;color:#888;text-align:center;">Loading recent activity…</p>
+  </div>
+</div>
+
 <footer>
 
 GHACEM LTD © 2026
@@ -1220,18 +1332,13 @@ Engineering Documentation Portal
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 
 <script>
-// ---------- Process of the Plant: collapsible + scroll-driven progress ----------
+// ---------- Process of the Plant: always-visible, scroll-driven progress ----------
 (function () {
-  const toggleBtn = document.getElementById('processToggleBtn');
-  const body = document.getElementById('processBody');
-  const chevron = document.getElementById('processToggleChevron');
   const timeline = document.getElementById('processTimeline');
   const fill = document.getElementById('processProgressFill');
   const arrow = document.getElementById('processProgressArrow');
-  if (!toggleBtn || !body || !timeline || !fill || !arrow) return;
+  if (!timeline || !fill || !arrow) return;
 
-  let isOpen = false;
-  let scrollBound = false;
   let ticking = false;
 
   function updateProgress() {
@@ -1258,39 +1365,10 @@ Engineering Documentation Portal
     }
   }
 
-  function openProcess() {
-    isOpen = true;
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    chevron.classList.add('is-open');
-    body.style.maxHeight = body.scrollHeight + 'px';
-    updateProgress();
-    if (!scrollBound) {
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll);
-      scrollBound = true;
-    }
-  }
-
-  function closeProcess() {
-    isOpen = false;
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    chevron.classList.remove('is-open');
-    body.style.maxHeight = '0px';
-    if (scrollBound) {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      scrollBound = false;
-    }
-  }
-
-  toggleBtn.addEventListener('click', function () {
-    if (isOpen) closeProcess(); else openProcess();
-  });
-
-  // Keep the expanded height correct if content reflows (e.g. font load).
-  window.addEventListener('load', function () {
-    if (isOpen) body.style.maxHeight = body.scrollHeight + 'px';
-  });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  window.addEventListener('load', updateProgress);
+  updateProgress();
 })();
 </script>
 
@@ -1316,8 +1394,114 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
 
 </script>
 
+<script>
+// ---------- Home dashboard: quick stats + recent activity ----------
+(function () {
+  const statGroups = document.getElementById('homeStatGroups');
+  const statEquipment = document.getElementById('homeStatEquipment');
+  const statDown = document.getElementById('homeStatDown');
+  const activityList = document.getElementById('homeActivityList');
+  if (!statGroups || !statEquipment || !statDown || !activityList) return;
+
+  function escapeHtmlHome(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function timeAgo(date) {
+    const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    const units = [
+      ['year', 31536000], ['month', 2592000], ['day', 86400],
+      ['hour', 3600], ['minute', 60],
+    ];
+    for (const [label, secs] of units) {
+      const n = Math.floor(seconds / secs);
+      if (n >= 1) return `${n} ${label}${n === 1 ? '' : 's'} ago`;
+    }
+    return 'just now';
+  }
+
+  const ACTIVITY_ICON = {
+    Lubrication: 'fa-oil-can',
+    Inspection: 'fa-magnifying-glass',
+    Repair: 'fa-screwdriver-wrench',
+    Breakdown: 'fa-triangle-exclamation',
+  };
+
+  (async function loadStats() {
+    try {
+      const [equipSnap, groupsSnap] = await Promise.all([
+        db.collection('equipment').get(),
+        db.collection('groups').get(),
+      ]);
+      const equipmentList = equipSnap.docs.map((doc) => doc.data()).filter((e) => !e.archived);
+      const downCount = equipmentList.filter((e) => {
+        const s = (e.status || '').toLowerCase();
+        return s.includes('down') || s.includes('fault') || s.includes('breakdown') || s.includes('maint');
+      }).length;
+
+      // Groups come from both the admin-managed "groups" collection and any
+      // ad-hoc group names set directly on equipment — same union used on
+      // the Equipment Groups page, so the count matches what's shown there.
+      const groupNames = new Set(groupsSnap.docs.map((doc) => doc.data().name).filter(Boolean));
+      equipmentList.forEach((e) => {
+        (Array.isArray(e.groups) && e.groups.length ? e.groups : (e.group ? [e.group.trim()] : [])).forEach((g) => {
+          if (g) groupNames.add(g);
+        });
+      });
+
+      statGroups.textContent = groupNames.size;
+      statEquipment.textContent = equipmentList.length;
+      statDown.textContent = downCount;
+    } catch (err) {
+      console.error('Failed to load home dashboard stats', err);
+      statGroups.textContent = '—';
+      statEquipment.textContent = '—';
+      statDown.textContent = '—';
+    }
+  })();
+
+  (async function loadRecentActivity() {
+    try {
+      const [logsSnap, equipSnap] = await Promise.all([
+        db.collection('equipmentLogs').orderBy('timestamp', 'desc').limit(6).get(),
+        db.collection('equipment').get(),
+      ]);
+      const nameById = {};
+      equipSnap.docs.forEach((doc) => { nameById[doc.id] = doc.data().name || doc.id; });
+
+      const entries = logsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      if (!entries.length) {
+        activityList.innerHTML = '<p class="loading-text" style="padding:20px;color:#888;text-align:center;">No recent activity logged yet.</p>';
+        return;
+      }
+
+      activityList.innerHTML = entries.map((r) => {
+        const equipName = nameById[r.equipmentId] || 'Equipment';
+        const icon = ACTIVITY_ICON[r.category] || 'fa-clipboard-check';
+        const when = r.timestamp && r.timestamp.toDate ? timeAgo(r.timestamp.toDate()) : '';
+        return `
+          <div class="home-activity-item">
+            <i class="fa-solid ${icon}"></i>
+            <div class="home-activity-body">
+              <strong>${escapeHtmlHome(equipName)}</strong> — ${escapeHtmlHome(r.category || 'Log entry')}
+              <p>${escapeHtmlHome((r.comment || '').slice(0, 140))}</p>
+              <div class="home-activity-meta">${escapeHtmlHome(r.fullName || 'Technician')} · ${when}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Failed to load recent activity', err);
+      activityList.innerHTML = '<p class="loading-text" style="padding:20px;color:#888;text-align:center;">Could not load recent activity right now.</p>';
+    }
+  })();
+})();
+</script>
 
 <script>
+
 
 function t5UpdateOfflineBanner() {
   const banner = document.getElementById('offlineBanner');
