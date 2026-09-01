@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>InfoPort — Equipment Groups</title>
+<title>InfoPort — Equipment Group</title>
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#006937">
@@ -271,25 +271,57 @@ border-color:#006937;
 
 }
 
-.select-row{
+.filter-chips{
 
 display:flex;
 
-gap:12px;
+flex-wrap:wrap;
+
+gap:10px;
 
 }
 
-.select-row .sort-box{
+.filter-chip{
 
-flex:1;
+padding:10px 18px;
 
-min-width:0;
+border-radius:30px;
+
+border:1px solid #ddd;
+
+background:white;
+
+color:#555;
+
+font-family:inherit;
+
+font-size:13px;
+
+font-weight:500;
+
+cursor:pointer;
+
+transition:.2s;
+
+white-space:nowrap;
 
 }
 
-.select-row .sort-box select{
+.filter-chip:hover{
 
-width:100%;
+border-color:#006937;
+
+color:#006937;
+
+}
+
+.filter-chip.active{
+
+background:#006937;
+
+border-color:#006937;
+
+color:white;
 
 }
 
@@ -341,15 +373,7 @@ align-items:stretch;
 
 }
 
-.controls-left{
-
-flex-direction:column;
-
-align-items:stretch;
-
-}
-
-.search-box{
+.search-box,.sort-box select{
 
 max-width:none;
 
@@ -476,7 +500,6 @@ border-radius:8px;
 
 }
 
-
 /* FOOTER */
 
 footer{
@@ -534,38 +557,102 @@ font-size:16px;
 }
 
 
-/* ---------- Stores shortcut — rounded floating button ---------- */
-.stores-fab{
-  position:fixed;right:20px;bottom:84px;z-index:1400;
-  display:flex;align-items:center;gap:8px;
-  background:#006937;color:#fff;border:none;
-  padding:12px 18px;border-radius:30px;
-  font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;text-decoration:none;
-  box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .15s,background .15s;
-}
-.stores-fab:hover{background:#00552c;transform:scale(1.04);text-decoration:none;color:#fff;}
-.stores-fab i{font-size:1rem}
-@media(max-width:640px){
-  .stores-fab{right:14px;bottom:78px;padding:11px 16px;}
+/* ================= QUICK ACTIONS BAR — Take Five + Offline Access ================= */
+/* One compact toolbar replaces what used to be two full-height cards. */
+
+.quick-actions-bar{
+  max-width:1200px;margin:20px auto 0;padding:10px 16px;
+  background:#fff;border-radius:14px;box-shadow:0 6px 16px rgba(0,0,0,.05);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
 }
 
-/* ---------- Bottom tab bar: Main / Equipment Group / Handover & Reports ---------- */
-body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
-.home-tabs{
-  position:fixed;left:0;right:0;bottom:0;z-index:1500;
-  display:flex;background:#fff;border-top:1px solid #e6e9ec;
-  padding-bottom:env(safe-area-inset-bottom);
-  box-shadow:0 -2px 10px rgba(0,0,0,.06);
-  max-width:600px;margin:0 auto;
+.quick-action-group{
+  display:flex;align-items:center;gap:10px;flex:1;min-width:260px;padding:4px 0;
 }
-.home-tab-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:9px 4px 8px;border:none;background:none;font-family:inherit;text-decoration:none;
-  font-size:.68rem;font-weight:600;color:#6b7280;cursor:pointer;
+
+.quick-action-icon{
+  width:32px;height:32px;flex-shrink:0;background:#006937;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;
 }
-.home-tab-btn i{font-size:1.15rem}
-.home-tab-btn:hover{color:#1f2a24;text-decoration:none}
-.home-tab-btn.is-active{color:#006937}
+
+.quick-action-info{display:flex;flex-direction:column;flex:1;min-width:0;gap:1px;}
+.quick-action-label{font-size:13px;font-weight:700;color:#333;}
+.quick-action-meta{font-size:11px;color:#888;line-height:1.3;}
+
+.quick-action-btns{display:flex;gap:6px;flex-shrink:0;}
+.quick-action-btn{
+  background:#006937;color:#fff;border:1.5px solid #006937;padding:8px 14px;border-radius:20px;
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;transition:.2s;
+}
+.quick-action-btn:hover{background:#00552c;border-color:#00552c;}
+.quick-action-btn.outline{background:#fff;color:#006937;}
+.quick-action-btn.outline:hover{background:#f0f9f4;}
+.quick-action-btn:disabled{background:#ccc;border-color:#ccc;cursor:not-allowed;}
+
+.quick-action-divider{width:1px;align-self:stretch;background:#eee;margin:2px 4px;}
+
+.qa-progress-wrap{width:100%;margin-top:6px;display:none;}
+.qa-progress-wrap.show{display:block;}
+.qa-progress-label{font-size:11px;color:#666;margin-bottom:4px;}
+.qa-progress-track{background:#eee;border-radius:20px;height:6px;overflow:hidden;}
+.qa-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+@media(max-width:700px){
+  .quick-actions-bar{flex-direction:column;align-items:stretch;padding:12px 14px;}
+  .quick-action-divider{display:none;height:1px;width:100%;margin:4px 0;}
+}
+@media(max-width:420px){
+  .quick-action-group{flex-wrap:wrap;}
+  .quick-action-btns{width:100%;}
+  .quick-action-btn{flex:1;justify-content:center;}
+}
+
+.t5-risk-chip{
+  padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;
+  text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;
+}
+.t5-risk-chip.zero{background:#00a651;}
+.t5-risk-chip.amber{background:#f59e0b;}
+.t5-risk-chip.red{background:#d92d20;}
+.t5-history-empty{color:#888;font-size:14px;padding:10px 0;}
+
+/* Take Five History modal */
+.t5-history-modal{max-width:820px;}
+.t5-history-toolbar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding-bottom:14px;margin-bottom:14px;border-bottom:2px solid #eee;
+}
+.t5-select-all{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#444;font-weight:600;cursor:pointer;}
+.t5-select-all input{width:18px;height:18px;cursor:pointer;}
+#t5SelectedCount{font-size:13px;color:#888;flex:1;}
+.t5-export-btn{
+  background:#006937;color:#fff;border:none;padding:11px 20px;border-radius:24px;
+  font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;transition:.2s;
+}
+.t5-export-btn:disabled{background:#ccc;cursor:not-allowed;}
+.t5-export-btn:not(:disabled):hover{background:#00552c;}
+
+.t5-history-card{border:1px solid #eee;border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.t5-history-card-head{
+  display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:#fff;
+}
+.t5-history-card-head input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;cursor:pointer;}
+.t5-history-card-main{flex:1;min-width:0;}
+.t5-history-card-main strong{display:block;color:#333;font-size:14px;}
+.t5-history-card-main span{color:#888;font-size:12.5px;}
+.t5-history-card-chevron{color:#999;transition:transform .2s;flex-shrink:0;}
+.t5-history-card.is-open .t5-history-card-chevron{transform:rotate(180deg);}
+
+.t5-history-card-detail{display:none;padding:0 16px 16px;border-top:1px dashed #eee;}
+.t5-history-card.is-open .t5-history-card-detail{display:block;padding-top:14px;}
+.t5-history-hazard{padding:10px 0;border-bottom:1px solid #f2f2f2;}
+.t5-history-hazard:last-child{border-bottom:none;}
+.t5-history-hazard-name{font-weight:600;font-size:13.5px;color:#333;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.t5-history-hazard-text{font-size:12.5px;color:#666;margin-top:4px;line-height:1.5;}
+.t5-history-hazard-text b{color:#444;}
+.t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0;}
 
 /* ================= PWA INSTALL PROMPT ================= */
 
@@ -613,7 +700,20 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
 }
 .pwa-dont-show input{width:16px;height:16px;cursor:pointer;flex-shrink:0;}
 
-/* Shared modal shell — still used by the PWA install prompt above */
+#t5Overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2000;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#t5Overlay.is-open{display:flex;}
+
+#t5HistoryOverlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  z-index:2000;align-items:flex-start;justify-content:center;
+  padding:30px 16px;overflow-y:auto;
+}
+#t5HistoryOverlay.is-open{display:flex;}
+
 .t5-modal{
   background:#fff;border-radius:18px;max-width:760px;width:100%;
   overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);margin-bottom:30px;
@@ -630,11 +730,106 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
 }
 .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;}
 
+.t5-field{margin-bottom:16px;}
+.t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;}
+.t5-field input{
+  width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;
+  font-family:inherit;font-size:16px;outline:none;transition:.2s;
+}
+.t5-field input:focus{border-color:#006937;box-shadow:0 0 0 3px rgba(0,105,55,.12);}
+.t5-field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:600px){.t5-field-row{grid-template-columns:1fr;}}
+
+.t5-progress-wrap{margin:18px 0;}
+.t5-progress-label{font-size:13px;color:#666;margin-bottom:6px;}
+.t5-progress-track{background:#eee;border-radius:20px;height:8px;overflow:hidden;}
+.t5-progress-fill{background:#006937;height:100%;width:0%;transition:width .2s;}
+
+.t5-category{margin-bottom:22px;}
+.t5-category-title{
+  font-size:14px;font-weight:700;color:#006937;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #eee;
+}
+
+.t5-hazard-row{border:1px solid #eee;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:.2s;}
+.t5-hazard-row.answered-yes{border-color:#f59e0b;background:#fffaf0;}
+.t5-hazard-row.answered-no{border-color:#e6efe9;background:#fafffb;}
+
+.t5-hazard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.t5-hazard-name{font-weight:600;font-size:14.5px;color:#333;flex:1;min-width:160px;}
+
+.t5-yn{display:flex;gap:8px;}
+.t5-yn button{
+  border:1px solid #ddd;background:#fff;color:#666;padding:8px 16px;border-radius:20px;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+}
+.t5-yn button.active-yes{background:#f59e0b;border-color:#f59e0b;color:#fff;}
+.t5-yn button.active-no{background:#e5e7eb;border-color:#e5e7eb;color:#333;}
+
+.t5-hazard-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed #ddd;}
+.t5-hazard-detail.is-open{display:block;}
+.t5-hazard-detail textarea{
+  width:100%;min-height:56px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;
+  font-family:inherit;font-size:16px;margin-bottom:10px;resize:vertical;
+}
+.t5-risk-select{display:flex;gap:8px;flex-wrap:wrap;}
+.t5-risk-select button{
+  flex:1;min-width:110px;border:2px solid #eee;background:#fff;padding:10px;border-radius:10px;
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;color:#666;
+}
+.t5-risk-select button[data-risk="zero"].selected{background:#00a651;border-color:#00a651;color:#fff;}
+.t5-risk-select button[data-risk="amber"].selected{background:#f59e0b;border-color:#f59e0b;color:#fff;}
+.t5-risk-select button[data-risk="red"].selected{background:#d92d20;border-color:#d92d20;color:#fff;}
+
+.t5-overall-banner{display:none;padding:14px 18px;border-radius:12px;margin:18px 0;align-items:center;gap:12px;font-size:14px;font-weight:600;}
+.t5-overall-banner.show{display:flex;}
+.t5-overall-banner.zero{background:#e7f8ee;color:#00733a;}
+.t5-overall-banner.amber{background:#fff6e5;color:#a05a00;}
+.t5-overall-banner.red{background:#fdeceb;color:#a0221a;}
+
+.t5-submit-btn{
+  width:100%;background:#006937;color:#fff;border:none;padding:15px;border-radius:12px;
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;transition:.2s;
+}
+.t5-submit-btn:disabled{background:#ccc;cursor:not-allowed;}
+.t5-submit-btn:not(:disabled):hover{background:#00552c;}
+
+.t5-error{color:#d92d20;font-size:13px;margin-top:10px;min-height:1em;}
+.t5-success{display:none;text-align:center;padding:30px 10px;}
+.t5-success.show{display:block;}
+.t5-success i{font-size:46px;color:#00a651;margin-bottom:14px;}
+.t5-success h4{color:#006937;margin-bottom:8px;}
+.t5-success p{color:#666;font-size:14px;}
+.t5-success-actions{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px;
+}
+.t5-success-actions button{
+  background:#006937;color:#fff;border:none;padding:12px 24px;
+  border-radius:30px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+}
+.t5-secondary-btn{background:#fff !important;color:#006937 !important;border:1.5px solid #006937 !important;}
+
 @media(max-width:600px){
+  #t5Overlay,#t5HistoryOverlay{padding:0;}
+  .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0;}
   .t5-modal-head{padding:16px 18px;}
   .t5-modal-head h3{font-size:16px;}
   .t5-modal-head p{font-size:12px;}
   .t5-modal-body{padding:16px;max-height:none;}
+
+  .t5-hazard-row{padding:12px;}
+  .t5-hazard-name{font-size:14px;min-width:0;flex-basis:100%;}
+  .t5-yn{width:100%;}
+  .t5-yn button{flex:1;text-align:center;}
+
+  .t5-risk-select{flex-direction:column;}
+  .t5-risk-select button{min-width:0;width:100%;}
+
+  .t5-history-toolbar{flex-direction:column;align-items:stretch;gap:10px;}
+  .t5-export-btn{justify-content:center;}
+  .t5-history-card-head{flex-wrap:wrap;}
+  .t5-history-card-main{flex-basis:100%;order:1;}
 
   /* Install prompt stays a small centered popup on phones — it's just a
      few short steps, not the multi-page content the rule above is for. */
@@ -670,201 +865,52 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <nav>
-
 <div class="logo">
-
-<img src="assets/logo.png">
-
-<h2>InfoPort</h2>
-
+<a href="index.html" class="nav-link" title="Back to Dashboard" aria-label="Back to Dashboard"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
 </div>
-
 <div>
-
 </div>
-
 </nav>
 
 <section class="hero">
-
 <div>
-
-<h1>Equipment Groups</h1>
-
-<p>Browse equipment by group, department, or search by name</p>
-
+<h1 id="groupTitle">Equipment Group</h1>
+<p id="groupSubtitle">Equipment in this group</p>
 </div>
-
 </section>
 
-<a href="inventory.html" class="stores-fab" title="Stores" aria-label="Stores">
-  <i class="fa-solid fa-cart-shopping"></i> Stores
-</a>
-
 <div class="controls">
-
 <div class="controls-left">
-
 <div class="search-box">
-
 <i class="fa-solid fa-magnifying-glass"></i>
-
-<input type="text" id="searchInput" placeholder="Search by group or equipment name…">
-
+<input type="text" id="searchInput" placeholder="Search by name, ID, or manufacturer…">
 </div>
-
-<div class="select-row">
-
 <div class="sort-box">
-
 <select id="sortSelect">
-
 <option value="name-asc">Sort: Name (A–Z)</option>
-
 <option value="name-desc">Sort: Name (Z–A)</option>
-
+<option value="id-asc">Sort: ID (A–Z)</option>
+<option value="id-desc">Sort: ID (Z–A)</option>
 </select>
-
 </div>
-
-<div class="sort-box">
-
-<select id="departmentFilterSelect">
-
-<option value="all">All Departments</option>
-
-<option value="packing-plant">Packing Plant</option>
-
-<option value="milling">Milling</option>
-
-<option value="material-transport">Material Transport</option>
-
-<option value="others">Others</option>
-
-</select>
-
 </div>
-
-</div>
-
-</div>
-
 </div>
 
 <p class="results-count" id="resultsCount"></p>
 
 <div class="container">
-
 <div class="cards" id="cardsGrid"><p class="loading-text" style="padding:30px;color:#888;grid-column:1/-1;text-align:center;">Loading equipment…</p></div>
-
 </div>
 
 <footer>
-
 GHACEM LTD © 2026
-
 <br>
-
 Engineering Documentation Portal
-
 </footer>
-
-<div id="pwaInstallOverlay">
-  <div class="t5-modal pwa-install-modal">
-    <div class="t5-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-mobile-screen-button"></i> Install InfoPort</h3>
-        <p>Add it to your home screen for one-tap access — even offline.</p>
-      </div>
-      <button type="button" class="t5-modal-close" id="pwaInstallCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="t5-modal-body">
-      <div id="pwaInstallContent"></div>
-      <label class="pwa-dont-show">
-        <input type="checkbox" id="pwaDontShowAgain"> Don't show this again on this device
-      </label>
-    </div>
-  </div>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-
-<script>
-// ---------- Process of the Plant: collapsible + scroll-driven progress ----------
-(function () {
-  const toggleBtn = document.getElementById('processToggleBtn');
-  const body = document.getElementById('processBody');
-  const chevron = document.getElementById('processToggleChevron');
-  const timeline = document.getElementById('processTimeline');
-  const fill = document.getElementById('processProgressFill');
-  const arrow = document.getElementById('processProgressArrow');
-  if (!toggleBtn || !body || !timeline || !fill || !arrow) return;
-
-  let isOpen = false;
-  let scrollBound = false;
-  let ticking = false;
-
-  function updateProgress() {
-    ticking = false;
-    const rect = timeline.getBoundingClientRect();
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-    // 0 when the timeline's top is at ~65% down the viewport, 1 when its
-    // bottom has scrolled up to ~25% from the top — keeps the fill/arrow
-    // tracking roughly with what's on screen as the user scrolls.
-    const startAt = vh * 0.65;
-    const endAt = vh * 0.25;
-    const total = (rect.height + startAt - endAt) || 1;
-    let progress = (startAt - rect.top) / total;
-    progress = Math.max(0, Math.min(1, progress));
-    fill.style.height = (progress * 100) + '%';
-    arrow.style.top = (progress * 100) + '%';
-    arrow.style.opacity = progress > 0.005 ? '1' : '0';
-  }
-
-  function onScroll() {
-    if (!ticking) {
-      ticking = true;
-      window.requestAnimationFrame(updateProgress);
-    }
-  }
-
-  function openProcess() {
-    isOpen = true;
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    chevron.classList.add('is-open');
-    body.style.maxHeight = body.scrollHeight + 'px';
-    updateProgress();
-    if (!scrollBound) {
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll);
-      scrollBound = true;
-    }
-  }
-
-  function closeProcess() {
-    isOpen = false;
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    chevron.classList.remove('is-open');
-    body.style.maxHeight = '0px';
-    if (scrollBound) {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      scrollBound = false;
-    }
-  }
-
-  toggleBtn.addEventListener('click', function () {
-    if (isOpen) closeProcess(); else openProcess();
-  });
-
-  // Keep the expanded height correct if content reflows (e.g. font load).
-  window.addEventListener('load', function () {
-    if (isOpen) body.style.maxHeight = body.scrollHeight + 'px';
-  });
-})();
-</script>
 
 <script>
 const firebaseConfig = {
@@ -891,131 +937,106 @@ function escapeHtmlCard(str) {
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
 }
+</script>
+
+<script>
+(function () {
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
+  document.getElementById('groupTitle').textContent = groupName || 'Equipment Group';
+  document.getElementById('groupSubtitle').textContent = groupName
+    ? `All equipment listed under "${groupName}"`
+    : 'No group specified';
+  document.title = groupName ? `InfoPort — ${groupName}` : 'InfoPort — Equipment Group';
+})();
 
 (async function () {
   const cardsGrid = document.getElementById('cardsGrid');
   const searchInput = document.getElementById('searchInput');
   const sortSelect = document.getElementById('sortSelect');
-  const departmentFilterSelect = document.getElementById('departmentFilterSelect');
   const resultsCount = document.getElementById('resultsCount');
 
-  const DEPARTMENT_MAP = {
-    'packing plant': 'packing-plant',
-    'milling': 'milling',
-    'material transport': 'material-transport'
-  };
+  const groupName = new URLSearchParams(window.location.search).get('group') || '';
 
-  // ---------- Load equipment + groups from Firestore (editable via admin.html) ----------
+  if (!groupName) {
+    cardsGrid.innerHTML = `
+      <div class="no-results">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>No group specified. Go back to the dashboard and tap a group tile.</p>
+      </div>
+    `;
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
+    return;
+  }
+
+  // ---------- Load equipment from Firestore, filtered to this group ----------
+  // "Ungrouped" is the dashboard's fallback bucket for equipment with no
+  // Group field set, so match that the same way here.
   let equipmentData = [];
-  let groupPictures = {};
   try {
-    const [equipSnap, groupsSnap] = await Promise.all([
+    const [equipSnap, groupQuery] = await Promise.all([
       db.collection('equipment').orderBy('name').get(),
-      db.collection('groups').get(),
+      db.collection('groups').where('name', '==', groupName).limit(1).get().catch(() => null),
     ]);
-    equipmentData = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
-    groupsSnap.docs.forEach((doc) => {
-      const g = doc.data();
-      if (g.name && g.image) groupPictures[g.name] = g.image;
-    });
+    const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
+    const getGroupNames = (e) => {
+      if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+      if (e.group && e.group.trim()) return [e.group.trim()];
+      return ['Ungrouped'];
+    };
+    equipmentData = all.filter((e) => getGroupNames(e).includes(groupName));
+
+    const groupImage = groupQuery && !groupQuery.empty ? groupQuery.docs[0].data().image : '';
+    if (groupImage) {
+      document.querySelector('.hero').style.cssText += `background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('${groupImage}');background-size:cover;background-position:center;`;
+    }
   } catch (err) {
-    console.error('Failed to load equipment/groups list', err);
+    console.error('Failed to load equipment list', err);
   }
 
   if (!equipmentData.length) {
     cardsGrid.innerHTML = `
       <div class="no-results">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <p>No equipment found. If this is unexpected, check your connection and try again.</p>
+        <p>No equipment found in this group.</p>
       </div>
     `;
-    resultsCount.textContent = 'Showing 0 of 0 groups';
+    resultsCount.textContent = 'Showing 0 of 0 equipment';
     return;
   }
 
-  // ---------- Group equipment by the admin-set "Groups" field ----------
-  // Equipment can belong to more than one group, so it can appear on more
-  // than one tile. Equipment with no group set falls back into its own
-  // "Ungrouped" tile so nothing goes missing from the dashboard. Each tile
-  // shows the group's own picture if the admin set one (Groups tab in
-  // admin.html), otherwise falls back to one of its equipment's photos —
-  // plus how many pieces of equipment sit inside it, and the department
-  // most of its equipment belongs to (used for the existing department
-  // filter chips).
-  const getGroupNames = (e) => {
-    if (Array.isArray(e.groups) && e.groups.length) return e.groups;
-    if (e.group && e.group.trim()) return [e.group.trim()];
-    return ['Ungrouped'];
-  };
-  const groupMap = new Map();
-  equipmentData.forEach((e) => {
-    getGroupNames(e).forEach((groupName) => {
-      if (!groupMap.has(groupName)) groupMap.set(groupName, []);
-      groupMap.get(groupName).push(e);
-    });
-  });
-
-  const groups = Array.from(groupMap.entries()).map(([name, items]) => {
-    const deptCounts = {};
-    items.forEach((e) => {
-      const d = (e.department || '').trim();
-      if (d) deptCounts[d] = (deptCounts[d] || 0) + 1;
-    });
-    const topDepartment = Object.keys(deptCounts).sort((a, b) => deptCounts[b] - deptCounts[a])[0] || '';
-    const departmentKey = DEPARTMENT_MAP[topDepartment.toLowerCase()] || 'others';
-    const image = groupPictures[name] || (items.find((e) => e.image) || {}).image || '';
-
-    return {
-      name,
-      items,
-      count: items.length,
-      department: topDepartment,
-      departmentKey,
-      image,
-      searchText: `${name} ${items.map((e) => `${e.name || ''} ${e.id || ''}`).join(' ')}`.toLowerCase(),
-    };
-  });
-
-  cardsGrid.innerHTML = groups.map((g) => `
+  cardsGrid.innerHTML = equipmentData.map((e) => `
     <div class="card">
-      <img src="${escapeHtmlCard(g.image)}" alt="${escapeHtmlCard(g.name)}" onerror="this.style.display='none'">
+      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
       <div class="card-content">
-        <span class="badge">${g.count} equipment</span>
-        <h3>${escapeHtmlCard(g.name)}</h3>
-        <p><strong>Location:</strong> ${escapeHtmlCard(g.department || '—')}</p>
-        <a href="group.html?group=${encodeURIComponent(g.name)}">View Equipment</a>
+        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
+        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
+        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
+        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
+        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
+        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
       </div>
     </div>
   `).join('');
 
-  // ---------- Search / sort / filter ----------
   const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
     el,
-    name: groups[i].name,
-    searchText: groups[i].searchText,
-    department: groups[i].departmentKey,
+    name: (equipmentData[i].name || equipmentData[i].id || '').toLowerCase(),
+    id: (equipmentData[i].id || '').toLowerCase(),
+    searchText: `${equipmentData[i].name || ''} ${equipmentData[i].id || ''} ${equipmentData[i].manufacturer || ''}`.toLowerCase(),
   }));
-
-  let currentFilter = 'all';
 
   function applyFiltersAndSort() {
     const query = searchInput.value.trim().toLowerCase();
+    const visible = cards.filter(c => !query || c.searchText.includes(query));
 
-    const visible = cards.filter(c =>
-      (currentFilter === 'all' || c.department === currentFilter) &&
-      (!query || c.searchText.includes(query))
-    );
-
-    const [, dir] = sortSelect.value.split('-');
+    const [key, dir] = sortSelect.value.split('-');
     visible.sort((a, b) => {
-      const av = a.name.toLowerCase();
-      const bv = b.name.toLowerCase();
+      const av = key === 'id' ? a.id : a.name;
+      const bv = key === 'id' ? b.id : b.name;
       const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
       return dir === 'desc' ? -cmp : cmp;
     });
 
-    // Hide everything, then re-append the visible set in sorted order —
-    // CSS grid re-flows automatically, no layout math needed.
     cards.forEach(c => { c.el.style.display = 'none'; });
     const existingEmptyState = cardsGrid.querySelector('.no-results');
     if (existingEmptyState) existingEmptyState.remove();
@@ -1024,7 +1045,7 @@ function escapeHtmlCard(str) {
       cardsGrid.insertAdjacentHTML('beforeend', `
         <div class="no-results">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <p>No groups match your search/filter.</p>
+          <p>No equipment matches your search.</p>
         </div>
       `);
     } else {
@@ -1034,190 +1055,15 @@ function escapeHtmlCard(str) {
       });
     }
 
-    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} groups`;
+    resultsCount.textContent = `Showing ${visible.length} of ${cards.length} equipment`;
   }
 
   searchInput.addEventListener('input', applyFiltersAndSort);
   sortSelect.addEventListener('change', applyFiltersAndSort);
 
-  departmentFilterSelect.addEventListener('change', () => {
-    currentFilter = departmentFilterSelect.value;
-    applyFiltersAndSort();
-  });
-
   applyFiltersAndSort();
 })();
 </script>
-
-
-<script>
-
-function t5UpdateOfflineBanner() {
-  const banner = document.getElementById('offlineBanner');
-  if (banner) banner.classList.toggle('show', !navigator.onLine);
-}
-window.addEventListener('online', t5UpdateOfflineBanner);
-window.addEventListener('offline', t5UpdateOfflineBanner);
-t5UpdateOfflineBanner();
-
-
-// ================= PWA Install Prompt =================
-//
-// Shows a one-time (per device) "how to install" prompt, tailored to the
-// visitor's actual phone/browser. Never shows once the site is genuinely
-// installed (detected via standalone display-mode, the browser's
-// appinstalled event, or navigator.standalone on iOS). Dismissing without
-// checking the box just snoozes it for 7 days; checking the box opts out
-// permanently on this device.
-
-const PWA_INSTALLED_KEY = 'infoport_pwa_installed';
-const PWA_OPTOUT_KEY = 'infoport_pwa_optout';
-const PWA_DISMISS_UNTIL_KEY = 'infoport_pwa_dismiss_until';
-
-let pwaDeferredPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  pwaDeferredPrompt = e;
-});
-
-window.addEventListener('appinstalled', () => {
-  localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-  pwaCloseModal();
-});
-
-function pwaIsStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-}
-
-function pwaDetectPlatform() {
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isIPadOS13 = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  const isAndroid = /Android/.test(ua);
-  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
-  if (isIOS || isIPadOS13) return isSafari ? 'ios-safari' : 'ios-other';
-  if (isAndroid) return 'android';
-  return 'desktop';
-}
-
-const pwaEl = {
-  overlay: document.getElementById('pwaInstallOverlay'),
-  closeX: document.getElementById('pwaInstallCloseX'),
-  content: document.getElementById('pwaInstallContent'),
-  dontShowAgain: document.getElementById('pwaDontShowAgain'),
-};
-
-function pwaStep(num, icon, html) {
-  return `
-    <div class="pwa-step">
-      <div class="pwa-step-num">${num}</div>
-      <div class="pwa-step-icon"><i class="fa-solid ${icon}"></i></div>
-      <div class="pwa-step-text">${html}</div>
-    </div>
-  `;
-}
-
-function pwaRenderContent(platform) {
-  if (platform === 'ios-safari') {
-    pwaEl.content.innerHTML =
-      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
-      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
-      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
-    return;
-  }
-  if (platform === 'ios-other') {
-    pwaEl.content.innerHTML =
-      '<div class="pwa-note"><i class="fa-solid fa-triangle-exclamation"></i> "Add to Home Screen" works best in Safari on iPhone/iPad. Open this page in Safari, then:</div>' +
-      pwaStep(1, 'fa-arrow-up-from-bracket', 'Tap the <b>Share</b> icon in Safari\'s toolbar.') +
-      pwaStep(2, 'fa-square-plus', 'Scroll down and tap <b>Add to Home Screen</b>.') +
-      pwaStep(3, 'fa-check', 'Tap <b>Add</b> in the top right to confirm.');
-    return;
-  }
-  if (platform === 'android') {
-    if (pwaDeferredPrompt) {
-      pwaEl.content.innerHTML = `
-        <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Tap below and confirm — Chrome will add InfoPort straight to your home screen.</p>
-        <button type="button" class="pwa-install-native-btn" id="pwaNativeInstallBtn">
-          <i class="fa-solid fa-download"></i> Install App
-        </button>
-      `;
-      document.getElementById('pwaNativeInstallBtn').addEventListener('click', async () => {
-        if (!pwaDeferredPrompt) return;
-        pwaDeferredPrompt.prompt();
-        const { outcome } = await pwaDeferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-          pwaCloseModal();
-        }
-        pwaDeferredPrompt = null;
-      });
-    } else {
-      pwaEl.content.innerHTML =
-        pwaStep(1, 'fa-ellipsis-vertical', 'Tap the <b>menu</b> (⋮) in the top right of Chrome.') +
-        pwaStep(2, 'fa-square-plus', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>).') +
-        pwaStep(3, 'fa-check', 'Tap <b>Install</b> to confirm.');
-    }
-    return;
-  }
-}
-
-function pwaCloseModal() {
-  pwaEl.overlay.classList.remove('is-open');
-  document.body.style.overflow = '';
-}
-
-function pwaDismiss() {
-  if (pwaEl.dontShowAgain.checked) {
-    localStorage.setItem(PWA_OPTOUT_KEY, 'true');
-  } else {
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    localStorage.setItem(PWA_DISMISS_UNTIL_KEY, String(Date.now() + sevenDays));
-  }
-  pwaCloseModal();
-}
-
-pwaEl.closeX.addEventListener('click', pwaDismiss);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && pwaEl.overlay.classList.contains('is-open')) pwaDismiss();
-});
-
-function pwaMaybeShowPrompt() {
-  if (pwaIsStandalone()) {
-    localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-    return;
-  }
-  if (localStorage.getItem(PWA_INSTALLED_KEY) === 'true') return;
-  if (localStorage.getItem(PWA_OPTOUT_KEY) === 'true') return;
-
-  const dismissUntil = parseInt(localStorage.getItem(PWA_DISMISS_UNTIL_KEY) || '0', 10);
-  if (Date.now() < dismissUntil) return;
-
-  const platform = pwaDetectPlatform();
-  if (platform === 'desktop') return; // phone-only prompt
-
-  setTimeout(() => {
-    pwaRenderContent(platform);
-    pwaEl.overlay.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }, 1800);
-}
-
-pwaMaybeShowPrompt();
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .catch((err) => console.warn('Service worker registration failed:', err));
-  });
-}
-</script>
-
-<div class="home-tabs">
-  <a href="index.html" class="home-tab-btn"><i class="fa-solid fa-house"></i> Main</a>
-  <a href="groups.html" class="home-tab-btn is-active"><i class="fa-solid fa-layer-group"></i> Equipment Group</a>
-  <a href="handover.html" class="home-tab-btn"><i class="fa-solid fa-clipboard-list"></i> Handover</a>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 <script src="search.js" defer></script>
@@ -1225,5 +1071,4 @@ if ('serviceWorker' in navigator) {
 <script src="loading-screen.js" defer></script>
 
 </body>
-
 </html>
