@@ -476,18 +476,77 @@ border-radius:8px;
 
 }
 
-/* PROCESS OF THE PLANT — animated timeline */
+/* PROCESS OF THE PLANT — collapsible, scroll-driven timeline */
 
 .process-section{
 background:#fff;
-padding:44px 0 10px;
+padding:24px 0;
 border-bottom:1px solid #e6e9ec;
 }
 
-.process-subtitle{
+.process-toggle{
+width:100%;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+background:none;
+border:none;
+cursor:pointer;
+padding:0;
+text-align:left;
+font-family:inherit;
+}
+
+.process-toggle-left{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.process-toggle-left>i{
+width:44px;
+height:44px;
+flex:0 0 auto;
+border-radius:12px;
+background:#e8f5ee;
+color:#006937;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1.15rem;
+}
+
+.process-toggle-left h2{
+font-size:1.6rem;
+font-weight:600;
+color:#006937;
+margin:0;
+}
+
+.process-toggle-sub{
 color:#666;
-font-size:.92rem;
-margin:-14px 0 30px;
+font-size:.85rem;
+margin:2px 0 0;
+}
+
+.process-toggle-chevron{
+color:#006937;
+font-size:1.1rem;
+flex:0 0 auto;
+transition:transform .25s ease;
+}
+
+.process-toggle-chevron.is-open{transform:rotate(180deg)}
+
+.process-body{
+overflow:hidden;
+max-height:0;
+transition:max-height .35s ease;
+}
+
+.process-body-inner{
+padding-top:28px;
 }
 
 .process-timeline{
@@ -497,8 +556,7 @@ margin:0 auto;
 padding-left:52px;
 }
 
-.process-timeline::before{
-content:"";
+.process-progress-track{
 position:absolute;
 left:19px;
 top:6px;
@@ -511,25 +569,36 @@ background:repeating-linear-gradient(
 );
 }
 
-.process-timeline::after{
-content:"";
+.process-progress-fill{
 position:absolute;
 left:19px;
 top:6px;
-bottom:6px;
 width:3px;
+height:0%;
 border-radius:3px;
-background:linear-gradient(to bottom, transparent, #00a651 20%, #00a651 80%, transparent);
-background-size:100% 200%;
-animation:processFlowLine 3.2s linear infinite;
-mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
--webkit-mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
-opacity:.9;
+background:#00a651;
+box-shadow:0 0 6px rgba(0,166,81,.6);
+transition:height .08s linear;
 }
 
-@keyframes processFlowLine{
-0%{background-position:0 -200%;}
-100%{background-position:0 200%;}
+.process-progress-arrow{
+position:absolute;
+left:12px;
+top:6px;
+width:17px;
+height:17px;
+border-radius:50%;
+background:#00a651;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:.7rem;
+box-shadow:0 0 0 4px #fff,0 2px 6px rgba(0,0,0,.2);
+transform:translateY(-50%);
+opacity:0;
+transition:top .08s linear,opacity .2s ease;
+z-index:2;
 }
 
 .process-step{
@@ -599,6 +668,29 @@ color:#b23a2f;
 50%{opacity:.4}
 }
 
+.process-method-row{
+margin-top:10px;
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+}
+
+.process-method{
+flex:1 1 140px;
+display:flex;
+align-items:flex-start;
+gap:8px;
+background:#eef6f1;
+border:1px solid #d7ece1;
+border-radius:8px;
+padding:7px 10px;
+}
+
+.process-method i{color:#006937;margin-top:2px;font-size:.85rem}
+
+.process-method strong{display:block;font-size:.8rem;color:#222}
+.process-method span{display:block;font-size:.76rem;color:#666;line-height:1.3}
+
 .process-end-node{
 position:absolute;
 left:-52px;
@@ -617,9 +709,10 @@ z-index:1;
 }
 
 @media(max-width:480px){
-  .process-section{padding:32px 0 6px}
+  .process-toggle-left h2{font-size:1.3rem}
   .process-timeline{padding-left:46px}
-  .process-timeline::before,.process-timeline::after{left:17px}
+  .process-progress-track,.process-progress-fill{left:17px}
+  .process-progress-arrow{left:10px}
   .process-step-node,.process-end-node{left:-46px;width:36px;height:36px;font-size:.9rem}
 }
 
@@ -1149,10 +1242,23 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
 
 <section class="process-section">
   <div class="container" style="margin:0 auto;padding:0 20px;">
-    <h2 class="section-title"><i class="fa-solid fa-diagram-project"></i> Process of the Plant</h2>
-    <p class="process-subtitle">How raw material becomes finished cement — from harbour receipt to dispatch.</p>
+    <button type="button" class="process-toggle" id="processToggleBtn" aria-expanded="false" aria-controls="processBody">
+      <span class="process-toggle-left">
+        <i class="fa-solid fa-industry"></i>
+        <span>
+          <h2>Process of the Plant</h2>
+          <p class="process-toggle-sub">Tap to see how raw material becomes finished cement</p>
+        </span>
+      </span>
+      <i class="fa-solid fa-chevron-down process-toggle-chevron" id="processToggleChevron"></i>
+    </button>
 
-    <div class="process-timeline">
+    <div class="process-body" id="processBody">
+      <div class="process-body-inner">
+    <div class="process-timeline" id="processTimeline">
+      <div class="process-progress-track"></div>
+      <div class="process-progress-fill" id="processProgressFill"></div>
+      <div class="process-progress-arrow" id="processProgressArrow"><i class="fa-solid fa-caret-down"></i></div>
 
       <div class="process-step">
         <div class="process-step-node"><i class="fa-solid fa-anchor"></i></div>
@@ -1215,10 +1321,26 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
       </div>
 
       <div class="process-step">
-        <div class="process-step-node"><i class="fa-solid fa-wind"></i></div>
+        <div class="process-step-node"><i class="fa-solid fa-truck-ramp-box"></i></div>
         <div class="process-step-card">
-          <h4>8. Pneumatic Transport</h4>
-          <p>Fine product moves through the cyclone and transport pipe, carried by the flux pump.</p>
+          <h4>8. Transport to Silo</h4>
+          <p>Fine product from the separator reaches the silo by either of two routes:</p>
+          <div class="process-method-row">
+            <div class="process-method">
+              <i class="fa-solid fa-wind"></i>
+              <div>
+                <strong>Pneumatic</strong>
+                <span>Cyclone → transport pipe, carried by the flux pump</span>
+              </div>
+            </div>
+            <div class="process-method">
+              <i class="fa-solid fa-arrow-up-long"></i>
+              <div>
+                <strong>Mechanical</strong>
+                <span>Bucket elevator, direct from mill to silo</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1254,6 +1376,8 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
         </div>
       </div>
 
+    </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1385,6 +1509,81 @@ Engineering Documentation Portal
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+
+<script>
+// ---------- Process of the Plant: collapsible + scroll-driven progress ----------
+(function () {
+  const toggleBtn = document.getElementById('processToggleBtn');
+  const body = document.getElementById('processBody');
+  const chevron = document.getElementById('processToggleChevron');
+  const timeline = document.getElementById('processTimeline');
+  const fill = document.getElementById('processProgressFill');
+  const arrow = document.getElementById('processProgressArrow');
+  if (!toggleBtn || !body || !timeline || !fill || !arrow) return;
+
+  let isOpen = false;
+  let scrollBound = false;
+  let ticking = false;
+
+  function updateProgress() {
+    ticking = false;
+    const rect = timeline.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    // 0 when the timeline's top is at ~65% down the viewport, 1 when its
+    // bottom has scrolled up to ~25% from the top — keeps the fill/arrow
+    // tracking roughly with what's on screen as the user scrolls.
+    const startAt = vh * 0.65;
+    const endAt = vh * 0.25;
+    const total = (rect.height + startAt - endAt) || 1;
+    let progress = (startAt - rect.top) / total;
+    progress = Math.max(0, Math.min(1, progress));
+    fill.style.height = (progress * 100) + '%';
+    arrow.style.top = (progress * 100) + '%';
+    arrow.style.opacity = progress > 0.005 ? '1' : '0';
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(updateProgress);
+    }
+  }
+
+  function openProcess() {
+    isOpen = true;
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    chevron.classList.add('is-open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    updateProgress();
+    if (!scrollBound) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      scrollBound = true;
+    }
+  }
+
+  function closeProcess() {
+    isOpen = false;
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    chevron.classList.remove('is-open');
+    body.style.maxHeight = '0px';
+    if (scrollBound) {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      scrollBound = false;
+    }
+  }
+
+  toggleBtn.addEventListener('click', function () {
+    if (isOpen) closeProcess(); else openProcess();
+  });
+
+  // Keep the expanded height correct if content reflows (e.g. font load).
+  window.addEventListener('load', function () {
+    if (isOpen) body.style.maxHeight = body.scrollHeight + 'px';
+  });
+})();
+</script>
 
 <script>
 const firebaseConfig = {
