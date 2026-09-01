@@ -479,9 +479,8 @@ border-radius:8px;
 /* PROCESS OF THE PLANT — collapsible, scroll-driven timeline */
 
 .process-section{
-background:#fff;
+background:transparent;
 padding:24px 0;
-border-bottom:1px solid #e6e9ec;
 }
 
 .process-toggle{
@@ -490,13 +489,23 @@ display:flex;
 align-items:center;
 justify-content:space-between;
 gap:12px;
-background:none;
+background:linear-gradient(135deg,#00a651,#006937 70%);
 border:none;
+border-radius:16px;
 cursor:pointer;
-padding:0;
+padding:18px 20px;
 text-align:left;
 font-family:inherit;
+box-shadow:0 10px 26px rgba(0,105,55,.28);
+transition:transform .2s ease, box-shadow .2s ease;
 }
+
+.process-toggle:hover{
+transform:translateY(-2px);
+box-shadow:0 14px 30px rgba(0,105,55,.34);
+}
+
+.process-toggle:active{transform:translateY(0)}
 
 .process-toggle-left{
 display:flex;
@@ -505,33 +514,39 @@ gap:14px;
 }
 
 .process-toggle-left>i{
-width:44px;
-height:44px;
+width:48px;
+height:48px;
 flex:0 0 auto;
-border-radius:12px;
-background:#e8f5ee;
-color:#006937;
+border-radius:14px;
+background:rgba(255,255,255,.2);
+color:#fff;
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:1.15rem;
+font-size:1.3rem;
+animation:processIconBounce 2.2s ease-in-out infinite;
+}
+
+@keyframes processIconBounce{
+0%,100%{transform:translateY(0) rotate(0deg)}
+50%{transform:translateY(-6px) rotate(-4deg)}
 }
 
 .process-toggle-left h2{
 font-size:1.6rem;
 font-weight:600;
-color:#006937;
+color:#fff;
 margin:0;
 }
 
 .process-toggle-sub{
-color:#666;
+color:rgba(255,255,255,.88);
 font-size:.85rem;
 margin:2px 0 0;
 }
 
 .process-toggle-chevron{
-color:#006937;
+color:#fff;
 font-size:1.1rem;
 flex:0 0 auto;
 transition:transform .25s ease;
@@ -1321,16 +1336,24 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
       </div>
 
       <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-tornado"></i></div>
+        <div class="process-step-card">
+          <h4>8. Cyclone</h4>
+          <p>Separates the fine product from the air stream before it's carried onward to the silo.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
         <div class="process-step-node"><i class="fa-solid fa-truck-ramp-box"></i></div>
         <div class="process-step-card">
-          <h4>8. Transport to Silo</h4>
-          <p>Fine product from the separator reaches the silo by either of two routes:</p>
+          <h4>9. Transport to Silo</h4>
+          <p>Product reaches the silo by either of two routes:</p>
           <div class="process-method-row">
             <div class="process-method">
               <i class="fa-solid fa-wind"></i>
               <div>
                 <strong>Pneumatic</strong>
-                <span>Cyclone → transport pipe, carried by the flux pump</span>
+                <span>Transport pipe, carried by the flux pump</span>
               </div>
             </div>
             <div class="process-method">
@@ -1347,15 +1370,23 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
       <div class="process-step">
         <div class="process-step-node"><i class="fa-solid fa-database"></i></div>
         <div class="process-step-card">
-          <h4>9. Silo</h4>
+          <h4>10. Silo</h4>
           <p>Finished cement is stored in the silo ahead of packing.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-arrow-up-long"></i></div>
+        <div class="process-step-card">
+          <h4>11. Bucket Elevator</h4>
+          <p>Lifts product out of the silo up to the vibrating screen for the packing line.</p>
         </div>
       </div>
 
       <div class="process-step">
         <div class="process-step-node"><i class="fa-solid fa-sliders"></i></div>
         <div class="process-step-card">
-          <h4>10. Vibrating Screen &amp; Hopper</h4>
+          <h4>12. Vibrating Screen &amp; Hopper</h4>
           <p>Screens and stages product from the silo, ready for packing.</p>
         </div>
       </div>
@@ -1363,7 +1394,7 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
       <div class="process-step">
         <div class="process-step-node"><i class="fa-solid fa-box"></i></div>
         <div class="process-step-card">
-          <h4>11. Screw Conveyor → Rotary Packer</h4>
+          <h4>13. Screw Conveyor → Rotary Packer</h4>
           <p>Conveys cement to the rotary packer, which doses it into bags.</p>
         </div>
       </div>
@@ -1371,7 +1402,7 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
       <div class="process-step">
         <div class="process-end-node"><i class="fa-solid fa-truck"></i></div>
         <div class="process-step-card">
-          <h4>12. Dispatch</h4>
+          <h4>14. Dispatch</h4>
           <p>Packed cement is discharged and loaded out for delivery.</p>
         </div>
       </div>
