@@ -476,6 +476,153 @@ border-radius:8px;
 
 }
 
+/* PROCESS OF THE PLANT — animated timeline */
+
+.process-section{
+background:#fff;
+padding:44px 0 10px;
+border-bottom:1px solid #e6e9ec;
+}
+
+.process-subtitle{
+color:#666;
+font-size:.92rem;
+margin:-14px 0 30px;
+}
+
+.process-timeline{
+position:relative;
+max-width:640px;
+margin:0 auto;
+padding-left:52px;
+}
+
+.process-timeline::before{
+content:"";
+position:absolute;
+left:19px;
+top:6px;
+bottom:6px;
+width:3px;
+border-radius:3px;
+background:repeating-linear-gradient(
+  to bottom,
+  #cfe9dc 0,#cfe9dc 8px,transparent 8px,transparent 16px
+);
+}
+
+.process-timeline::after{
+content:"";
+position:absolute;
+left:19px;
+top:6px;
+bottom:6px;
+width:3px;
+border-radius:3px;
+background:linear-gradient(to bottom, transparent, #00a651 20%, #00a651 80%, transparent);
+background-size:100% 200%;
+animation:processFlowLine 3.2s linear infinite;
+mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+-webkit-mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+opacity:.9;
+}
+
+@keyframes processFlowLine{
+0%{background-position:0 -200%;}
+100%{background-position:0 200%;}
+}
+
+.process-step{
+position:relative;
+padding-bottom:30px;
+}
+
+.process-step:last-child{padding-bottom:0}
+
+.process-step-node{
+position:absolute;
+left:-52px;
+top:0;
+width:40px;
+height:40px;
+border-radius:50%;
+background:#fff;
+border:2.5px solid #00a651;
+color:#006937;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1rem;
+box-shadow:0 0 0 4px #f5f7fa;
+z-index:1;
+}
+
+.process-step-node.is-reject{border-color:#c0392b;color:#c0392b}
+
+.process-step-card{
+background:#f8faf9;
+border:1px solid #e6e9ec;
+border-radius:12px;
+padding:12px 16px;
+}
+
+.process-step-card h4{
+margin:0 0 3px;
+font-size:.95rem;
+color:#222;
+}
+
+.process-step-card p{
+margin:0;
+font-size:.82rem;
+color:#666;
+line-height:1.4;
+}
+
+.process-reject-note{
+margin-top:8px;
+display:flex;
+align-items:flex-start;
+gap:6px;
+background:#fdecea;
+border:1px solid #f5c2c0;
+border-radius:8px;
+padding:7px 10px;
+font-size:.78rem;
+color:#b23a2f;
+}
+
+.process-reject-note i{margin-top:2px;animation:processRejectPulse 1.6s ease-in-out infinite}
+
+@keyframes processRejectPulse{
+0%,100%{opacity:1}
+50%{opacity:.4}
+}
+
+.process-end-node{
+position:absolute;
+left:-52px;
+top:0;
+width:40px;
+height:40px;
+border-radius:50%;
+background:#006937;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:1rem;
+box-shadow:0 0 0 4px #f5f7fa;
+z-index:1;
+}
+
+@media(max-width:480px){
+  .process-section{padding:32px 0 6px}
+  .process-timeline{padding-left:46px}
+  .process-timeline::before,.process-timeline::after{left:17px}
+  .process-step-node,.process-end-node{left:-46px;width:36px;height:36px;font-size:.9rem}
+}
+
 /* FOOTER */
 
 footer{
@@ -999,6 +1146,117 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom));}
 </div>
 
 <p class="results-count" id="resultsCount"></p>
+
+<section class="process-section">
+  <div class="container" style="margin:0 auto;padding:0 20px;">
+    <h2 class="section-title"><i class="fa-solid fa-diagram-project"></i> Process of the Plant</h2>
+    <p class="process-subtitle">How raw material becomes finished cement — from harbour receipt to dispatch.</p>
+
+    <div class="process-timeline">
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-anchor"></i></div>
+        <div class="process-step-card">
+          <h4>1. Harbour Receipt</h4>
+          <p>Raw material (clinker, gypsum, slag) is received at the harbour and moved to the storage shed.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-warehouse"></i></div>
+        <div class="process-step-card">
+          <h4>2. Storage Shed</h4>
+          <p>Bulk stockpile storage before material is drawn down to the feed hoppers.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="process-step-card">
+          <h4>3. Feed Hoppers</h4>
+          <p>Clinker, gypsum and slag hoppers proportion each material via individual feeders.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-weight-scale"></i></div>
+        <div class="process-step-card">
+          <h4>4. Weighfeeder (Feed Table)</h4>
+          <p>Meters the proportioned blend onto the feed conveyor at a controlled rate.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-gears"></i></div>
+        <div class="process-step-card">
+          <h4>5. Grinding Mill</h4>
+          <p>Centre-discharge ball mill grinds the blended material into fine powder.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-arrow-up-long"></i></div>
+        <div class="process-step-card">
+          <h4>6. Bucket Elevator</h4>
+          <p>Lifts the ground material up to the separator for classification.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node is-reject"><i class="fa-solid fa-filter"></i></div>
+        <div class="process-step-card">
+          <h4>7. Separator</h4>
+          <p>Process fan and air slide classify the material — fines pass on, coarse particles are rejected.</p>
+          <div class="process-reject-note">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Rejects are recirculated back to the Mill (step 5) via screw conveyor for re-grinding.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-wind"></i></div>
+        <div class="process-step-card">
+          <h4>8. Pneumatic Transport</h4>
+          <p>Fine product moves through the cyclone and transport pipe, carried by the flux pump.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-database"></i></div>
+        <div class="process-step-card">
+          <h4>9. Silo</h4>
+          <p>Finished cement is stored in the silo ahead of packing.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-sliders"></i></div>
+        <div class="process-step-card">
+          <h4>10. Vibrating Screen &amp; Hopper</h4>
+          <p>Screens and stages product from the silo, ready for packing.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-step-node"><i class="fa-solid fa-box"></i></div>
+        <div class="process-step-card">
+          <h4>11. Screw Conveyor → Rotary Packer</h4>
+          <p>Conveys cement to the rotary packer, which doses it into bags.</p>
+        </div>
+      </div>
+
+      <div class="process-step">
+        <div class="process-end-node"><i class="fa-solid fa-truck"></i></div>
+        <div class="process-step-card">
+          <h4>12. Dispatch</h4>
+          <p>Packed cement is discharged and loaded out for delivery.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
 
 <div class="container">
 
