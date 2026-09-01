@@ -222,6 +222,12 @@
   .qr-card span{display:block;font-size:.72rem;color:var(--muted);margin-bottom:8px;}
   .qr-card a{font-size:.75rem;color:var(--brand);text-decoration:none;font-weight:600;}
   .qr-card a:hover{text-decoration:underline;}
+  .qr-section-title{
+    grid-column:1/-1;font-size:.85rem;font-weight:700;color:var(--brand);text-transform:uppercase;
+    letter-spacing:.4px;padding-bottom:8px;border-bottom:2px solid var(--border);margin-top:6px;
+  }
+  .qr-section-title:first-child{margin-top:0;}
+  .qr-card.qr-card-component{background:#f8faf9;}
   @media print{
     body *{visibility:hidden;}
     .qr-modal-body,.qr-modal-body *{visibility:visible;}
@@ -245,6 +251,7 @@
   }
   .ev-modal-head h3{margin:0 0 3px;font-size:1.05rem;}
   .ev-modal-head p{margin:0;font-size:.8rem;opacity:.9;}
+  .ev-modal-head-btns{display:flex;gap:10px;align-items:flex-start;flex-shrink:0;}
   .ev-modal-body{padding:22px;max-height:80vh;overflow-y:auto;}
 
   .ev-uploader{
@@ -861,12 +868,6 @@
         <div class="ef-hint">Each row can either be uploaded directly (recommended) or point to a file path already in the GitHub repo.</div>
 
         <div class="ef-subsection">
-          <h4><i class="fa-solid fa-shield-halved"></i> Safety Requirements</h4>
-          <div id="efSafetyRows"></div>
-          <button type="button" class="ef-add-row-btn" id="efAddSafetyBtn"><i class="fa-solid fa-plus"></i> Add Requirement</button>
-        </div>
-
-        <div class="ef-subsection">
           <h4><i class="fa-solid fa-toolbox"></i> Tools Required (general toolkit)</h4>
           <div id="efToolsRows"></div>
           <button type="button" class="ef-add-row-btn" id="efAddToolBtn"><i class="fa-solid fa-plus"></i> Add Tool</button>
@@ -886,8 +887,8 @@
   <div class="qr-modal">
     <div class="qr-modal-head">
       <div>
-        <h3><i class="fa-solid fa-qrcode"></i> Equipment QR Codes</h3>
-        <p>Each code links to that equipment's info page. Print this sheet or download codes individually.</p>
+        <h3 id="qrModalTitle"><i class="fa-solid fa-qrcode"></i> Equipment QR Codes</h3>
+        <p id="qrModalSubtitle">Each code links to that equipment's info page. Print this sheet or download codes individually.</p>
       </div>
       <div class="qr-modal-head-btns">
         <button type="button" class="toolbar-btn outline" id="qrPrintBtn"><i class="fa-solid fa-print"></i> Print All</button>
@@ -906,7 +907,10 @@
         <h3 id="evTitle"><i class="fa-solid fa-diagram-project"></i> Exploded View</h3>
         <p>Upload a diagram, then click on it to place a part and fill in its details.</p>
       </div>
-      <button type="button" class="equip-form-close" id="evCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      <div class="ev-modal-head-btns">
+        <button type="button" class="toolbar-btn outline" id="evGenQrBtn" title="Generate QR codes for this equipment's parts and sub-parts"><i class="fa-solid fa-qrcode"></i> Parts QR Codes</button>
+        <button type="button" class="equip-form-close" id="evCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
     </div>
     <div class="ev-modal-body">
 
@@ -1879,7 +1883,6 @@ const efEl = {
   description: document.getElementById('efDescription'),
   image: document.getElementById('efImage'),
   documentsRows: document.getElementById('efDocumentsRows'),
-  safetyRows: document.getElementById('efSafetyRows'),
   toolsRows: document.getElementById('efToolsRows'),
   error: document.getElementById('equipFormError'),
   saveBtn: document.getElementById('equipFormSaveBtn'),
@@ -1959,17 +1962,6 @@ function addDocumentRow(name = '', file = '') {
   efEl.documentsRows.appendChild(row);
 }
 
-function addSafetyRow(text = '') {
-  const row = document.createElement('div');
-  row.className = 'ef-repeat-row';
-  row.innerHTML = `
-    <input type="text" placeholder="e.g. Lockout/tagout required before opening guards" class="ef-safety-text" value="${escapeHtml(text)}">
-    <button type="button" class="ef-repeat-remove"><i class="fa-solid fa-xmark"></i></button>
-  `;
-  row.querySelector('.ef-repeat-remove').addEventListener('click', () => row.remove());
-  efEl.safetyRows.appendChild(row);
-}
-
 function addToolRow(name = '', spec = '') {
   const row = document.createElement('div');
   row.className = 'ef-repeat-row ef-doc-row';
@@ -1985,7 +1977,6 @@ function addToolRow(name = '', spec = '') {
 }
 
 document.getElementById('efAddDocumentBtn').addEventListener('click', () => addDocumentRow());
-document.getElementById('efAddSafetyBtn').addEventListener('click', () => addSafetyRow());
 document.getElementById('efAddToolBtn').addEventListener('click', () => addToolRow());
 
 // ================= Internal Resources (per-equipment, admin-managed) =================
@@ -2474,7 +2465,6 @@ function openEquipForm(existing) {
   efEl.error.textContent = '';
   efEl.form.reset();
   efEl.documentsRows.innerHTML = '';
-  efEl.safetyRows.innerHTML = '';
   efEl.toolsRows.innerHTML = '';
 
   if (existing) {
@@ -2492,7 +2482,6 @@ function openEquipForm(existing) {
     efEl.description.value = existing.description || '';
     efEl.image.value = existing.image || '';
     (existing.documents || []).forEach((d) => addDocumentRow(d.name, d.file));
-    (existing.safetyRequirements || []).forEach((s) => addSafetyRow(s));
     (existing.tools || []).forEach((t) => addToolRow(t.name, t.spec));
   } else {
     efEl.title.innerHTML = '<i class="fa-solid fa-plus"></i> Add Equipment';
@@ -2519,16 +2508,25 @@ document.getElementById('addEquipBtn').addEventListener('click', () => openEquip
 // of where the site ends up hosted (custom domain, GitHub Pages subpath, etc).
 //
 // The on-screen preview is just the raw QR image (fast). The *download* is
-// built on a canvas with the equipment's name and ID printed underneath —
-// so a printed/downloaded code is still identifiable once it's off this
-// screen and taped to a machine. Falls back to a plain, unlabeled download
-// if the QR host doesn't allow canvas access to the loaded image (CORS).
+// built on a canvas with a title and subtitle printed underneath — so a
+// printed/downloaded code is still identifiable once it's off this screen
+// and taped to a machine or a part bin. Falls back to a plain, unlabeled
+// download if the QR host doesn't allow canvas access to the loaded image
+// (CORS).
 const qrOverlay = document.getElementById('qrOverlay');
 const qrGrid = document.getElementById('qrGrid');
+const qrModalTitle = document.getElementById('qrModalTitle');
+const qrModalSubtitle = document.getElementById('qrModalSubtitle');
 
 function equipmentPageUrl(id) {
   const base = window.location.href.replace(/admin\.html.*$/, '');
   return `${base}equipment.html?id=${encodeURIComponent(id)}`;
+}
+function partPageUrl(equipmentId, partId) {
+  return `${equipmentPageUrl(equipmentId)}&part=${encodeURIComponent(partId)}`;
+}
+function componentPageUrl(equipmentId, partId, componentId) {
+  return `${partPageUrl(equipmentId, partId)}&component=${encodeURIComponent(componentId)}`;
 }
 
 function buildLabeledQrDataUrl(qrImgUrl, title, subtitle) {
@@ -2565,37 +2563,25 @@ function buildLabeledQrDataUrl(qrImgUrl, title, subtitle) {
   });
 }
 
-function renderQrGrid() {
-  if (!equipmentCache.length) {
-    qrGrid.innerHTML = '<p class="empty-state">No equipment yet — add some first.</p>';
-    return;
-  }
-  qrGrid.innerHTML = equipmentCache.map((e) => {
-    const url = equipmentPageUrl(e.id);
-    const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
-    return `
-      <div class="qr-card" data-qr-id="${escapeHtml(e.id)}" data-qr-name="${escapeHtml(e.name || e.id)}" data-qr-src="${qrImg}">
-        <img src="${qrImg}" alt="QR code for ${escapeHtml(e.name || e.id)}">
-        <strong>${escapeHtml(e.name || e.id)}</strong>
-        <span>ID: ${escapeHtml(e.id)}</span>
-        <a href="#" class="qr-download-link" data-id="${escapeHtml(e.id)}"><i class="fa-solid fa-download"></i> Download</a>
-      </div>
-    `;
-  }).join('');
-
+// Shared by every QR grid (equipment, parts, sub-parts) — each card just
+// needs data-qr-id / data-qr-name / data-qr-src / data-qr-download-prefix
+// set correctly by whichever render function built it.
+function wireQrDownloadLinks() {
   qrGrid.querySelectorAll('.qr-download-link').forEach((link) => {
     link.addEventListener('click', async (ev) => {
       ev.preventDefault();
       const card = link.closest('.qr-card');
       const id = card.dataset.qrId;
       const name = card.dataset.qrName;
+      const sublabel = card.dataset.qrSublabel || `ID: ${id}`;
+      const prefix = card.dataset.qrDownloadPrefix || 'qr';
       const originalHtml = link.innerHTML;
       link.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing…';
       try {
-        const dataUrl = await buildLabeledQrDataUrl(card.dataset.qrSrc, name, `ID: ${id}`);
+        const dataUrl = await buildLabeledQrDataUrl(card.dataset.qrSrc, name, sublabel);
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = `qr-${id}-${name.replace(/[^a-zA-Z0-9]+/g, '-')}.png`;
+        a.download = `${prefix}-${id}-${name.replace(/[^a-zA-Z0-9]+/g, '-')}.png`;
         a.click();
       } catch (err) {
         console.warn('Could not label QR image (CORS?) — downloading plain code instead.', err);
@@ -2603,7 +2589,7 @@ function renderQrGrid() {
         a.href = card.dataset.qrSrc;
         a.target = '_blank';
         a.rel = 'noopener';
-        a.download = `qr-${id}.png`;
+        a.download = `${prefix}-${id}.png`;
         a.click();
       } finally {
         link.innerHTML = originalHtml;
@@ -2612,10 +2598,114 @@ function renderQrGrid() {
   });
 }
 
+function qrCardHtml({ id, name, sublabel, url, downloadPrefix, extraClass }) {
+  const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+  return `
+    <div class="qr-card ${extraClass || ''}" data-qr-id="${escapeHtml(id)}" data-qr-name="${escapeHtml(name)}" data-qr-sublabel="${escapeHtml(sublabel)}" data-qr-src="${qrImg}" data-qr-download-prefix="${escapeHtml(downloadPrefix)}">
+      <img src="${qrImg}" alt="QR code for ${escapeHtml(name)}">
+      <strong>${escapeHtml(name)}</strong>
+      <span>${escapeHtml(sublabel)}</span>
+      <a href="#" class="qr-download-link"><i class="fa-solid fa-download"></i> Download</a>
+    </div>
+  `;
+}
+
+function renderQrGrid() {
+  qrModalTitle.innerHTML = '<i class="fa-solid fa-qrcode"></i> Equipment QR Codes';
+  qrModalSubtitle.textContent = "Each code links to that equipment's info page. Print this sheet or download codes individually.";
+
+  if (!equipmentCache.length) {
+    qrGrid.innerHTML = '<p class="empty-state">No equipment yet — add some first.</p>';
+    return;
+  }
+  qrGrid.innerHTML = equipmentCache.map((e) => qrCardHtml({
+    id: e.id,
+    name: e.name || e.id,
+    sublabel: `ID: ${e.id}`,
+    url: equipmentPageUrl(e.id),
+    downloadPrefix: 'qr-equipment',
+  })).join('');
+
+  wireQrDownloadLinks();
+}
+
+// Fetches every part pinned on this equipment's exploded view(s), plus
+// every sub-part (partComponents) that belongs to each of those parts, so
+// QR codes can be generated for the whole hierarchy at once. partComponents
+// only stores partId (not equipmentId), so sub-parts are looked up in
+// batches of 10 part IDs at a time — Firestore's `in` query limit.
+async function fetchPartsAndComponentsForEquipment(equipmentId) {
+  const partsSnap = await db.collection('equipmentParts').where('equipmentId', '==', equipmentId).get();
+  const parts = partsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  const componentsByPart = {};
+  const partIds = parts.map((p) => p.id);
+  for (let i = 0; i < partIds.length; i += 10) {
+    const chunk = partIds.slice(i, i + 10);
+    const compSnap = await db.collection(PART_COMPONENTS_COLLECTION).where('partId', 'in', chunk).get();
+    compSnap.docs.forEach((doc) => {
+      const c = { id: doc.id, ...doc.data() };
+      (componentsByPart[c.partId] = componentsByPart[c.partId] || []).push(c);
+    });
+  }
+  return { parts, componentsByPart };
+}
+
+async function renderPartsQrGrid(equipment) {
+  qrModalTitle.innerHTML = `<i class="fa-solid fa-qrcode"></i> Parts &amp; Sub-Parts QR Codes`;
+  qrModalSubtitle.textContent = `${equipment.name || equipment.id} — each code opens straight to that part or sub-part's panel.`;
+  qrGrid.innerHTML = '<p class="empty-state">Loading parts…</p>';
+  qrOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const { parts, componentsByPart } = await fetchPartsAndComponentsForEquipment(equipment.id);
+    if (!parts.length) {
+      qrGrid.innerHTML = '<p class="empty-state">No parts have been pinned on this equipment\'s exploded view yet — add some first.</p>';
+      return;
+    }
+
+    let html = '<div class="qr-section-title">Parts</div>';
+    html += parts.map((p) => qrCardHtml({
+      id: p.id,
+      name: p.name || 'Unnamed part',
+      sublabel: `Part ID: ${p.id}`,
+      url: partPageUrl(equipment.id, p.id),
+      downloadPrefix: 'qr-part',
+    })).join('');
+
+    const anyComponents = parts.some((p) => (componentsByPart[p.id] || []).length);
+    if (anyComponents) {
+      html += '<div class="qr-section-title">Sub-Parts</div>';
+      parts.forEach((p) => {
+        (componentsByPart[p.id] || []).forEach((c) => {
+          html += qrCardHtml({
+            id: c.id,
+            name: c.name || 'Unnamed spare part',
+            sublabel: `Part: ${p.name || p.id}`,
+            url: componentPageUrl(equipment.id, p.id, c.id),
+            downloadPrefix: 'qr-subpart',
+            extraClass: 'qr-card-component',
+          });
+        });
+      });
+    }
+
+    qrGrid.innerHTML = html;
+    wireQrDownloadLinks();
+  } catch (err) {
+    console.error('Failed to load parts/sub-parts for QR codes', err);
+    qrGrid.innerHTML = '<p class="empty-state">Could not load parts right now. Please try again.</p>';
+  }
+}
+
 document.getElementById('genQrBtn').addEventListener('click', () => {
   renderQrGrid();
   qrOverlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
+});
+document.getElementById('evGenQrBtn').addEventListener('click', () => {
+  if (evEquipment) renderPartsQrGrid(evEquipment);
 });
 document.getElementById('qrCloseX').addEventListener('click', () => {
   qrOverlay.classList.remove('is-open');
@@ -2647,10 +2737,6 @@ efEl.form.addEventListener('submit', async (e) => {
     file: row.querySelector('.ef-doc-file').value.trim(),
   })).filter((d) => d.name && d.file);
 
-  const safetyRequirements = Array.from(efEl.safetyRows.querySelectorAll('.ef-repeat-row'))
-    .map((row) => row.querySelector('.ef-safety-text').value.trim())
-    .filter(Boolean);
-
   const tools = Array.from(efEl.toolsRows.querySelectorAll('.ef-repeat-row')).map((row) => ({
     name: row.querySelector('.ef-tool-name').value.trim(),
     spec: row.querySelector('.ef-tool-spec').value.trim(),
@@ -2675,7 +2761,6 @@ efEl.form.addEventListener('submit', async (e) => {
     description: efEl.description.value.trim(),
     image: efEl.image.value.trim(),
     documents,
-    safetyRequirements,
     tools,
     explodedView: (existingRecord && existingRecord.explodedView) || '',
     explodedViews: (existingRecord && existingRecord.explodedViews) || [],
