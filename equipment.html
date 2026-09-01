@@ -165,6 +165,11 @@
   .part-panel-component-card .pcc-name{font-weight:600;font-size:.9rem;margin:0 0 2px}
   .part-panel-component-card .pcc-spec{color:var(--muted);font-size:.78rem;margin:0 0 4px}
   .part-panel-component-card .pcc-function{font-size:.85rem;line-height:1.45;margin:0}
+  .part-panel-component-card.pcc-highlight{
+    border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,105,55,.18);
+    animation:pccHighlightPulse 1.6s ease-in-out 2;
+  }
+  @keyframes pccHighlightPulse{0%,100%{background:transparent}50%{background:#eaf6ef}}
 
   /* ---------- Major Maintenance Safety Checklist (prominent banner) ---------- */
   .safety-checklist-section{
@@ -493,14 +498,14 @@
   .not-found{text-align:center;padding:80px 20px;color:var(--muted)}
   .not-found i{font-size:3rem;color:var(--danger);margin-bottom:12px}
 
-  /* ---------- Safety Requirements ---------- */
-  #safetyBadge{
-    display:none;align-items:center;gap:6px;background:#fff3cd;color:#8a5c00;border:1px solid #f5d78e;
+  /* ---------- Take Five — Pre-Task Risk Assessment ---------- */
+  #t5Badge{
+    display:inline-flex;align-items:center;gap:6px;background:#fff3cd;color:#8a5c00;border:1px solid #f5d78e;
     padding:6px 12px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;
     white-space:nowrap;transition:background .15s ease;
   }
-  #safetyBadge:hover{background:#ffe8a3}
-  #safetyBadge i{color:#dc6803}
+  #t5Badge:hover{background:#ffe8a3}
+  #t5Badge i{color:#dc6803}
 
   #adminSignInOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;
@@ -538,45 +543,185 @@
   .admin-signin-btn:disabled{background:#ccc;cursor:not-allowed}
   #adminSignInStatus{font-size:.78rem;color:var(--muted);margin-top:6px;display:block;}
 
-  #safetyOverlay{
+  #t5Overlay,#t5HistoryOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
-    display:none;align-items:center;justify-content:center;padding:16px;
+    display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;
   }
-  #safetyOverlay.is-open{display:flex}
-  .safety-modal{
-    background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:85vh;
-    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
-  }
-  .safety-modal-head{
-    background:#dc6803;color:#fff;padding:18px 20px;display:flex;align-items:flex-start;gap:12px;flex:0 0 auto;position:relative;
-  }
-  .safety-modal-head i.fa-triangle-exclamation{font-size:1.5rem;margin-top:2px}
-  .safety-modal-head h3{margin:0 0 3px;font-size:1.1rem}
-  .safety-modal-head p{margin:0;font-size:.82rem;opacity:.92;line-height:1.4}
-  .safety-modal-close{
-    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
-    width:28px;height:28px;border-radius:50%;cursor:pointer;
-  }
-  .safety-modal-close:hover{background:rgba(255,255,255,.35)}
-  .safety-modal-body{padding:18px 20px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-  .safety-modal-body ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
-  .safety-modal-body li{
-    display:flex;align-items:flex-start;gap:10px;font-size:.92rem;line-height:1.45;
-    background:#fff8ec;border:1px solid #fbe6bd;border-radius:10px;padding:10px 12px;
-  }
-  .safety-modal-body li i{color:#dc6803;margin-top:3px;flex:0 0 auto}
-  .safety-modal-foot{padding:14px 20px;border-top:1px solid var(--border);flex:0 0 auto}
-  .safety-modal-foot button{
-    width:100%;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:12px;
-    font-family:inherit;font-size:.92rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  }
-  .safety-modal-foot button:hover{background:#005229}
+  #t5Overlay.is-open,#t5HistoryOverlay.is-open{display:flex}
 
-  @media (max-width:480px){
-    .safety-modal{max-height:90vh}
-    .safety-modal-head{padding:16px}
-    .safety-modal-body{padding:14px 16px}
-    .safety-modal-foot{padding:12px 16px}
+  .t5-modal{
+    background:#fff;border-radius:18px;max-width:760px;width:100%;
+    overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);margin-bottom:30px;
+  }
+  .t5-history-modal{max-width:820px}
+  .t5-modal-head{
+    background:var(--brand);color:#fff;padding:20px 24px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+  }
+  .t5-modal-head h3{font-size:19px;margin-bottom:4px}
+  .t5-modal-head p{font-size:13px;opacity:.9;margin:0}
+  .t5-modal-close{
+    background:rgba(255,255,255,.18);border:none;color:#fff;
+    width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
+  }
+  .t5-modal-close:hover{background:rgba(255,255,255,.3)}
+  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto}
+
+  .t5-field{margin-bottom:16px}
+  .t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}
+  .t5-field input{
+    width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;
+    font-family:inherit;font-size:16px;outline:none;transition:.2s;
+  }
+  .t5-field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,105,55,.12)}
+  .t5-field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:600px){.t5-field-row{grid-template-columns:1fr}}
+
+  .t5-progress-wrap{margin:18px 0}
+  .t5-progress-label{font-size:13px;color:#666;margin-bottom:6px}
+  .t5-progress-track{background:#eee;border-radius:20px;height:8px;overflow:hidden}
+  .t5-progress-fill{background:var(--brand);height:100%;width:0%;transition:width .2s}
+
+  .t5-category{margin-bottom:22px}
+  .t5-category-title{
+    font-size:14px;font-weight:700;color:var(--brand);text-transform:uppercase;
+    letter-spacing:.4px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #eee;
+  }
+
+  .t5-hazard-row{border:1px solid #eee;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:.2s}
+  .t5-hazard-row.answered-yes{border-color:#f59e0b;background:#fffaf0}
+  .t5-hazard-row.answered-no{border-color:#e6efe9;background:#fafffb}
+
+  .t5-hazard-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .t5-hazard-name{font-weight:600;font-size:14.5px;color:#333;flex:1;min-width:160px}
+
+  .t5-yn{display:flex;gap:8px}
+  .t5-yn button{
+    border:1px solid #ddd;background:#fff;color:#666;padding:8px 16px;border-radius:20px;
+    font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+  }
+  .t5-yn button.active-yes{background:#f59e0b;border-color:#f59e0b;color:#fff}
+  .t5-yn button.active-no{background:#e5e7eb;border-color:#e5e7eb;color:#333}
+
+  .t5-hazard-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px dashed #ddd}
+  .t5-hazard-detail.is-open{display:block}
+  .t5-hazard-detail textarea{
+    width:100%;min-height:56px;padding:10px 12px;border:1px solid #ddd;border-radius:8px;
+    font-family:inherit;font-size:16px;margin-bottom:10px;resize:vertical;
+  }
+  .t5-risk-select{display:flex;gap:8px;flex-wrap:wrap}
+  .t5-risk-select button{
+    flex:1;min-width:110px;border:2px solid #eee;background:#fff;padding:10px;border-radius:10px;
+    font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;color:#666;
+  }
+  .t5-risk-select button[data-risk="zero"].selected{background:#00a651;border-color:#00a651;color:#fff}
+  .t5-risk-select button[data-risk="amber"].selected{background:#f59e0b;border-color:#f59e0b;color:#fff}
+  .t5-risk-select button[data-risk="red"].selected{background:#d92d20;border-color:#d92d20;color:#fff}
+
+  .t5-overall-banner{display:none;padding:14px 18px;border-radius:12px;margin:18px 0;align-items:center;gap:12px;font-size:14px;font-weight:600}
+  .t5-overall-banner.show{display:flex}
+  .t5-overall-banner.zero{background:#e7f8ee;color:#00733a}
+  .t5-overall-banner.amber{background:#fff6e5;color:#a05a00}
+  .t5-overall-banner.red{background:#fdeceb;color:#a0221a}
+
+  .t5-form-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .t5-submit-btn{
+    flex:1;min-width:200px;background:var(--brand);color:#fff;border:none;padding:15px;border-radius:12px;
+    font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .t5-submit-btn:disabled{background:#ccc;cursor:not-allowed}
+  .t5-submit-btn:not(:disabled):hover{background:#005229}
+
+  .t5-skip-btn{
+    flex:1;min-width:200px;background:#fff;color:#666;border:1.5px solid #ddd;padding:15px;border-radius:12px;
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .t5-skip-btn:hover{background:#f5f5f5;border-color:#ccc}
+
+  .t5-error{color:#d92d20;font-size:13px;margin-top:10px;min-height:1em}
+  .t5-success{display:none;text-align:center;padding:30px 10px}
+  .t5-success.show{display:block}
+  .t5-success i{font-size:46px;color:#00a651;margin-bottom:14px}
+  .t5-success h4{color:var(--brand);margin-bottom:8px}
+  .t5-success p{color:#666;font-size:14px}
+  .t5-success-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .t5-success-actions button{
+    background:var(--brand);color:#fff;border:none;padding:12px 24px;
+    border-radius:30px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+  }
+  .t5-secondary-btn{background:#fff !important;color:var(--brand) !important;border:1.5px solid var(--brand) !important}
+
+  .t5-risk-chip{
+    padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#fff;
+    text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;
+  }
+  .t5-risk-chip.zero{background:#00a651}
+  .t5-risk-chip.amber{background:#f59e0b}
+  .t5-risk-chip.red{background:#d92d20}
+  .t5-history-empty{color:#888;font-size:14px;padding:10px 0}
+
+  .t5-history-toolbar{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding-bottom:14px;margin-bottom:14px;border-bottom:2px solid #eee;
+  }
+  .t5-select-all{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#444;font-weight:600;cursor:pointer}
+  .t5-select-all input{width:18px;height:18px;cursor:pointer}
+  #t5SelectedCount{font-size:13px;color:#888;flex:1}
+  .t5-export-btn{
+    background:var(--brand);color:#fff;border:none;padding:11px 20px;border-radius:24px;
+    font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;gap:8px;white-space:nowrap;transition:.2s;
+  }
+  .t5-export-btn:disabled{background:#ccc;cursor:not-allowed}
+  .t5-export-btn:not(:disabled):hover{background:#005229}
+
+  .t5-history-card{border:1px solid #eee;border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .t5-history-card-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;background:#fff}
+  .t5-history-card-head input[type="checkbox"]{width:18px;height:18px;flex-shrink:0;cursor:pointer}
+  .t5-history-card-main{flex:1;min-width:0}
+  .t5-history-card-main strong{display:block;color:#333;font-size:14px}
+  .t5-history-card-main span{color:#888;font-size:12.5px}
+  .t5-history-card-chevron{color:#999;transition:transform .2s;flex-shrink:0}
+  .t5-history-card.is-open .t5-history-card-chevron{transform:rotate(180deg)}
+
+  .t5-history-card-detail{display:none;padding:0 16px 16px;border-top:1px dashed #eee}
+  .t5-history-card.is-open .t5-history-card-detail{display:block;padding-top:14px}
+  .t5-history-hazard{padding:10px 0;border-bottom:1px solid #f2f2f2}
+  .t5-history-hazard:last-child{border-bottom:none}
+  .t5-history-hazard-name{font-weight:600;font-size:13.5px;color:#333;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .t5-history-hazard-text{font-size:12.5px;color:#666;margin-top:4px;line-height:1.5}
+  .t5-history-hazard-text b{color:#444}
+  .t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0}
+
+  @media (max-width:600px){
+    #t5Overlay,#t5HistoryOverlay{padding:0}
+    .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0}
+    .t5-modal-head{padding:16px 18px}
+    .t5-modal-head h3{font-size:16px}
+    .t5-modal-head p{font-size:12px}
+    .t5-modal-body{padding:16px;max-height:none}
+
+    .t5-hazard-row{padding:12px}
+    .t5-hazard-name{font-size:14px;min-width:0;flex-basis:100%}
+    .t5-yn{width:100%}
+    .t5-yn button{flex:1;text-align:center}
+
+    .t5-risk-select{flex-direction:column}
+    .t5-risk-select button{min-width:0;width:100%}
+
+    .t5-history-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+    .t5-export-btn{justify-content:center}
+    .t5-history-card-head{flex-wrap:wrap}
+    .t5-history-card-main{flex-basis:100%;order:1}
+
+    .t5-form-actions{flex-direction:column}
+  }
+  @media (max-width:400px){
+    .t5-modal-head{flex-wrap:wrap}
+    .t5-modal-close{margin-left:auto}
   }
 
   /* ---------- Comments & Maintenance Log ---------- */
@@ -879,7 +1024,7 @@
   @media (max-width:520px){
     header{padding:12px 16px}
     header a.header-back{font-size:.85rem;padding:8px 13px}
-    #safetyBadge{font-size:.76rem;padding:6px 10px}
+    #t5Badge{font-size:.76rem;padding:6px 10px}
   }
 
   @media (max-width:480px){
@@ -1089,21 +1234,89 @@
 
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
-<div id="safetyOverlay">
-  <div class="safety-modal">
-    <div class="safety-modal-head">
-      <i class="fa-solid fa-triangle-exclamation"></i>
+<div id="t5Overlay">
+  <div class="t5-modal">
+    <div class="t5-modal-head">
       <div>
-        <h3>Safety Requirements</h3>
-        <p>Review before starting any maintenance work on this equipment.</p>
+        <h3><i class="fa-solid fa-clipboard-check"></i> Take Five — Pre-Task Risk Assessment</h3>
+        <p>Stop. Think. Assess every hazard before you start work on <span id="t5EquipName">this equipment</span>.</p>
       </div>
-      <button type="button" class="safety-modal-close" id="safetyCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+      <button type="button" class="t5-modal-close" id="t5CloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="safety-modal-body">
-      <ul id="safetyList"></ul>
+    <div class="t5-modal-body">
+      <form id="t5Form">
+        <div class="t5-field-row">
+          <div class="t5-field">
+            <label for="t5Date">Date</label>
+            <input type="date" id="t5Date" required>
+          </div>
+          <div class="t5-field">
+            <label for="t5Task">Task</label>
+            <input type="text" id="t5Task" placeholder="e.g. Replace bucket elevator chain" required>
+          </div>
+        </div>
+        <div class="t5-field-row">
+          <div class="t5-field">
+            <label for="t5Location">Location</label>
+            <input type="text" id="t5Location" placeholder="e.g. Packing Plant — Bucket Elevator BE1" required>
+          </div>
+          <div class="t5-field">
+            <label for="t5Names">Names of people involved</label>
+            <input type="text" id="t5Names" placeholder="e.g. Kwame Mensah, Ama Boateng" required>
+          </div>
+        </div>
+
+        <div class="t5-progress-wrap">
+          <div class="t5-progress-label" id="t5ProgressLabel">0 of 27 hazards addressed</div>
+          <div class="t5-progress-track"><div class="t5-progress-fill" id="t5ProgressFill"></div></div>
+        </div>
+
+        <div class="t5-overall-banner" id="t5OverallBanner"></div>
+
+        <div id="t5ItemsContainer"></div>
+
+        <div class="t5-error" id="t5FormError"></div>
+        <div class="t5-form-actions">
+          <button type="button" class="t5-skip-btn" id="t5SkipBtn"><i class="fa-solid fa-forward"></i> Skip — Not Needed for This Task</button>
+          <button type="submit" class="t5-submit-btn" id="t5SubmitBtn" disabled>
+            <i class="fa-solid fa-signature"></i> Complete &amp; Save Assessment
+          </button>
+        </div>
+      </form>
+
+      <div class="t5-success" id="t5Success">
+        <i class="fa-solid fa-circle-check"></i>
+        <h4>Take Five Recorded</h4>
+        <p id="t5SuccessDetail"></p>
+        <div class="t5-success-actions">
+          <button type="button" id="t5ViewHistoryBtn" class="t5-secondary-btn"><i class="fa-solid fa-clock-rotate-left"></i> View History for This Equipment</button>
+          <button type="button" id="t5NewBtn">Start Another Take Five</button>
+        </div>
+      </div>
     </div>
-    <div class="safety-modal-foot">
-      <button type="button" id="safetyProceedBtn"><i class="fa-solid fa-check"></i> I Understand — Proceed</button>
+  </div>
+</div>
+
+<div id="t5HistoryOverlay">
+  <div class="t5-modal t5-history-modal">
+    <div class="t5-modal-head">
+      <div>
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Take Five History</h3>
+        <p>Assessments for <span id="t5HistoryEquipName">this equipment</span>, logged in the last 7 days.</p>
+      </div>
+      <button type="button" class="t5-modal-close" id="t5HistoryCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="t5-modal-body">
+      <div class="t5-history-toolbar">
+        <label class="t5-select-all">
+          <input type="checkbox" id="t5SelectAllCheckbox"> Select all
+        </label>
+        <span id="t5SelectedCount">None selected</span>
+        <button type="button" id="t5ExportSelectedBtn" class="t5-export-btn" disabled>
+          <i class="fa-solid fa-file-pdf"></i> Export Selected as PDF
+        </button>
+      </div>
+      <div id="t5HistoryList"><p class="t5-history-empty">Loading…</p></div>
     </div>
   </div>
 </div>
@@ -1273,7 +1486,7 @@
 <header>
   <a href="index.html" class="header-back" id="headerBackLink"><i class="fa-solid fa-arrow-left"></i> <span id="headerBackText">Dashboard</span></a>
   <div class="header-right">
-    <button type="button" id="safetyBadge" title="View safety requirements"><i class="fa-solid fa-shield-halved"></i> Safety</button>
+    <button type="button" id="t5Badge" title="Take Five — Pre-Task Risk Assessment"><i class="fa-solid fa-clipboard-check"></i> Take Five</button>
   </div>
 </header>
 
@@ -1927,44 +2140,551 @@ const el = {
   pdfPagesContainer: document.getElementById('pdfPagesContainer'),
 };
 
-// ---------- Safety Requirements ----------
+// ---------- Take Five — Pre-Task Risk Assessment ----------
+//
+// Firestore collection: takeFiveAssessments/{autoId}
+//   date, task, location, namesInvolved, hazards[], overallRisk,
+//   equipmentId, equipmentName, createdAt (serverTimestamp), authorUid
+//
+// Prompted automatically whenever an equipment page loads (technicians can
+// Skip if it isn't needed for the task at hand) and reopenable any time via
+// the "Take Five" badge in the toolbar. History/PDF export below are
+// filtered to the current equipment only.
+//
+// Entries only ever show for 7 days: the display/history queries only pull
+// the last 7 days, and a best-effort sweep deletes anything older whenever
+// someone loads an equipment page. For a guarantee that doesn't depend on
+// someone visiting a page, also set a Firestore TTL policy in the console.
 
-const DEFAULT_SAFETY_REQUIREMENTS = [
-  'Obtain a valid Permit to Work before starting any maintenance activity.',
-  'Isolate, lock out, and tag out (LOTO) all energy sources before work begins.',
-  'Wear the required PPE: safety helmet, safety boots, gloves, and dust mask/respirator.',
-  'Confirm all rotating and moving parts have come to a complete stop before approaching.',
-  'De-energize and discharge any stored energy — electrical, pneumatic, hydraulic, or mechanical.',
-  'Barricade the work area and display warning signage to prevent unauthorized access.',
-  'Ensure a fire extinguisher is accessible nearby before any hot work.',
-  'Confirm adequate lighting and ventilation in the work area.',
-  'Use the buddy system — have a second person present for high-risk tasks.',
-  'Report any unsafe condition to the Control Room immediately, before proceeding.'
+const T5_HAZARD_GROUPS = [
+  {
+    title: 'Site & Access',
+    items: ['Access and Egress', 'Weather Conditions', 'Visibility (Lighting, Fog, Dust)',
+      'Other People & Other Activities', 'Vehicles (Impact / Overturn)', 'Manual Handling']
+  },
+  {
+    title: 'Physical & Process Hazards',
+    items: ['Slip / Trip / Fall', 'Trapped Hands or Fingers', 'Struck by Object (Flying, Falling, Toppling & Moving)',
+      'Temperature', 'Noise or Vibration', 'COSHH (Dust, Fumes, Vapour, Chemicals & Asbestos)',
+      'Fire or Explosion', 'Height Work', 'Spillage (Liquid and Solid)', 'Dust Release',
+      'Waste & Resource Usage', 'Wildlife Disturbance']
+  },
+  {
+    title: 'High-Risk & Permit-Type Hazards',
+    items: ['Confined Space', 'Lifting (Equipment & Operations)', 'Electricity', 'Pressure (System, Release & Build-Up)',
+      'Remove a Machinery Guard', 'Remove a Handrail or Floor Plate', 'Excavation (Underground Cables & Pipes)',
+      'Radiation', 'Other Significant Hazards']
+  }
 ];
+const T5_TOTAL_HAZARDS = T5_HAZARD_GROUPS.reduce((n, g) => n + g.items.length, 0);
 
-const safetyEl = {
-  overlay: document.getElementById('safetyOverlay'),
-  list: document.getElementById('safetyList'),
-  closeX: document.getElementById('safetyCloseX'),
-  proceedBtn: document.getElementById('safetyProceedBtn'),
-  badge: document.getElementById('safetyBadge'),
+const t5El = {
+  badge: document.getElementById('t5Badge'),
+  equipName: document.getElementById('t5EquipName'),
+  historyEquipName: document.getElementById('t5HistoryEquipName'),
+
+  overlay: document.getElementById('t5Overlay'),
+  closeX: document.getElementById('t5CloseX'),
+  form: document.getElementById('t5Form'),
+  date: document.getElementById('t5Date'),
+  task: document.getElementById('t5Task'),
+  location: document.getElementById('t5Location'),
+  names: document.getElementById('t5Names'),
+  itemsContainer: document.getElementById('t5ItemsContainer'),
+  progressLabel: document.getElementById('t5ProgressLabel'),
+  progressFill: document.getElementById('t5ProgressFill'),
+  overallBanner: document.getElementById('t5OverallBanner'),
+  skipBtn: document.getElementById('t5SkipBtn'),
+  submitBtn: document.getElementById('t5SubmitBtn'),
+  formError: document.getElementById('t5FormError'),
+  success: document.getElementById('t5Success'),
+  successDetail: document.getElementById('t5SuccessDetail'),
+  viewHistoryBtn: document.getElementById('t5ViewHistoryBtn'),
+  newBtn: document.getElementById('t5NewBtn'),
+
+  historyOverlay: document.getElementById('t5HistoryOverlay'),
+  historyCloseX: document.getElementById('t5HistoryCloseX'),
+  historyList: document.getElementById('t5HistoryList'),
+  selectAllCheckbox: document.getElementById('t5SelectAllCheckbox'),
+  selectedCount: document.getElementById('t5SelectedCount'),
+  exportSelectedBtn: document.getElementById('t5ExportSelectedBtn'),
 };
 
-let currentSafetyRequirements = DEFAULT_SAFETY_REQUIREMENTS;
+let t5State = {}; // hazardId -> { name, answer: 'yes'|'no'|null, description, controls, risk }
 
-function openSafetyModal() {
-  safetyEl.list.innerHTML = currentSafetyRequirements
-    .map(item => `<li><i class="fa-solid fa-circle-check"></i><span>${escapeHtml(item)}</span></li>`)
-    .join('');
-  safetyEl.overlay.classList.add('is-open');
+function t5HazardId(groupIndex, itemIndex) { return `g${groupIndex}i${itemIndex}`; }
+
+function t5BuildForm() {
+  t5State = {};
+  t5El.itemsContainer.innerHTML = T5_HAZARD_GROUPS.map((group, gi) => `
+    <div class="t5-category">
+      <div class="t5-category-title">${escapeHtml(group.title)}</div>
+      ${group.items.map((name, ii) => {
+        const id = t5HazardId(gi, ii);
+        t5State[id] = { name, answer: null, description: '', controls: '', risk: null };
+        return `
+          <div class="t5-hazard-row" data-id="${id}">
+            <div class="t5-hazard-head">
+              <div class="t5-hazard-name">${escapeHtml(name)}</div>
+              <div class="t5-yn">
+                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="yes">Yes</button>
+                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="no">No</button>
+              </div>
+            </div>
+            <div class="t5-hazard-detail" id="detail-${id}">
+              <textarea placeholder="Describe the hazard…" data-id="${id}" data-field="description"></textarea>
+              <textarea placeholder="How will you make it safe?" data-id="${id}" data-field="controls"></textarea>
+              <div class="t5-risk-select">
+                <button type="button" data-id="${id}" data-risk="zero">Zero Harm</button>
+                <button type="button" data-id="${id}" data-risk="amber">Amber Risk</button>
+                <button type="button" data-id="${id}" data-risk="red">Red Risk</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+
+  t5El.itemsContainer.querySelectorAll('.t5-yn-btn').forEach(btn => {
+    btn.addEventListener('click', () => t5SetAnswer(btn.dataset.id, btn.dataset.answer));
+  });
+  t5El.itemsContainer.querySelectorAll('textarea').forEach(ta => {
+    ta.addEventListener('input', () => {
+      t5State[ta.dataset.id][ta.dataset.field] = ta.value;
+      t5UpdateProgress();
+    });
+  });
+  t5El.itemsContainer.querySelectorAll('.t5-risk-select button').forEach(btn => {
+    btn.addEventListener('click', () => t5SetRisk(btn.dataset.id, btn.dataset.risk));
+  });
+
+  t5UpdateProgress();
+}
+
+function t5SetAnswer(id, answer) {
+  t5State[id].answer = answer;
+  if (answer === 'no') { t5State[id].description = ''; t5State[id].controls = ''; t5State[id].risk = null; }
+
+  const row = t5El.itemsContainer.querySelector(`.t5-hazard-row[data-id="${id}"]`);
+  row.classList.toggle('answered-yes', answer === 'yes');
+  row.classList.toggle('answered-no', answer === 'no');
+  row.querySelectorAll('.t5-yn-btn').forEach(b => {
+    b.classList.toggle('active-yes', b.dataset.answer === 'yes' && answer === 'yes');
+    b.classList.toggle('active-no', b.dataset.answer === 'no' && answer === 'no');
+  });
+
+  const detail = document.getElementById(`detail-${id}`);
+  detail.classList.toggle('is-open', answer === 'yes');
+  if (answer === 'no') {
+    detail.querySelectorAll('textarea').forEach(t => t.value = '');
+    detail.querySelectorAll('.t5-risk-select button').forEach(b => b.classList.remove('selected'));
+  }
+
+  t5UpdateProgress();
+}
+
+function t5SetRisk(id, risk) {
+  t5State[id].risk = risk;
+  const row = t5El.itemsContainer.querySelector(`.t5-hazard-row[data-id="${id}"]`);
+  row.querySelectorAll('.t5-risk-select button').forEach(b => {
+    b.classList.toggle('selected', b.dataset.risk === risk);
+  });
+  t5UpdateProgress();
+}
+
+function t5ComputeOverallRisk() {
+  const applicable = Object.values(t5State).filter(h => h.answer === 'yes');
+  if (applicable.some(h => h.risk === 'red')) return 'red';
+  if (applicable.some(h => h.risk === 'amber')) return 'amber';
+  return 'zero';
+}
+
+function t5UpdateProgress() {
+  const entries = Object.values(t5State);
+  const answered = entries.filter(h => h.answer !== null).length;
+  const allAnswered = answered === T5_TOTAL_HAZARDS;
+  const yesEntries = entries.filter(h => h.answer === 'yes');
+  const yesComplete = yesEntries.every(h => h.description.trim() && h.controls.trim() && h.risk);
+
+  t5El.progressLabel.textContent = `${answered} of ${T5_TOTAL_HAZARDS} hazards addressed`;
+  t5El.progressFill.style.width = `${Math.round((answered / T5_TOTAL_HAZARDS) * 100)}%`;
+
+  const overall = t5ComputeOverallRisk();
+  if (yesEntries.length && allAnswered && yesComplete) {
+    t5El.overallBanner.className = `t5-overall-banner show ${overall}`;
+    t5El.overallBanner.innerHTML = overall === 'red'
+      ? '<i class="fa-solid fa-triangle-exclamation"></i> RED RISK — Do NOT proceed. Reassess and identify further controls before starting.'
+      : overall === 'amber'
+        ? '<i class="fa-solid fa-triangle-exclamation"></i> AMBER RISK — Proceed with caution. Make sure controls are in place.'
+        : '<i class="fa-solid fa-circle-check"></i> Zero Harm — safe to proceed.';
+  } else {
+    t5El.overallBanner.className = 't5-overall-banner';
+  }
+
+  const basicsFilled = t5El.task.value.trim() && t5El.location.value.trim() && t5El.names.value.trim() && t5El.date.value;
+  t5El.submitBtn.disabled = !(allAnswered && yesComplete && basicsFilled);
+}
+
+[t5El.task, t5El.location, t5El.names, t5El.date].forEach(f => f && f.addEventListener('input', t5UpdateProgress));
+
+function t5OpenModal() {
+  const equipName = (currentEquipmentData && currentEquipmentData.name) || 'this equipment';
+  t5El.equipName.textContent = equipName;
+  t5El.date.value = new Date().toISOString().slice(0, 10);
+  t5El.task.value = '';
+  t5El.location.value = '';
+  t5El.names.value = '';
+  t5El.form.style.display = 'block';
+  t5El.success.classList.remove('show');
+  t5El.formError.textContent = '';
+  t5BuildForm();
+  t5El.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
 }
-
-function closeSafetyModal() {
-  safetyEl.overlay.classList.remove('is-open');
+function t5CloseModal() {
+  t5El.overlay.classList.remove('is-open');
   document.body.style.overflow = '';
-  safetyEl.badge.style.display = 'inline-flex';
 }
+
+// Prompted automatically whenever equipment data finishes loading.
+function promptTakeFive() {
+  t5OpenModal();
+}
+
+t5El.badge.addEventListener('click', t5OpenModal);
+t5El.closeX.addEventListener('click', t5CloseModal);
+t5El.skipBtn.addEventListener('click', t5CloseModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && t5El.overlay.classList.contains('is-open')) t5CloseModal();
+});
+
+// ---------- PDF export (manual, from Take Five History — supports multiple at once) ----------
+
+function t5RiskLabelFull(risk) {
+  return risk === 'red' ? 'RED RISK' : risk === 'amber' ? 'AMBER RISK' : 'ZERO HARM';
+}
+
+function t5DrawRecordPage(doc, record) {
+  const riskColors = { zero: [0, 166, 81], amber: [245, 158, 11], red: [217, 45, 32] };
+  const overallColor = riskColors[record.overallRisk] || riskColors.zero;
+
+  doc.setFillColor(0, 105, 55);
+  doc.rect(0, 0, 595, 56, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.text('Take Five — Pre-Task Risk Assessment', 40, 34);
+  doc.setFontSize(10);
+  doc.text(record.equipmentName || '', 40, 48);
+
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  const y = 78;
+  doc.text(`Date: ${record.date}`, 40, y);
+  doc.text(`Task: ${record.task}`, 40, y + 16);
+  doc.text(`Location: ${record.location}`, 40, y + 32);
+  doc.text(`Names of people involved: ${record.namesInvolved}`, 40, y + 48);
+
+  doc.setFillColor(overallColor[0], overallColor[1], overallColor[2]);
+  doc.roundedRect(40, y + 62, 170, 22, 4, 4, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text(`OVERALL: ${t5RiskLabelFull(record.overallRisk)}`, 48, y + 77);
+
+  const hazards = record.hazards || [];
+  const body = hazards.map((h, i) => [
+    String(i + 1),
+    h.name,
+    h.answer === 'yes' ? 'Yes' : 'No',
+    h.answer === 'yes' ? h.description : '—',
+    h.answer === 'yes' ? h.controls : '—',
+    h.answer === 'yes' ? t5RiskLabelFull(h.risk) : '—'
+  ]);
+
+  doc.autoTable({
+    startY: y + 96,
+    head: [['#', 'Hazard', 'Y/N', 'Describe the Hazard', 'How Made Safe', 'Risk']],
+    body,
+    styles: { fontSize: 8, cellPadding: 5, overflow: 'linebreak', valign: 'top' },
+    headStyles: { fillColor: [0, 105, 55], textColor: 255, fontStyle: 'bold' },
+    columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 90 }, 2: { cellWidth: 22 }, 5: { cellWidth: 55 } },
+    margin: { left: 40, right: 40 },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 5) {
+        const risk = hazards[data.row.index] ? hazards[data.row.index].risk : null;
+        if (risk === 'red') { data.cell.styles.textColor = [217, 45, 32]; data.cell.styles.fontStyle = 'bold'; }
+        else if (risk === 'amber') { data.cell.styles.textColor = [180, 110, 0]; data.cell.styles.fontStyle = 'bold'; }
+      }
+    }
+  });
+
+  const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : (y + 96);
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text(`Generated ${new Date().toLocaleString()} — InfoPort`, 40, Math.min(finalY + 20, 810));
+}
+
+function t5GeneratePdfBatch(records) {
+  if (typeof window.jspdf === 'undefined') {
+    alert('The PDF export library failed to load. Check your connection and try again.');
+    return false;
+  }
+  if (!records.length) return false;
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    records.forEach((record, i) => {
+      if (i > 0) doc.addPage();
+      t5DrawRecordPage(doc, record);
+    });
+
+    let filename;
+    if (records.length === 1) {
+      const r = records[0];
+      const safeTask = (r.task || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+      filename = `take-five-${r.date}-${safeTask}.pdf`;
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      filename = `take-five-batch-${today}-${records.length}-assessments.pdf`;
+    }
+    doc.save(filename);
+    return true;
+  } catch (err) {
+    console.error('Failed to generate Take Five PDF', err);
+    alert('Could not generate the PDF. Please try again.');
+    return false;
+  }
+}
+
+t5El.form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  t5El.formError.textContent = '';
+
+  const entries = Object.values(t5State);
+  if (!entries.every(h => h.answer !== null)) {
+    t5El.formError.textContent = 'Please mark Yes or No for every hazard.';
+    return;
+  }
+  const applicable = entries.filter(h => h.answer === 'yes');
+  if (applicable.some(h => !h.description.trim() || !h.controls.trim() || !h.risk)) {
+    t5El.formError.textContent = 'Please complete the description, controls, and risk level for every hazard marked Yes.';
+    return;
+  }
+  if (!currentEquipmentData) {
+    t5El.formError.textContent = 'Equipment data is still loading — please wait a moment and try again.';
+    return;
+  }
+
+  t5El.submitBtn.disabled = true;
+  t5El.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+  try {
+    const uid = await authReady;
+    const overallRisk = t5ComputeOverallRisk();
+    const record = {
+      date: t5El.date.value,
+      task: t5El.task.value.trim(),
+      location: t5El.location.value.trim(),
+      namesInvolved: t5El.names.value.trim(),
+      hazards: entries.map(h => ({
+        name: h.name, answer: h.answer,
+        description: h.description.trim(), controls: h.controls.trim(), risk: h.risk
+      })),
+      overallRisk,
+      equipmentId: currentEquipmentData.id,
+      equipmentName: currentEquipmentData.name || '',
+      authorUid: uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('takeFiveAssessments').add(record);
+
+    t5El.form.style.display = 'none';
+    t5El.success.classList.add('show');
+    const riskLabel = overallRisk === 'red' ? 'Red Risk' : overallRisk === 'amber' ? 'Amber Risk' : 'Zero Harm';
+    t5El.successDetail.textContent = `${record.task} — ${record.location} (${riskLabel})`;
+  } catch (err) {
+    console.error('Failed to save Take Five assessment', err);
+    t5El.formError.textContent = 'Could not save this assessment right now. Please try again.';
+  } finally {
+    t5El.submitBtn.disabled = false;
+    t5El.submitBtn.innerHTML = '<i class="fa-solid fa-signature"></i> Complete &amp; Save Assessment';
+  }
+});
+
+t5El.newBtn.addEventListener('click', t5OpenModal);
+
+t5El.viewHistoryBtn.addEventListener('click', () => {
+  t5CloseModal();
+  t5OpenHistoryModal();
+});
+
+// ---------- History modal (this equipment only, last 7 days) ----------
+
+function t5SevenDaysAgo() {
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  return d;
+}
+
+function t5RiskLabel(risk) {
+  return risk === 'red' ? 'Red Risk' : risk === 'amber' ? 'Amber Risk' : 'Zero Harm';
+}
+
+let t5HistoryDocs = [];
+let t5SelectedIds = new Set();
+
+function t5OpenHistoryModal() {
+  t5El.historyEquipName.textContent = (currentEquipmentData && currentEquipmentData.name) || 'this equipment';
+  t5El.historyOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  t5LoadHistory();
+}
+function t5CloseHistoryModal() {
+  t5El.historyOverlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+async function t5LoadHistory() {
+  t5El.historyList.innerHTML = '<p class="t5-history-empty">Loading…</p>';
+  t5SelectedIds.clear();
+  t5UpdateSelectionUI();
+  if (!currentEquipmentData) {
+    t5El.historyList.innerHTML = '<p class="t5-history-empty">Equipment data is still loading.</p>';
+    return;
+  }
+  try {
+    await authReady;
+    const cutoffMillis = t5SevenDaysAgo().getTime();
+    // Filters on equipmentId only (a single equality filter needs no
+    // composite index) and does the 7-day cutoff client-side — this
+    // collection is small per equipment, so that's cheap, and it avoids
+    // requiring a manual Firestore composite index for equipmentId +
+    // createdAt together.
+    const snap = await db.collection('takeFiveAssessments')
+      .where('equipmentId', '==', currentEquipmentData.id)
+      .get();
+    const docs = [];
+    snap.forEach(d => {
+      const data = d.data();
+      const createdMillis = data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
+      if (createdMillis >= cutoffMillis) docs.push({ id: d.id, ...data });
+    });
+    docs.sort((a, b) => {
+      const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
+    });
+    t5HistoryDocs = docs;
+    t5RenderHistoryList();
+  } catch (err) {
+    console.error('Failed to load Take Five history', err);
+    t5El.historyList.innerHTML = '<p class="t5-history-empty">Could not load recent assessments right now.</p>';
+  }
+}
+
+function t5RenderHistoryList() {
+  if (!t5HistoryDocs.length) {
+    t5El.historyList.innerHTML = '<p class="t5-history-empty">No assessments logged for this equipment in the last 7 days.</p>';
+    return;
+  }
+
+  t5El.historyList.innerHTML = t5HistoryDocs.map(r => {
+    const yesHazards = (r.hazards || []).filter(h => h.answer === 'yes');
+    const detailHtml = yesHazards.length
+      ? yesHazards.map(h => `
+          <div class="t5-history-hazard">
+            <div class="t5-history-hazard-name">
+              <span>${escapeHtml(h.name)}</span>
+              <span class="t5-risk-chip ${h.risk || 'zero'}">${t5RiskLabel(h.risk)}</span>
+            </div>
+            <div class="t5-history-hazard-text"><b>Hazard:</b> ${escapeHtml(h.description || '—')}</div>
+            <div class="t5-history-hazard-text"><b>Controls:</b> ${escapeHtml(h.controls || '—')}</div>
+          </div>
+        `).join('')
+      : '<p class="t5-history-no-hazards">No hazards were marked applicable — Zero Harm.</p>';
+
+    return `
+      <div class="t5-history-card" data-id="${r.id}">
+        <div class="t5-history-card-head">
+          <input type="checkbox" class="t5-history-checkbox" data-id="${r.id}">
+          <div class="t5-history-card-main">
+            <strong>${escapeHtml(r.task || 'Untitled task')}</strong>
+            <span>${escapeHtml(r.location || '')} • ${escapeHtml(r.namesInvolved || '')} • ${escapeHtml(r.date || '')}</span>
+          </div>
+          <span class="t5-risk-chip ${r.overallRisk || 'zero'}">${t5RiskLabel(r.overallRisk)}</span>
+          <i class="fa-solid fa-chevron-down t5-history-card-chevron"></i>
+        </div>
+        <div class="t5-history-card-detail">${detailHtml}</div>
+      </div>
+    `;
+  }).join('');
+
+  t5El.historyList.querySelectorAll('.t5-history-card-head').forEach(head => {
+    head.addEventListener('click', (e) => {
+      if (e.target.classList.contains('t5-history-checkbox')) return;
+      head.closest('.t5-history-card').classList.toggle('is-open');
+    });
+  });
+  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      if (cb.checked) t5SelectedIds.add(cb.dataset.id);
+      else t5SelectedIds.delete(cb.dataset.id);
+      t5UpdateSelectionUI();
+    });
+  });
+}
+
+function t5UpdateSelectionUI() {
+  const n = t5SelectedIds.size;
+  t5El.selectedCount.textContent = n === 0 ? 'None selected' : `${n} selected`;
+  t5El.exportSelectedBtn.disabled = n === 0;
+  t5El.selectAllCheckbox.checked = t5HistoryDocs.length > 0 && n === t5HistoryDocs.length;
+}
+
+t5El.selectAllCheckbox.addEventListener('change', () => {
+  if (t5El.selectAllCheckbox.checked) {
+    t5HistoryDocs.forEach(r => t5SelectedIds.add(r.id));
+  } else {
+    t5SelectedIds.clear();
+  }
+  t5El.historyList.querySelectorAll('.t5-history-checkbox').forEach(cb => {
+    cb.checked = t5SelectedIds.has(cb.dataset.id);
+  });
+  t5UpdateSelectionUI();
+});
+
+t5El.exportSelectedBtn.addEventListener('click', () => {
+  const selected = t5HistoryDocs.filter(r => t5SelectedIds.has(r.id));
+  if (selected.length) t5GeneratePdfBatch(selected);
+});
+
+t5El.historyCloseX.addEventListener('click', t5CloseHistoryModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && t5El.historyOverlay.classList.contains('is-open')) t5CloseHistoryModal();
+});
+
+// ---------- Best-effort cleanup: delete assessments older than 7 days (all equipment) ----------
+// Runs once whenever someone loads an equipment page, so the collection
+// doesn't grow forever even without server-side automation. For a
+// guarantee that doesn't depend on someone visiting a page, also set a
+// Firestore TTL policy on this collection.
+
+async function t5CleanupOldAssessments() {
+  try {
+    await authReady;
+    const cutoff = firebase.firestore.Timestamp.fromDate(t5SevenDaysAgo());
+    const snap = await db.collection('takeFiveAssessments').where('createdAt', '<', cutoff).get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    console.log(`Take Five cleanup: removed ${snap.size} assessment(s) older than 7 days.`);
+  } catch (err) {
+    console.error('Take Five cleanup failed', err);
+  }
+}
+t5CleanupOldAssessments();
 
 // Runs every time an equipment page loads, per equipment: uses that
 // equipment's own safetyRequirements from equipment.json if present,
@@ -1981,20 +2701,6 @@ function renderEquipmentTools(equipment) {
     <div class="doc static"><span class="doc-name" title="${escapeHtml(t.name)}"><i class="fa-solid fa-wrench"></i> ${escapeHtml(t.name)}${t.spec ? ` <span style="color:var(--muted);font-weight:400">— ${escapeHtml(t.spec)}</span>` : ''}</span></div>
   `).join('');
 }
-
-function showSafetyModal(equipment) {
-  const custom = Array.isArray(equipment.safetyRequirements) ? equipment.safetyRequirements.filter(Boolean) : [];
-  currentSafetyRequirements = custom.length ? custom : DEFAULT_SAFETY_REQUIREMENTS;
-  safetyEl.badge.style.display = 'none';
-  openSafetyModal();
-}
-
-safetyEl.closeX.addEventListener('click', closeSafetyModal);
-safetyEl.proceedBtn.addEventListener('click', closeSafetyModal);
-safetyEl.badge.addEventListener('click', openSafetyModal);
-document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape' && safetyEl.overlay.classList.contains('is-open')) closeSafetyModal();
-});
 
 let currentDoc = null;
 let currentEquipmentData = null;
@@ -2594,8 +3300,8 @@ function renderEquipment(e) {
   loadSubscribers(e.id);
   loadSafetyChecklist(e.id);
   loadPmChecklists(e.id);
-  loadExplodedView(e);
-  showSafetyModal(e);
+  explodedViewLoadPromise = loadExplodedView(e);
+  promptTakeFive();
   loadInternalResources(e.id);
 
   el.documents.innerHTML = '';
@@ -2843,6 +3549,7 @@ el.eqTabs.querySelectorAll('.eq-tab-btn').forEach((btn) => {
 let activeExplodePin = null;
 let explodeViews = [];
 let explodeActiveViewId = null;
+let explodedViewLoadPromise = Promise.resolve();
 
 // Normalizes the legacy single-`explodedView` field, the older
 // inline-image `explodedViews` array, and the current metadata-only
@@ -2948,8 +3655,8 @@ function renderExplodePins(parts) {
 
 function openPartPanel(part, pinEl) {
   if (activeExplodePin) activeExplodePin.classList.remove('is-active');
-  activeExplodePin = pinEl;
-  pinEl.classList.add('is-active');
+  activeExplodePin = pinEl || null;
+  if (pinEl) pinEl.classList.add('is-active');
 
   el.partPanelName.textContent = part.name || 'Unnamed part';
   el.partPanelModel.textContent = part.modelNumber || '—';
@@ -2991,7 +3698,7 @@ function openPartPanel(part, pinEl) {
   }
 
   el.partPanelOverlay.classList.add('is-open');
-  loadPartPanelComponents(part.id);
+  return loadPartPanelComponents(part.id);
 }
 
 // The individual spare parts that make up this assembly — name, spec,
@@ -3010,7 +3717,7 @@ async function loadPartPanelComponents(partId) {
 
     el.partPanelComponentsSection.style.display = 'block';
     el.partPanelComponents.innerHTML = components.map((c) => `
-      <div class="part-panel-component-card">
+      <div class="part-panel-component-card" data-component-id="${escapeHtml(c.id)}">
         ${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name || '')}">` : ''}
         <div class="pcc-body">
           <p class="pcc-name">${escapeHtml(c.name || 'Unnamed spare part')}</p>
@@ -3037,8 +3744,56 @@ el.partPanelOverlay.addEventListener('click', (ev) => {
   if (ev.target === el.partPanelOverlay) closePartPanel();
 });
 
+// ---------- Deep-linking straight to a part or sub-part (QR codes) ----------
+// admin.html's QR generator can point a code at ?id=<equipment>&part=<partId>
+// or ?id=<equipment>&part=<partId>&component=<subPartId>. This opens the
+// Diagrams tab, selects the diagram that part lives on, opens its panel,
+// and — if a sub-part was also requested — scrolls to and briefly
+// highlights that specific spare-part card inside the panel.
+async function openPartFromUrl(equipmentId, partId, componentId) {
+  try {
+    const partDoc = await db.collection('equipmentParts').doc(partId).get();
+    if (!partDoc.exists) {
+      console.warn(`QR-linked part "${partId}" was not found.`);
+      return;
+    }
+    const part = { id: partDoc.id, ...partDoc.data() };
+    if (part.equipmentId !== equipmentId) {
+      console.warn('QR-linked part belongs to a different equipment.');
+      return;
+    }
+
+    await explodedViewLoadPromise;
+    showEqTab('diagrams');
+
+    const viewId = part.viewId || (explodeViews[0] && explodeViews[0].id);
+    if (viewId && explodeViews.some((v) => v.id === viewId)) {
+      selectExplodeView(viewId);
+    }
+
+    await openPartPanel(part, null);
+
+    if (componentId) {
+      requestAnimationFrame(() => {
+        const card = el.partPanelComponents.querySelector(`[data-component-id="${CSS.escape(componentId)}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('pcc-highlight');
+          setTimeout(() => card.classList.remove('pcc-highlight'), 3200);
+        } else {
+          console.warn(`QR-linked sub-part "${componentId}" was not found on this part.`);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Failed to open the part/sub-part linked from this QR code', err);
+  }
+}
+
 const id = new URLSearchParams(location.search).get('id');
 const requestedTab = new URLSearchParams(location.search).get('tab');
+const requestedPartId = new URLSearchParams(location.search).get('part');
+const requestedComponentId = new URLSearchParams(location.search).get('component');
 
 if (!id) {
   showNotFound('No equipment ID was provided in the URL.');
@@ -3051,7 +3806,9 @@ if (!id) {
       }
       const e = { id: doc.id, ...doc.data() };
       renderEquipment(e);
-      if (requestedTab && ['home', 'diagrams', 'documents', 'log'].includes(requestedTab)) {
+      if (requestedPartId) {
+        openPartFromUrl(id, requestedPartId, requestedComponentId);
+      } else if (requestedTab && ['home', 'diagrams', 'documents', 'log'].includes(requestedTab)) {
         showEqTab(requestedTab);
       }
     })
