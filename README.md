@@ -101,8 +101,6 @@ If you do want to formally evaluate Azure Communication Services later, ask your
 
 ## 5. Database & auth ; only if you're going further
 
-Not required to fix the security/vendor issues above, but flagged since "move almost everything" was the brief. **This is a genuinely bigger job than everything above combined** ; be clear-eyed about that before committing to it.
-
 **Auth → Microsoft Entra ID.** This one's a natural fit: Azure Static Web Apps has Entra ID built in as an auth provider, and your admins already have corporate Microsoft accounts. Admin login could become "sign in with your Ghacem Microsoft 365 account, restricted to an Entra ID security group" ; arguably simpler than what exists now (Firebase email/password + a separate `admins` Firestore collection to manage by hand).
 
 **Database → Azure Cosmos DB (NoSQL API).** The closest match to how Firestore is actually used here ; collections of JSON-ish documents, per-document security rules. That said:
