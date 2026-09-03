@@ -1073,7 +1073,7 @@ font-size:16px;
     <div class="qa-progress-label" id="offlineDlProgressLabel">Starting…</div>
     <div class="qa-progress-track"><div class="qa-progress-fill" id="offlineDlProgressFill"></div></div>
   </div>
-  <button type="button" class="quick-action-btn" id="offlineDlBtn" style="width:100%;justify-content:center;margin-top:10px;">
+  <button type="button" class="quick-action-btn btn-primary" id="offlineDlBtn" style="width:100%;justify-content:center;margin-top:10px;">
     <i class="fa-solid fa-cloud-arrow-down"></i> Download
   </button>
 </div>
@@ -1819,7 +1819,7 @@ function pwaRenderContent(platform) {
     if (pwaDeferredPrompt) {
       pwaEl.content.innerHTML = `
         <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Tap below and confirm — Chrome will add InfoPort straight to your home screen.</p>
-        <button type="button" class="pwa-install-native-btn" id="pwaNativeInstallBtn">
+        <button type="button" class="pwa-install-native-btn btn-primary" id="pwaNativeInstallBtn">
           <i class="fa-solid fa-download"></i> Install App
         </button>
       `;
