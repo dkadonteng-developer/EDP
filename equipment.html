@@ -552,7 +552,7 @@
   #t5Overlay,#t5HistoryOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
     display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;
-    overscroll-behavior:contain;
+    overscroll-behavior:contain;touch-action:pan-y;
   }
   #t5Overlay.is-open,#t5HistoryOverlay.is-open{display:flex}
 
@@ -572,7 +572,7 @@
     width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
   }
   .t5-modal-close:hover{background:rgba(255,255,255,.3)}
-  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;overscroll-behavior:contain}
+  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y}
 
   .t5-field{margin-bottom:16px}
   .t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}
