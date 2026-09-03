@@ -1,0 +1,89 @@
+/* InfoPort — shared floating tab bar + button system
+   Drop-in file, link from every page's <head>:
+   <link rel="stylesheet" href="shared-nav.css">
+   Reads --brand from each page's own :root — no values hardcoded here
+   except the light tint, which falls back to InfoPort green if --brand
+   isn't defined yet when this loads. */
+
+:root{
+  --brand-tint:#e5f0ea;
+}
+
+/* ---------- Floating tab bar ---------- */
+.app-tabbar{
+  position:fixed;
+  left:14px;right:14px;
+  bottom:calc(10px + env(safe-area-inset-bottom));
+  z-index:999;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:.5px solid rgba(0,0,0,.06);
+  border-radius:100px;
+  padding:8px 6px;
+  box-shadow:0 4px 18px rgba(0,0,0,.08);
+}
+.app-tabbar a{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 12px;border-radius:100px;
+  text-decoration:none;color:#8e8e93;
+  font-family:inherit;
+  transition:background .15s ease,color .15s ease;
+}
+.app-tabbar a i{font-size:19px;line-height:1;}
+.app-tabbar a span{font-size:9px;font-weight:600;letter-spacing:.1px;}
+.app-tabbar a.is-active{
+  background:var(--brand-tint);
+  color:var(--brand,#006937);
+}
+.app-tabbar a:active{transform:scale(.94);}
+
+/* Reserve space so page content never sits under the floating bar */
+body.has-app-tabbar{padding-bottom:96px;}
+
+/* Wider viewports: centered, capped width instead of edge-to-edge */
+@media(min-width:900px){
+  .app-tabbar{
+    left:50%;right:auto;transform:translateX(-50%);
+    width:auto;min-width:360px;
+  }
+}
+
+/* ---------- Unified buttons (replaces per-page *-btn classes) ---------- */
+.btn-primary,.btn-secondary{
+  font-family:inherit;font-size:14px;font-weight:600;
+  border-radius:100px;padding:11px 20px;border:none;cursor:pointer;
+  text-align:center;text-decoration:none;display:inline-block;
+  line-height:1.2;
+}
+.btn-primary{background:var(--brand,#006937);color:#fff;}
+.btn-primary:hover{background:var(--brand-dark,#00552c);}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+.btn-secondary{background:var(--brand-tint);color:var(--brand,#006937);}
+.btn-secondary:hover{background:#d7e9df;}
+.btn-secondary:active{transform:scale(.98);}
+.btn-secondary:disabled{opacity:.5;cursor:not-allowed;}
+
+.btn-danger{background:var(--danger,#d92d20);color:#fff;}
+.btn-danger:hover{filter:brightness(.92);}
+
+.btn-full{width:100%;display:block;}
+.btn-row{display:flex;gap:8px;}
+.btn-row>*{flex:1;}
+
+/* ---------- Segmented control (e.g. "Exploded view" / "Manuals") ---------- */
+.seg-control{display:flex;background:#e5e5ea;border-radius:9px;padding:2px;}
+.seg-control button{
+  flex:1;border:none;background:transparent;
+  padding:6px 0;font-family:inherit;font-size:12px;font-weight:600;
+  color:#3a3a3c;border-radius:7px;cursor:pointer;
+}
+.seg-control button.is-active{
+  background:#fff;color:#000;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+}
