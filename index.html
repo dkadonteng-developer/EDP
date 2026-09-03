@@ -1877,11 +1877,9 @@ function pwaMaybeShowPrompt() {
   const platform = pwaDetectPlatform();
   if (platform === 'desktop') return; // phone-only prompt
 
-  setTimeout(() => {
-    pwaRenderContent(platform);
-    pwaEl.overlay.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }, 1800);
+  pwaRenderContent(platform);
+  pwaEl.overlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
 }
 
 pwaMaybeShowPrompt();
