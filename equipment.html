@@ -1048,9 +1048,9 @@
     .search-bar input{min-width:90px}
     .search-bar .match-nav button{padding:5px 8px}
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading,.generic-preview-body{max-height:420px;height:420px}
-    #callFloatBtn{bottom:154px;right:16px}
-    #aiLauncher{bottom:86px;right:16px}
-    #inventoryFloatBtn{bottom:222px;right:16px}
+    #callFloatBtn{bottom:218px;right:16px}
+    #aiLauncher{bottom:150px;right:16px}
+    #inventoryFloatBtn{bottom:286px;right:16px}
   }
 
   @media (max-width:360px){
@@ -1088,7 +1088,7 @@
 
   @media (max-width:600px){
     #inventoryFloatBtn span{display:none}
-    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:238px}
+    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:290px}
   }
 
   /* ---------- AI Troubleshooting Assistant ---------- */
@@ -2694,8 +2694,8 @@ async function t5CleanupOldAssessments() {
 t5CleanupOldAssessments();
 
 // Runs every time an equipment page loads, per equipment: uses that
-// equipment's own safetyRequirements from equipment.json if present,
-// otherwise falls back to the general baseline list above.
+// equipment's own safetyRequirements field if present, otherwise falls
+// back to the general baseline list above.
 function renderEquipmentTools(equipment) {
   const tools = Array.isArray(equipment.tools) ? equipment.tools.filter(t => t && t.name) : [];
   if (!tools.length) {
@@ -6110,7 +6110,5 @@ if ('serviceWorker' in navigator) {
 <script src="search.js" defer></script>
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
-
-  <script src="shared-nav.js" defer></script>
 </body>
 </html>
