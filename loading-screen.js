@@ -28,11 +28,22 @@
     }, wait);
   }
 
-  if (document.readyState === 'complete') {
-    hideOverlay();
-  } else {
-    window.addEventListener('load', hideOverlay);
+  // Most pages are considered "ready" once the browser's own 'load' event
+  // fires. A page can opt into waiting on its actual data too — set
+  // window.pageReadyPromise to a Promise before this script runs (or as
+  // early as possible), and the overlay stays up until both the page has
+  // loaded AND that promise settles, instead of hiding as soon as static
+  // assets are done while a Firestore fetch is still in flight underneath.
+  function waitForLoad() {
+    return new Promise((resolve) => {
+      if (document.readyState === 'complete') resolve();
+      else window.addEventListener('load', resolve, { once: true });
+    });
   }
+  const readySignal = (window.pageReadyPromise && typeof window.pageReadyPromise.then === 'function')
+    ? Promise.all([waitForLoad(), window.pageReadyPromise])
+    : waitForLoad();
+  readySignal.then(hideOverlay, hideOverlay);
   setTimeout(hideOverlay, SAFETY_TIMEOUT_MS);
 
   // Back/forward navigation often restores the page from the browser's
