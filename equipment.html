@@ -66,7 +66,7 @@
   body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
   .eq-tabs{
     position:fixed;left:14px;right:14px;
-    bottom:calc(70px + env(safe-area-inset-bottom));
+    bottom:calc(10px + env(safe-area-inset-bottom));
     z-index:900;
     display:flex;justify-content:space-around;align-items:center;
     background:rgba(255,255,255,.72);
@@ -703,12 +703,10 @@
   .t5-history-no-hazards{color:#888;font-size:13px;padding:10px 0}
 
   @media (max-width:600px){
-    #t5Overlay,#t5HistoryOverlay{padding:0}
-    .t5-modal{max-width:none;width:100%;min-height:100%;border-radius:0;margin-bottom:0}
     .t5-modal-head{padding:16px 18px}
     .t5-modal-head h3{font-size:16px}
     .t5-modal-head p{font-size:12px}
-    .t5-modal-body{padding:16px;max-height:none}
+    .t5-modal-body{padding:16px}
 
     .t5-hazard-row{padding:12px}
     .t5-hazard-name{font-size:14px;min-width:0;flex-basis:100%}
