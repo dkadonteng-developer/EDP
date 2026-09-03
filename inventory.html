@@ -497,17 +497,27 @@ function escapeHtml(str) {
 let EQUIPMENT_LIST = [];
 let EQUIPMENT_NAME_BY_ID = {};
 
-db.collection('equipment').get().then((snap) => {
-  EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, name: doc.data().name || doc.id }));
-  EQUIPMENT_NAME_BY_ID = Object.fromEntries(EQUIPMENT_LIST.map((e) => [e.id, e.name]));
-  const equipOptions = EQUIPMENT_LIST
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-    .map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`)
-    .join('');
-  orderEl.equipmentSelect.innerHTML = `<option value="">Select equipment…</option>${equipOptions}<option value="__other__">Others (type equipment name)</option>`;
-  renderParts(); // refresh so equipment tags/names resolve now that data has loaded
-}).catch((err) => console.error('Failed to load equipment list', err));
+function loadEquipmentList(source) {
+  return db.collection('equipment').get({ source }).then((snap) => {
+    EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, name: doc.data().name || doc.id }));
+    EQUIPMENT_NAME_BY_ID = Object.fromEntries(EQUIPMENT_LIST.map((e) => [e.id, e.name]));
+    const equipOptions = EQUIPMENT_LIST
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+      .map(e => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}</option>`)
+      .join('');
+    orderEl.equipmentSelect.innerHTML = `<option value="">Select equipment…</option>${equipOptions}<option value="__other__">Others (type equipment name)</option>`;
+    renderParts(); // refresh so equipment tags/names resolve now that data has loaded
+  }).catch((err) => {
+    if (source !== 'cache') console.error('Failed to load equipment list', err);
+  });
+}
+// Cache-first for an instant paint, then a background server read to
+// confirm/refresh — see group.html for the same pattern. A plain .get()
+// always waits on the network even though Firestore's local persistence
+// already has this data on-device.
+loadEquipmentList('cache');
+loadEquipmentList('server');
 
 // ---------- Real admin authentication ----------
 // Admin access requires a genuine Firebase Auth sign-in (email/password)
