@@ -335,6 +335,7 @@
     .pf-row,.pf-row-3{grid-template-columns:1fr}
   }
 </style>
+  <link rel="stylesheet" href="shared-nav.css">
 </head>
 <body>
 
@@ -370,14 +371,14 @@
         <i class="fa-solid fa-circle-check"></i>
         <strong>Log entry saved</strong>
         <p style="color:var(--muted);font-size:.88rem;margin:6px 0 0">Thanks — this shift's log has been recorded.</p>
-        <button type="button" class="toolbar-btn outline" id="entryDoneBtn" style="margin-top:16px">Log Another Entry</button>
+        <button type="button" class="toolbar-btn outline btn-secondary" id="entryDoneBtn" style="margin-top:16px">Log Another Entry</button>
       </div>
 
       <form id="entryForm">
         <div class="pf-row">
           <div class="pf-field" style="grid-column:1/-1">
             <label for="equipmentPickerBtn">Equipment *</label>
-            <button type="button" class="equip-picker-btn" id="equipmentPickerBtn">
+            <button type="button" class="equip-picker-btn btn-secondary" id="equipmentPickerBtn">
               <span id="equipmentPickerLabel">Select equipment…</span>
               <i class="fa-solid fa-chevron-down"></i>
             </button>
@@ -415,7 +416,7 @@
         <h2 style="font-size:.92rem;margin:18px 0 4px"><i class="fa-solid fa-camera"></i> Photos</h2>
         <p class="card-hint">Attach photos of any fault, damage, or evidence relevant to this report (optional).</p>
         <div class="photo-rows" id="reportPhotoRows"></div>
-        <label class="add-photo-btn" id="addPhotoBtn">
+        <label class="add-photo-btn btn-secondary" id="addPhotoBtn">
           <i class="fa-solid fa-plus"></i> Add Photo
           <input type="file" accept="image/*" id="reportPhotoFile">
         </label>
@@ -425,7 +426,7 @@
 
         <div id="stoppagesList"></div>
         <div class="no-stoppages" id="noStoppagesMsg">No stoppages logged for this shift yet.</div>
-        <button type="button" class="add-stoppage-btn" id="addStoppageBtn"><i class="fa-solid fa-plus"></i> Add Stoppage</button>
+        <button type="button" class="add-stoppage-btn btn-secondary" id="addStoppageBtn"><i class="fa-solid fa-plus"></i> Add Stoppage</button>
 
         <div class="total-downtime">
           <span>Total downtime</span>
@@ -433,7 +434,7 @@
         </div>
 
         <div class="pf-error" id="entryFormError"></div>
-        <button type="submit" class="pf-submit-btn" id="entrySubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Log Entry</button>
+        <button type="submit" class="pf-submit-btn btn-primary" id="entrySubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Log Entry</button>
       </form>
     </div>
   </div>
@@ -452,7 +453,7 @@
     <div class="card" id="adminGate">
       <h2><i class="fa-solid fa-lock"></i> Admin Access</h2>
       <p class="card-hint">Sign in with your admin account to view submitted logs, run reports, and manage the recycle bin.</p>
-      <button type="button" class="toolbar-btn" id="adminSignInBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      <button type="button" class="toolbar-btn btn-secondary" id="adminSignInBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
     </div>
 
     <div id="adminDashboard" style="display:none">
@@ -496,11 +497,11 @@
         <div class="history-filter">
           <select id="filterMill"><option value="">All equipment</option></select>
           <select id="filterShift"><option value="">All shifts</option></select>
-          <button type="button" class="toolbar-btn outline" id="clearFiltersBtn">Clear filters</button>
+          <button type="button" class="toolbar-btn outline btn-secondary" id="clearFiltersBtn">Clear filters</button>
         </div>
         <div class="export-bar">
-          <button type="button" class="toolbar-btn outline" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-          <button type="button" class="toolbar-btn outline" id="exportPdfBtn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+          <button type="button" class="toolbar-btn outline btn-secondary" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" class="toolbar-btn outline btn-secondary" id="exportPdfBtn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
         </div>
         <div id="entriesListContainer"><p class="loading-text">Loading entries…</p></div>
       </div>
@@ -545,8 +546,8 @@
       <label style="font-size:.78rem;font-weight:500;color:var(--muted);display:block;margin-bottom:6px">Equipment name</label>
       <input type="text" id="equipPickerOtherInput" placeholder="Type the equipment name…" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:16px;margin-bottom:10px;box-sizing:border-box">
       <div style="display:flex;gap:8px">
-        <button type="button" class="toolbar-btn outline" id="equipPickerOtherBack" style="flex:1">Back</button>
-        <button type="button" class="toolbar-btn" id="equipPickerOtherConfirm" style="flex:1">Use This Name</button>
+        <button type="button" class="toolbar-btn outline btn-secondary" id="equipPickerOtherBack" style="flex:1">Back</button>
+        <button type="button" class="toolbar-btn btn-secondary" id="equipPickerOtherConfirm" style="flex:1">Use This Name</button>
       </div>
     </div>
   </div>
@@ -570,7 +571,7 @@
           <input type="password" id="adminPasswordInput" required autocomplete="current-password">
         </label>
         <div class="admin-signin-error" id="adminSignInError"></div>
-        <button type="submit" class="admin-signin-btn" id="adminSignInSubmitBtn">
+        <button type="submit" class="admin-signin-btn btn-primary" id="adminSignInSubmitBtn">
           <i class="fa-solid fa-right-to-bracket"></i> Sign In
         </button>
       </form>
@@ -1575,5 +1576,6 @@ if ('serviceWorker' in navigator) {
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
 
+  <script src="shared-nav.js" defer></script>
 </body>
 </html>
