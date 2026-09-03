@@ -969,62 +969,7 @@ function escapeHtmlCard(str) {
     return;
   }
 
-  // ---------- Load equipment from Firestore, filtered to this group ----------
-  // "Ungrouped" is the dashboard's fallback bucket for equipment with no
-  // Group field set, so match that the same way here.
-  let equipmentData = [];
-  try {
-    const [equipSnap, groupQuery] = await Promise.all([
-      db.collection('equipment').orderBy('name').get(),
-      db.collection('groups').where('name', '==', groupName).limit(1).get().catch(() => null),
-    ]);
-    const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
-    const getGroupNames = (e) => {
-      if (Array.isArray(e.groups) && e.groups.length) return e.groups;
-      if (e.group && e.group.trim()) return [e.group.trim()];
-      return ['Ungrouped'];
-    };
-    equipmentData = all.filter((e) => getGroupNames(e).includes(groupName));
-
-    const groupImage = groupQuery && !groupQuery.empty ? groupQuery.docs[0].data().image : '';
-    if (groupImage) {
-      document.querySelector('.hero').style.cssText += `background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('${groupImage}');background-size:cover;background-position:center;`;
-    }
-  } catch (err) {
-    console.error('Failed to load equipment list', err);
-  }
-
-  if (!equipmentData.length) {
-    cardsGrid.innerHTML = `
-      <div class="no-results">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <p>No equipment found in this group.</p>
-      </div>
-    `;
-    resultsCount.textContent = 'Showing 0 of 0 equipment';
-    return;
-  }
-
-  cardsGrid.innerHTML = equipmentData.map((e) => `
-    <div class="card">
-      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
-      <div class="card-content">
-        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
-        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
-        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
-        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
-        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
-        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
-      </div>
-    </div>
-  `).join('');
-
-  const cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
-    el,
-    name: (equipmentData[i].name || equipmentData[i].id || '').toLowerCase(),
-    id: (equipmentData[i].id || '').toLowerCase(),
-    searchText: `${equipmentData[i].name || ''} ${equipmentData[i].id || ''} ${equipmentData[i].manufacturer || ''}`.toLowerCase(),
-  }));
+  let cards = [];
 
   function applyFiltersAndSort() {
     const query = searchInput.value.trim().toLowerCase();
@@ -1059,10 +1004,87 @@ function escapeHtmlCard(str) {
     resultsCount.textContent = `Showing ${visible.length} of ${cards.length} equipment`;
   }
 
+  // ---------- Load equipment from Firestore, filtered to this group ----------
+  // "Ungrouped" is the dashboard's fallback bucket for equipment with no
+  // Group field set, so match that the same way here.
+  //
+  // Cache-first, then a background server check: Firestore's own local
+  // persistence already has this data sitting on-device, but a plain
+  // .get() still waits on a network round trip before returning anything.
+  // Reading {source:'cache'} first paints instantly from what's already
+  // there, then a second {source:'server'} read quietly confirms/updates
+  // it — so a repeat visit doesn't have to sit through the same network
+  // wait every single time.
+  async function loadAndRender(source) {
+    let equipmentData = [];
+    try {
+      const [equipSnap, groupQuery] = await Promise.all([
+        db.collection('equipment').orderBy('name').get({ source }),
+        db.collection('groups').where('name', '==', groupName).limit(1).get({ source }).catch(() => null),
+      ]);
+      const all = equipSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
+      const getGroupNames = (e) => {
+        if (Array.isArray(e.groups) && e.groups.length) return e.groups;
+        if (e.group && e.group.trim()) return [e.group.trim()];
+        return ['Ungrouped'];
+      };
+      equipmentData = all.filter((e) => getGroupNames(e).includes(groupName));
+
+      const groupImage = groupQuery && !groupQuery.empty ? groupQuery.docs[0].data().image : '';
+      if (groupImage) {
+        document.querySelector('.hero').style.cssText += `background-image:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.45)),url('${groupImage}');background-size:cover;background-position:center;`;
+      }
+    } catch (err) {
+      // A cache read throws when nothing's cached yet — expected on a
+      // first-ever visit, not a real failure, so only log server misses.
+      if (source !== 'cache') console.error('Failed to load equipment list', err);
+      return false;
+    }
+
+    if (!equipmentData.length) {
+      // Don't flash an incorrect "no equipment" if this was just an empty
+      // cache read — let the server read (which always follows) decide.
+      if (source === 'cache') return false;
+      cardsGrid.innerHTML = `
+        <div class="no-results">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <p>No equipment found in this group.</p>
+        </div>
+      `;
+      resultsCount.textContent = 'Showing 0 of 0 equipment';
+      return true;
+    }
+
+    cardsGrid.innerHTML = equipmentData.map((e) => `
+    <div class="card">
+      <img src="${escapeHtmlCard(e.image || '')}" alt="${escapeHtmlCard(e.name || e.id)}" onerror="this.style.display='none'">
+      <div class="card-content">
+        <span class="badge">${escapeHtmlCard(e.status || 'Unknown')}</span>
+        <h3>${escapeHtmlCard(e.name || e.id)}</h3>
+        <p><strong>ID:</strong> ${escapeHtmlCard(e.id)}</p>
+        <p><strong>Manufacturer:</strong> ${escapeHtmlCard(e.manufacturer || '—')}</p>
+        <p><strong>Location:</strong> ${escapeHtmlCard(e.department || '—')}</p>
+        <a href="equipment.html?id=${encodeURIComponent(e.id)}">View Details</a>
+      </div>
+    </div>
+  `).join('');
+
+    cards = Array.from(cardsGrid.querySelectorAll('.card')).map((el, i) => ({
+      el,
+      name: (equipmentData[i].name || equipmentData[i].id || '').toLowerCase(),
+      id: (equipmentData[i].id || '').toLowerCase(),
+      searchText: `${equipmentData[i].name || ''} ${equipmentData[i].id || ''} ${equipmentData[i].manufacturer || ''}`.toLowerCase(),
+    }));
+
+    applyFiltersAndSort();
+    return true;
+  }
+
   searchInput.addEventListener('input', applyFiltersAndSort);
   sortSelect.addEventListener('change', applyFiltersAndSort);
 
-  applyFiltersAndSort();
+  await loadAndRender('cache').catch(() => false);
+  loadAndRender('server');
 })();
 
 if ('serviceWorker' in navigator) {
