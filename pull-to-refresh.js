@@ -33,18 +33,22 @@
     #ptrIndicator-inner{
       width:34px;height:34px;border-radius:50%;background:#fff;
       box-shadow:0 2px 10px rgba(0,0,0,.2);
-      display:flex;align-items:center;justify-content:center;color:#006937;
+      display:flex;align-items:center;justify-content:center;
     }
-    #ptrIndicator-inner i{transition:transform .15s ease}
-    #ptrIndicator.ptr-ready #ptrIndicator-inner i{transform:rotate(180deg)}
-    #ptrIndicator.ptr-refreshing #ptrIndicator-inner i{animation:ptrSpin .7s linear infinite}
+    #ptrIndicator-spinner{
+      width:18px;height:18px;border-radius:50%;
+      border:3px solid #e6e9ec;border-top-color:#006937;
+      transition:border-color .15s ease;
+    }
+    #ptrIndicator.ptr-ready #ptrIndicator-spinner{border-color:#006937}
+    #ptrIndicator.ptr-refreshing #ptrIndicator-spinner{animation:ptrSpin .7s linear infinite}
     @keyframes ptrSpin{to{transform:rotate(360deg)}}
   `;
   document.head.appendChild(style);
 
   const indicator = document.createElement('div');
   indicator.id = 'ptrIndicator';
-  indicator.innerHTML = '<div id="ptrIndicator-inner"><i class="fa-solid fa-arrow-down"></i></div>';
+  indicator.innerHTML = '<div id="ptrIndicator-inner"><div id="ptrIndicator-spinner"></div></div>';
   document.body.appendChild(indicator);
 
   let startY = null;
