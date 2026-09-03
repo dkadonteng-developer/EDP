@@ -18,13 +18,11 @@
   display:flex;
   justify-content:space-around;
   align-items:center;
-  background:rgba(255,255,255,.72);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border:.5px solid rgba(0,0,0,.06);
+  background:#ffffff;
+  border:.5px solid rgba(0,0,0,.08);
   border-radius:100px;
   padding:8px 6px;
-  box-shadow:0 4px 18px rgba(0,0,0,.08);
+  box-shadow:0 4px 18px rgba(0,0,0,.1);
 }
 .app-tabbar a{
   display:flex;flex-direction:column;align-items:center;gap:2px;
