@@ -280,6 +280,7 @@
 }
 #offlineBanner.show{display:block;}
 </style>
+  <link rel="stylesheet" href="shared-nav.css">
 </head>
 <body>
 
@@ -351,7 +352,7 @@
     <div class="part-form-modal-head">
       <div>
         <h3 id="orderFormTitle"><i class="fa-solid fa-cart-shopping"></i> Order Spare Part</h3>
-        <p>Emails Stores and MCC (plus a text to MCC) — no login needed, just your Staff ID.</p>
+        <p>Emails Stores and MCC — no login needed, just your Staff ID.</p>
       </div>
       <button type="button" class="part-form-modal-close" id="orderFormCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -360,9 +361,9 @@
       <div id="orderFormSuccess">
         <i class="fa-solid fa-circle-check"></i>
         <strong>Order sent</strong>
-        <p>Stores and MCC have been emailed with the part specs, and MCC has been texted that a pick ticket is needed. MCC will prepare the pick ticket on Infor EAM.</p>
+        <p>Stores and MCC have been emailed with the part specs. MCC will prepare the pick ticket on Infor EAM.</p>
         <div class="pf-actions" style="justify-content:center;margin-top:16px">
-          <button type="button" id="orderFormDoneBtn" class="pf-btn-secondary">Done</button>
+          <button type="button" id="orderFormDoneBtn" class="pf-btn-secondary btn-secondary">Done</button>
         </div>
       </div>
 
@@ -403,20 +404,20 @@
 
         <div class="pf-field full" style="margin-bottom:6px">
           <label>Photo of damaged part (optional)</label>
-          <label class="ef-upload-btn">
+          <label class="ef-upload-btn btn-secondary">
             <i class="fa-solid fa-camera"></i> Attach Photo
             <input type="file" accept="image/*" id="orderPhotoFile" hidden>
           </label>
           <div class="ef-upload-progress" id="orderPhotoProgress" style="display:none;"></div>
           <div id="orderPhotoPreviewWrap" style="display:none;margin-top:8px">
             <img id="orderPhotoPreview" alt="Attached photo" style="max-width:160px;max-height:160px;border-radius:8px;border:1px solid var(--border);display:block">
-            <button type="button" id="orderPhotoRemoveBtn" class="pf-btn-secondary" style="margin-top:6px;padding:4px 10px;font-size:.8rem">Remove photo</button>
+            <button type="button" id="orderPhotoRemoveBtn" class="pf-btn-secondary btn-secondary" style="margin-top:6px;padding:4px 10px;font-size:.8rem">Remove photo</button>
           </div>
         </div>
 
         <div class="pf-actions">
           <span id="orderFormError" class="pf-error"></span>
-          <button type="button" id="orderCancelBtn" class="pf-btn-secondary">Cancel</button>
+          <button type="button" id="orderCancelBtn" class="pf-btn-secondary btn-secondary">Cancel</button>
           <button type="submit" id="orderSubmitBtn"><i class="fa-solid fa-cart-shopping"></i> Submit Order</button>
         </div>
       </form>
@@ -472,30 +473,6 @@ const EMAILJS_TEMPLATE_ORDER_MCC    = 'template_80c6c19';
 // EmailJS template (Templates > [template] > Settings > To Email) — not
 // passed from here — so a request can't be redirected by editing this page.
 emailjs.init({ publicKey: '-1qmTfV9pX6ycWzse' });
-
-// ---------- SMS to MCC (pick-ticket alert, via Hubtel) ----------
-// Hubtel's Send SMS API needs a Client ID + Client Secret sent as HTTP Basic
-// Auth. Those are real secrets — never put them in this file, since anyone
-// can view page source and use them to send SMS on your account. Instead,
-// this calls a small Cloudflare Worker that holds the secret and forwards
-// the request to Hubtel. See the deployment steps shared alongside this
-// code for how to set that Worker up (free, no Firebase billing needed).
-const SMS_PROXY_URL = 'https://YOUR-WORKER-SUBDOMAIN.workers.dev/send-sms'; // TODO: replace with your deployed Worker URL
-const MCC_PHONE_NUMBER = '+233000000000';                                  // TODO: replace with MCC's phone number
-
-// Fire-and-forget: a failed/unconfigured SMS should never block the order
-// itself — email is the primary channel and is already sent separately.
-async function sendMccPickTicketSms(message) {
-  try {
-    await fetch(SMS_PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: MCC_PHONE_NUMBER, message }),
-    });
-  } catch (err) {
-    console.error('MCC SMS could not be sent (order was still saved and emailed):', err);
-  }
-}
 
 function escapeHtml(str) {
   const div = document.createElement('div');
@@ -751,7 +728,7 @@ function renderParts() {
             </div>
             <div class="part-actions">
               <input type="checkbox" class="part-select-checkbox" data-id="${p.id}" title="Select for batch order" ${selectedPartIds.has(p.id) ? 'checked' : ''}>
-              <button type="button" class="order-part-btn" data-id="${p.id}" title="Order this part from stores"><i class="fa-solid fa-cart-shopping"></i></button>
+              <button type="button" class="order-part-btn btn-primary" data-id="${p.id}" title="Order this part from stores"><i class="fa-solid fa-cart-shopping"></i></button>
             </div>
           </div>
 
@@ -968,7 +945,7 @@ orderEl.form.addEventListener('submit', async (ev) => {
       });
     }));
 
-    // Build one combined itemized summary for the emails/SMS — works the
+    // Build one combined itemized summary for the emails — works the
     // same whether it's 1 part or several.
     const itemsListText = items.map(({ part, quantityRequested }) =>
       `${part.partName} (${part.modelNumber}) x${quantityRequested} — Bin ${part.binLocation || 'not set'}`
@@ -1039,22 +1016,12 @@ orderEl.form.addEventListener('submit', async (ev) => {
       submitted_at: submittedAt,
     });
 
-    // 4) Text MCC directly that a pick ticket is needed — best-effort,
-    //    never blocks the order on failure. Kept short since SMS has a
-    //    length cap; a single item still gets full detail, a batch gets a
-    //    compact list.
-    const smsMessage = items.length === 1
-      ? `Pick ticket needed: ${items[0].part.partName} (${items[0].part.modelNumber}) x${items[0].quantityRequested} — requested by ${fullName} (${staffId}). Reason: ${reason}`
-      : `Pick ticket needed (${items.length} items, qty ${totalQuantity} total): ${items.map(({ part, quantityRequested }) => `${part.partName} x${quantityRequested}`).join('; ')} — requested by ${fullName} (${staffId}).`;
-    const mccSmsSend = sendMccPickTicketSms(smsMessage);
-
     // The order itself is already safely recorded in Firestore at this
-    // point (step 1). Emails/SMS are best-effort notifications on top of
+    // point (step 1). Emails are best-effort notifications on top of
     // that, so a single failing channel (e.g. an unconfigured EmailJS
     // template ID) must never make the order look like it failed
     // entirely — allSettled lets each channel fail independently.
     const [storesResult, mccResult] = await Promise.allSettled([storesSend, mccSend]);
-    await mccSmsSend; // already catches its own errors internally
 
     const failedChannels = [];
     if (storesResult.status === 'rejected') {
@@ -1129,5 +1096,6 @@ if ('serviceWorker' in navigator) {
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
 
+  <script src="shared-nav.js" defer></script>
 </body>
 </html>
