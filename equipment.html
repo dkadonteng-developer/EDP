@@ -572,7 +572,7 @@
     width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
   }
   .t5-modal-close:hover{background:rgba(255,255,255,.3)}
-  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y}
+  .t5-modal-body{padding:22px 24px;max-height:75vh;max-height:75dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y}
 
   .t5-field{margin-bottom:16px}
   .t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}
@@ -581,6 +581,11 @@
     font-family:inherit;font-size:16px;outline:none;transition:.2s;
   }
   .t5-field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,105,55,.12)}
+  /* The native date field only ever needs to show mm/dd/yyyy plus a
+     calendar icon — letting it stretch to fill its grid column (or the
+     full card width once the row stacks on mobile) makes it look
+     needlessly oversized next to how little it actually contains. */
+  #t5Date{width:auto;max-width:170px}
   .t5-field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:600px){.t5-field-row{grid-template-columns:1fr}}
 
@@ -3803,6 +3808,12 @@ async function openPartFromUrl(equipmentId, partId, componentId) {
   }
 }
 
+// Lets loading-screen.js keep the loading overlay up until the actual
+// equipment record has rendered, not just until the page's static assets
+// have loaded (which happens well before this Firestore fetch resolves).
+let resolvePageReady;
+window.pageReadyPromise = new Promise((resolve) => { resolvePageReady = resolve; });
+
 const id = new URLSearchParams(location.search).get('id');
 const requestedTab = new URLSearchParams(location.search).get('tab');
 const requestedPartId = new URLSearchParams(location.search).get('part');
@@ -3810,15 +3821,18 @@ const requestedComponentId = new URLSearchParams(location.search).get('component
 
 if (!id) {
   showNotFound('No equipment ID was provided in the URL.');
+  resolvePageReady();
 } else {
   db.collection('equipment').doc(id).get()
     .then((doc) => {
       if (!doc.exists) {
         showNotFound(`Equipment with ID "${id}" was not found.`);
+        resolvePageReady();
         return;
       }
       const e = { id: doc.id, ...doc.data() };
       renderEquipment(e);
+      resolvePageReady();
       if (requestedPartId) {
         openPartFromUrl(id, requestedPartId, requestedComponentId);
       } else if (requestedTab && ['home', 'diagrams', 'documents', 'log'].includes(requestedTab)) {
@@ -3828,6 +3842,7 @@ if (!id) {
     .catch((err) => {
       console.error('Failed to load equipment data', err);
       showNotFound('Could not load equipment data. Please check your connection and try again.');
+      resolvePageReady();
     });
 }
 
