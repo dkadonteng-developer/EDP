@@ -12,17 +12,23 @@
 /* ---------- Floating tab bar ---------- */
 .app-tabbar{
   position:fixed;
+  top:auto; /* guards against page-level `nav{top:0}` header rules leaking
+               onto this element, since it's also a <nav> — without this,
+               a fixed element with both top and bottom set stretches to
+               fill the space between them instead of sizing to content */
   left:14px;right:14px;
   bottom:calc(10px + env(safe-area-inset-bottom));
   z-index:999;
   display:flex;
   justify-content:space-around;
   align-items:center;
-  background:#ffffff;
-  border:.5px solid rgba(0,0,0,.08);
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:.5px solid rgba(0,0,0,.06);
   border-radius:100px;
   padding:8px 6px;
-  box-shadow:0 4px 18px rgba(0,0,0,.1);
+  box-shadow:0 4px 18px rgba(0,0,0,.08);
 }
 .app-tabbar a{
   display:flex;flex-direction:column;align-items:center;gap:2px;
