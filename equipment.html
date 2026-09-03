@@ -552,6 +552,7 @@
   #t5Overlay,#t5HistoryOverlay{
     position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
     display:none;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;
+    overscroll-behavior:contain;
   }
   #t5Overlay.is-open,#t5HistoryOverlay.is-open{display:flex}
 
@@ -571,7 +572,7 @@
     width:34px;height:34px;border-radius:50%;flex-shrink:0;cursor:pointer;font-size:15px;
   }
   .t5-modal-close:hover{background:rgba(255,255,255,.3)}
-  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto}
+  .t5-modal-body{padding:22px 24px;max-height:75vh;overflow-y:auto;overscroll-behavior:contain}
 
   .t5-field{margin-bottom:16px}
   .t5-field label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px}
@@ -1046,9 +1047,6 @@
     .search-bar input{min-width:90px}
     .search-bar .match-nav button{padding:5px 8px}
     .pdf-canvas-scroll,.viewer-empty,.pdf-loading,.generic-preview-body{max-height:420px;height:420px}
-    #callFloatBtn{bottom:218px;right:16px}
-    #aiLauncher{bottom:150px;right:16px}
-    #inventoryFloatBtn{bottom:286px;right:16px}
   }
 
   @media (max-width:360px){
@@ -1057,7 +1055,7 @@
 
   /* ---------- Call Control Room (floating) ---------- */
   #callFloatBtn{
-    position:fixed;bottom:182px;right:24px;z-index:500;
+    position:fixed;bottom:calc(150px + env(safe-area-inset-bottom));right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:#d92d20;color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -1074,7 +1072,7 @@
 
   /* ---------- Spare Parts Inventory (floating) ---------- */
   #inventoryFloatBtn{
-    position:fixed;bottom:252px;right:24px;z-index:500;
+    position:fixed;bottom:calc(222px + env(safe-area-inset-bottom));right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:var(--brand);color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -1086,12 +1084,12 @@
 
   @media (max-width:600px){
     #inventoryFloatBtn span{display:none}
-    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%;bottom:290px}
+    #inventoryFloatBtn{padding:0;width:56px;height:56px;justify-content:center;border-radius:50%}
   }
 
   /* ---------- AI Troubleshooting Assistant ---------- */
   #aiLauncher{
-    position:fixed;bottom:94px;right:24px;z-index:500;
+    position:fixed;bottom:calc(78px + env(safe-area-inset-bottom));right:24px;z-index:500;
     width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
     background:var(--brand);color:#fff;font-size:1.3rem;
     box-shadow:0 6px 18px rgba(0,0,0,.25);
@@ -2354,6 +2352,16 @@ function t5CloseModal() {
 
 // Prompted automatically whenever equipment data finishes loading.
 function promptTakeFive() {
+  // #pageLoadingOverlay sits above everything (z-index 99999) while the
+  // page's own loading-screen.js fade-out is still in progress. On a fast
+  // or cached load, equipment data can resolve before that fade-out
+  // finishes, which would pop this modal open underneath a loading
+  // screen that's still visible. Wait for it to actually clear first.
+  const pageOverlay = document.getElementById('pageLoadingOverlay');
+  if (pageOverlay && pageOverlay.style.display !== 'none' && !pageOverlay.classList.contains('is-hidden')) {
+    setTimeout(promptTakeFive, 150);
+    return;
+  }
   t5OpenModal();
 }
 
