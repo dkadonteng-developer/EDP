@@ -1278,8 +1278,8 @@
 
         <div class="t5-error" id="t5FormError"></div>
         <div class="t5-form-actions">
-          <button type="button" class="t5-skip-btn" id="t5SkipBtn"><i class="fa-solid fa-forward"></i> Skip — Not Needed for This Task</button>
-          <button type="submit" class="t5-submit-btn" id="t5SubmitBtn" disabled>
+          <button type="button" class="t5-skip-btn btn-secondary" id="t5SkipBtn"><i class="fa-solid fa-forward"></i> Skip — Not Needed for This Task</button>
+          <button type="submit" class="t5-submit-btn btn-primary" id="t5SubmitBtn" disabled>
             <i class="fa-solid fa-signature"></i> Complete &amp; Save Assessment
           </button>
         </div>
@@ -1290,7 +1290,7 @@
         <h4>Take Five Recorded</h4>
         <p id="t5SuccessDetail"></p>
         <div class="t5-success-actions">
-          <button type="button" id="t5ViewHistoryBtn" class="t5-secondary-btn"><i class="fa-solid fa-clock-rotate-left"></i> View History for This Equipment</button>
+          <button type="button" id="t5ViewHistoryBtn" class="t5-secondary-btn btn-secondary"><i class="fa-solid fa-clock-rotate-left"></i> View History for This Equipment</button>
           <button type="button" id="t5NewBtn">Start Another Take Five</button>
         </div>
       </div>
@@ -1313,7 +1313,7 @@
           <input type="checkbox" id="t5SelectAllCheckbox"> Select all
         </label>
         <span id="t5SelectedCount">None selected</span>
-        <button type="button" id="t5ExportSelectedBtn" class="t5-export-btn" disabled>
+        <button type="button" id="t5ExportSelectedBtn" class="t5-export-btn btn-secondary" disabled>
           <i class="fa-solid fa-file-pdf"></i> Export Selected as PDF
         </button>
       </div>
@@ -1602,7 +1602,7 @@
       <span id="pmChecklistHistoryCount" class="log-count-badge" style="display:none"></span>
     </button>
     <div id="pmChecklistHistoryPanel" class="log-history-panel" style="display:none">
-      <button type="button" id="pmChecklistShowArchivedBtn" class="log-export-btn" style="display:none;margin-bottom:10px"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
+      <button type="button" id="pmChecklistShowArchivedBtn" class="log-export-btn btn-secondary" style="display:none;margin-bottom:10px"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
       <div id="pmChecklistHistoryEntries"><p class="log-empty">Loading PM history…</p></div>
     </div>
   </div>
@@ -1617,7 +1617,7 @@
     <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
       Manuals, procedures, terminology references, training videos, and other in-house material added by admins.
     </p>
-    <button type="button" id="resourcesOpenBtn" class="log-open-form-btn">
+    <button type="button" id="resourcesOpenBtn" class="log-open-form-btn btn-primary">
       <i class="fa-solid fa-book-open"></i> View Internal Resources
     </button>
   </div>
@@ -1684,7 +1684,7 @@
       Entries are visible to everyone, and can only be edited by the device that submitted them.
     </p>
 
-    <button type="button" id="commentOpenFormBtn" class="log-open-form-btn">
+    <button type="button" id="commentOpenFormBtn" class="log-open-form-btn btn-primary">
       <i class="fa-solid fa-plus"></i> Add Comment
     </button>
 
@@ -1702,7 +1702,7 @@
       Entries are visible to everyone, and can only be edited by the device that submitted them.
     </p>
 
-    <button type="button" id="logOpenFormBtn" class="log-open-form-btn">
+    <button type="button" id="logOpenFormBtn" class="log-open-form-btn btn-primary">
       <i class="fa-solid fa-plus"></i> Log New Entry
     </button>
 
@@ -1810,7 +1810,7 @@
           </div>
           <div class="log-field">
             <label>Photos (optional, up to 2)</label>
-            <button type="button" id="logAttachBtn" class="log-attach-btn"><i class="fa-solid fa-camera"></i> Attach photo(s)</button>
+            <button type="button" id="logAttachBtn" class="log-attach-btn btn-secondary"><i class="fa-solid fa-camera"></i> Attach photo(s)</button>
             <input type="file" id="logFileInput" accept="image/*" multiple style="display:none">
           </div>
         </div>
@@ -1871,9 +1871,9 @@
         <span id="logViewerBadge" class="viewer-badge"><i class="fa-solid fa-eye"></i> Viewing only</span>
         <span id="logExportCount" class="log-export-count" style="display:none"></span>
         <div class="log-export-btns" id="logExportBtns" style="display:none">
-          <button type="button" id="logExportPdfBtn" class="log-export-btn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
-          <button type="button" id="logExportExcelBtn" class="log-export-btn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-          <button type="button" id="logShowArchivedBtn" class="log-export-btn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
+          <button type="button" id="logExportPdfBtn" class="log-export-btn btn-secondary"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+          <button type="button" id="logExportExcelBtn" class="log-export-btn btn-secondary"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" id="logShowArchivedBtn" class="log-export-btn btn-secondary"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
         </div>
         <button type="button" id="logAdminToggleBtn" class="admin-toggle-btn btn-secondary"><i class="fa-solid fa-lock"></i> Admin Login</button>
       </div>
@@ -2228,8 +2228,8 @@ function t5BuildForm() {
             <div class="t5-hazard-head">
               <div class="t5-hazard-name">${escapeHtml(name)}</div>
               <div class="t5-yn">
-                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="yes">Yes</button>
-                <button type="button" class="t5-yn-btn" data-id="${id}" data-answer="no">No</button>
+                <button type="button" class="t5-yn-btn btn-secondary" data-id="${id}" data-answer="yes">Yes</button>
+                <button type="button" class="t5-yn-btn btn-secondary" data-id="${id}" data-answer="no">No</button>
               </div>
             </div>
             <div class="t5-hazard-detail" id="detail-${id}">
@@ -4673,12 +4673,12 @@ function renderLogEntries(rows) {
         <div class="log-entry-date-wrap">
           <span class="log-entry-date">${formatLogDate(r.timestamp)}</span>
           ${adminUnlocked && !showArchivedLogs ? `
-            <button type="button" class="log-entry-edit-btn" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
-            <button type="button" class="log-entry-archive-btn" data-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>
+            <button type="button" class="log-entry-edit-btn btn-secondary" data-id="${r.id}"><i class="fa-solid fa-pen"></i> Edit</button>
+            <button type="button" class="log-entry-archive-btn btn-secondary" data-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>
           ` : ''}
           ${adminUnlocked && showArchivedLogs ? `
-            <button type="button" class="log-entry-restore-btn" data-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
-            <button type="button" class="log-entry-delete-btn" data-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
+            <button type="button" class="log-entry-restore-btn btn-secondary" data-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
+            <button type="button" class="log-entry-delete-btn btn-danger" data-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
           ` : ''}
         </div>
       </div>
@@ -5814,7 +5814,7 @@ function renderPmChecklistPicker() {
     return;
   }
   pmEl.pickerList.innerHTML = pmChecklistsList.map(c => `
-    <button type="button" class="log-open-form-btn" data-checklist-id="${c.id}" style="margin-bottom:8px">
+    <button type="button" class="log-open-form-btn btn-primary" data-checklist-id="${c.id}" style="margin-bottom:8px">
       <i class="fa-solid fa-clipboard-check"></i> ${escapeHtml(c.name || 'Untitled checklist')}
       <span style="color:var(--muted);font-weight:400">(${(c.items || []).length} item${(c.items || []).length === 1 ? '' : 's'})</span>
     </button>
@@ -6001,11 +6001,11 @@ function loadPmChecklistHistory(equipmentId, forceReload) {
           ${r.comments ? `<div>${escapeHtml(r.comments)}</div>` : ''}
           <div class="rec-meta">${(r.itemsSnapshot || []).length} item(s) verified</div>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button type="button" class="log-entry-edit-btn" data-pdf-id="${r.id}"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
-            ${adminUnlocked && !pmShowArchived ? `<button type="button" class="log-entry-archive-btn" data-archive-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>` : ''}
+            <button type="button" class="log-entry-edit-btn btn-secondary" data-pdf-id="${r.id}"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+            ${adminUnlocked && !pmShowArchived ? `<button type="button" class="log-entry-archive-btn btn-secondary" data-archive-id="${r.id}" title="Archive"><i class="fa-solid fa-box-archive"></i></button>` : ''}
             ${adminUnlocked && pmShowArchived ? `
-              <button type="button" class="log-entry-restore-btn" data-restore-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
-              <button type="button" class="log-entry-delete-btn" data-delete-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
+              <button type="button" class="log-entry-restore-btn btn-secondary" data-restore-id="${r.id}" title="Restore"><i class="fa-solid fa-rotate-left"></i> Restore</button>
+              <button type="button" class="log-entry-delete-btn btn-danger" data-delete-id="${r.id}" title="Delete permanently"><i class="fa-solid fa-trash"></i></button>
             ` : ''}
           </div>
         </div>
