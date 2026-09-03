@@ -680,10 +680,18 @@ showAdminBtn.addEventListener('click', () => setActiveView('admin'));
 
 // ---------- Known equipment (for the picker below, and for admin filters/exports) ----------
 let EQUIPMENT_LIST = [];
-db.collection('equipment').get().then((snap) => {
-  EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
-  renderEquipPicker();
-}).catch((err) => console.error('Failed to load equipment list', err));
+function loadEquipmentList(source) {
+  return db.collection('equipment').get({ source }).then((snap) => {
+    EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((e) => !e.archived);
+    renderEquipPicker();
+  }).catch((err) => {
+    if (source !== 'cache') console.error('Failed to load equipment list', err);
+  });
+}
+// Cache-first for an instant paint, then a background server read to
+// confirm/refresh — see group.html for the same pattern.
+loadEquipmentList('cache');
+loadEquipmentList('server');
 
 let selectedEquipmentId = '';
 let selectedEquipmentName = '';
