@@ -6,8 +6,8 @@
 (function(){
 
   var TABS = [
-    { href:'index.html',    icon:'fa-toolbox',         label:'Equipment', match:['index.html','equipment.html','group.html'] },
-    { href:'groups.html',   icon:'fa-layer-group',     label:'Groups',    match:['groups.html'] },
+    { href:'index.html',    icon:'fa-toolbox',         label:'Equipment', match:['index.html','equipment.html'] },
+    { href:'groups.html',   icon:'fa-layer-group',     label:'Groups',    match:['groups.html','group.html'] },
     { href:'inventory.html',icon:'fa-boxes-stacked',   label:'Inventory', match:['inventory.html','stores-admin.html'] },
     { href:'handover.html', icon:'fa-clipboard-list',  label:'Handover',  match:['handover.html'] },
     { href:'admin.html',    icon:'fa-bars',            label:'More',      match:['admin.html'] }
