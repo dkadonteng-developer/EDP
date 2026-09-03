@@ -477,6 +477,7 @@
 }
 #offlineBanner.show{display:block;}
 </style>
+  <link rel="stylesheet" href="shared-nav.css">
 </head>
 <body>
 
@@ -509,7 +510,7 @@
         <input type="password" id="signInPassword" required autocomplete="current-password">
       </label>
       <div class="signin-error" id="signInError"></div>
-      <button type="submit" class="signin-submit-btn" id="signInSubmitBtn">
+      <button type="submit" class="signin-submit-btn btn-primary" id="signInSubmitBtn">
         <i class="fa-solid fa-right-to-bracket"></i> Sign In
       </button>
     </form>
@@ -566,10 +567,10 @@
           </select>
         </div>
         <div class="admin-controls">
-          <button type="button" id="addPartBtn" class="add-part-btn"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
-          <button type="button" id="downloadTemplateBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-arrow-down"></i> Excel Template</button>
-          <button type="button" id="exportInventoryBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-export"></i> Export Inventory</button>
-          <label id="importExcelBtn" class="toolbar-btn outline" style="position:relative;overflow:hidden">
+          <button type="button" id="addPartBtn" class="add-part-btn btn-primary"><i class="fa-solid fa-plus"></i> Add Spare Part</button>
+          <button type="button" id="downloadTemplateBtn" class="toolbar-btn outline btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Excel Template</button>
+          <button type="button" id="exportInventoryBtn" class="toolbar-btn outline btn-secondary"><i class="fa-solid fa-file-export"></i> Export Inventory</button>
+          <label id="importExcelBtn" class="toolbar-btn outline btn-secondary" style="position:relative;overflow:hidden">
             <i class="fa-solid fa-file-import"></i> Import Excel
             <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="position:absolute;inset:0;opacity:0;cursor:pointer">
           </label>
@@ -588,8 +589,8 @@
       <div class="panel-toolbar">
         <h2>Spare Part Orders</h2>
         <div class="admin-controls">
-          <button type="button" id="exportOrdersExcelBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-          <button type="button" id="exportOrdersPdfBtn" class="toolbar-btn outline"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+          <button type="button" id="exportOrdersExcelBtn" class="toolbar-btn outline btn-secondary"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" id="exportOrdersPdfBtn" class="toolbar-btn outline btn-secondary"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
         </div>
       </div>
       <p class="panel-hint">Requests technicians submit from the Spare Parts Inventory page — mark them fulfilled once picked up, or cancel a bad request. Exports include whatever the filters below are currently set to.</p>
@@ -712,7 +713,7 @@
 
         <div class="pf-actions">
           <span id="partFormError" class="pf-error"></span>
-          <button type="button" id="partCancelBtn" class="pf-btn-secondary">Cancel</button>
+          <button type="button" id="partCancelBtn" class="pf-btn-secondary btn-secondary">Cancel</button>
           <button type="submit" id="partSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Part</button>
         </div>
       </form>
@@ -735,7 +736,7 @@
       </div>
       <div class="pf-actions" style="margin-top:16px">
         <span id="importPreviewError" class="pf-error"></span>
-        <button type="button" id="importCancelBtn" class="pf-btn-secondary">Cancel</button>
+        <button type="button" id="importCancelBtn" class="pf-btn-secondary btn-secondary">Cancel</button>
         <button type="button" id="importConfirmBtn"><i class="fa-solid fa-check"></i> Confirm Import</button>
       </div>
     </div>
@@ -1738,5 +1739,6 @@ if ('serviceWorker' in navigator) {
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
 
+  <script src="shared-nav.js" defer></script>
 </body>
 </html>
