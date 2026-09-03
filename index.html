@@ -1414,11 +1414,11 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
     Breakdown: 'fa-triangle-exclamation',
   };
 
-  (async function loadStats() {
+  async function loadStats(source) {
     try {
       const [equipSnap, groupsSnap] = await Promise.all([
-        db.collection('equipment').get(),
-        db.collection('groups').get(),
+        db.collection('equipment').get({ source }),
+        db.collection('groups').get({ source }),
       ]);
       const equipmentList = equipSnap.docs.map((doc) => doc.data()).filter((e) => !e.archived);
       const downCount = equipmentList.filter((e) => {
@@ -1440,24 +1440,32 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
       statEquipment.textContent = equipmentList.length;
       statDown.textContent = downCount;
     } catch (err) {
+      if (source === 'cache') return; // expected on a first-ever visit, not a real failure
       console.error('Failed to load home dashboard stats', err);
       statGroups.textContent = '—';
       statEquipment.textContent = '—';
       statDown.textContent = '—';
     }
-  })();
+  }
+  // Cache-first for an instant paint, then a background server read to
+  // confirm/refresh — see loadRecentActivity below and group.html for the
+  // same pattern; a plain .get() always waits on the network even though
+  // Firestore's local persistence already has this data on-device.
+  loadStats('cache');
+  loadStats('server');
 
-  (async function loadRecentActivity() {
+  async function loadRecentActivity(source) {
     try {
       const [logsSnap, equipSnap] = await Promise.all([
-        db.collection('equipmentLogs').orderBy('timestamp', 'desc').limit(6).get(),
-        db.collection('equipment').get(),
+        db.collection('equipmentLogs').orderBy('timestamp', 'desc').limit(6).get({ source }),
+        db.collection('equipment').get({ source }),
       ]);
       const nameById = {};
       equipSnap.docs.forEach((doc) => { nameById[doc.id] = doc.data().name || doc.id; });
 
       const entries = logsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       if (!entries.length) {
+        if (source === 'cache') return; // let the server read decide the empty state
         activityList.innerHTML = '<p class="loading-text" style="padding:20px;color:#888;text-align:center;">No recent activity logged yet.</p>';
         return;
       }
@@ -1478,10 +1486,13 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
         `;
       }).join('');
     } catch (err) {
+      if (source === 'cache') return;
       console.error('Failed to load recent activity', err);
       activityList.innerHTML = '<p class="loading-text" style="padding:20px;color:#888;text-align:center;">Could not load recent activity right now.</p>';
     }
-  })();
+  }
+  loadRecentActivity('cache');
+  loadRecentActivity('server');
 })();
 </script>
 
