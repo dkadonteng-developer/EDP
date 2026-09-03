@@ -1053,7 +1053,7 @@
 
   /* ---------- Call Control Room (floating) ---------- */
   #callFloatBtn{
-    position:fixed;bottom:166px;right:24px;z-index:500;
+    position:fixed;bottom:182px;right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:#d92d20;color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -1070,7 +1070,7 @@
 
   /* ---------- Spare Parts Inventory (floating) ---------- */
   #inventoryFloatBtn{
-    position:fixed;bottom:236px;right:24px;z-index:500;
+    position:fixed;bottom:252px;right:24px;z-index:500;
     display:flex;align-items:center;gap:10px;
     background:var(--brand);color:#fff;text-decoration:none!important;
     padding:14px 20px;border-radius:32px;font-weight:600;font-size:.92rem;
@@ -1223,6 +1223,7 @@
 }
 #offlineBanner.show{display:block;}
 </style>
+  <link rel="stylesheet" href="shared-nav.css">
 </head>
 <body>
 
@@ -1329,7 +1330,7 @@
         <p id="checklistEquipName">Equipment</p>
       </div>
       <div class="checklist-modal-head-actions">
-        <button type="button" id="checklistEditBtn" class="checklist-admin-btn" title="Edit checklist (admin)"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" id="checklistEditBtn" class="checklist-admin-btn btn-secondary" title="Edit checklist (admin)"><i class="fa-solid fa-pen"></i></button>
         <button type="button" class="checklist-modal-close" id="checklistCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
@@ -1375,7 +1376,7 @@
         <i class="fa-solid fa-circle-check"></i>
         <p>Sign-off recorded. Keep a copy for your permit-to-work documentation.</p>
         <button type="button" id="checklistDownloadPdfBtn"><i class="fa-solid fa-file-pdf"></i> Download Sign-off Record (PDF)</button>
-        <button type="button" id="checklistNewSignoffBtn" class="checklist-link-btn">Start another sign-off</button>
+        <button type="button" id="checklistNewSignoffBtn" class="checklist-link-btn btn-secondary">Start another sign-off</button>
       </div>
 
       <button type="button" id="checklistHistoryToggle" class="log-history-toggle" style="margin-top:16px">
@@ -1402,10 +1403,10 @@
     <div class="checklist-edit-modal-body">
       <div class="checklist-reviewed-row">
         <label><input type="checkbox" id="checklistReviewedCheckbox"> Reviewed and approved by safety/engineering team</label>
-        <button type="button" id="checklistLoadStarterBtn" class="checklist-link-btn"><i class="fa-solid fa-database"></i> Load starter checklist for this equipment type</button>
+        <button type="button" id="checklistLoadStarterBtn" class="checklist-link-btn btn-secondary"><i class="fa-solid fa-database"></i> Load starter checklist for this equipment type</button>
       </div>
       <div id="checklistEditItems" class="checklist-edit-items"></div>
-      <button type="button" id="checklistAddItemBtn" class="checklist-add-item-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+      <button type="button" id="checklistAddItemBtn" class="checklist-add-item-btn btn-secondary"><i class="fa-solid fa-plus"></i> Add Item</button>
       <div class="cf-actions" style="margin-top:16px">
         <span id="checklistEditError" class="cf-error"></span>
         <button type="button" id="checklistEditSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
@@ -1477,7 +1478,7 @@
         <i class="fa-solid fa-circle-check"></i>
         <p>PM checklist recorded and saved to this equipment's history.</p>
         <button type="button" id="pmChecklistDownloadPdfBtn"><i class="fa-solid fa-file-pdf"></i> Download PM Record (PDF)</button>
-        <button type="button" id="pmChecklistNewSignoffBtn" class="checklist-link-btn">Close</button>
+        <button type="button" id="pmChecklistNewSignoffBtn" class="checklist-link-btn btn-secondary">Close</button>
       </div>
     </div>
   </div>
@@ -1762,7 +1763,7 @@
           <input type="password" id="adminPasswordInput" required autocomplete="current-password">
         </label>
         <div class="admin-signin-error" id="adminSignInError"></div>
-        <button type="submit" class="admin-signin-btn" id="adminSignInSubmitBtn">
+        <button type="submit" class="admin-signin-btn btn-primary" id="adminSignInSubmitBtn">
           <i class="fa-solid fa-right-to-bracket"></i> Sign In
         </button>
         <span id="adminSignInStatus"></span>
@@ -1874,7 +1875,7 @@
           <button type="button" id="logExportExcelBtn" class="log-export-btn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
           <button type="button" id="logShowArchivedBtn" class="log-export-btn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
         </div>
-        <button type="button" id="logAdminToggleBtn" class="admin-toggle-btn"><i class="fa-solid fa-lock"></i> Admin Login</button>
+        <button type="button" id="logAdminToggleBtn" class="admin-toggle-btn btn-secondary"><i class="fa-solid fa-lock"></i> Admin Login</button>
       </div>
 
       <div id="logEntries" class="log-entries">
@@ -5100,7 +5101,7 @@ function renderSubscribers() {
     <div class="subscriber-item">
       <span class="email"><i class="fa-solid fa-envelope"></i> ${escapeHtml(s.email || '')}</span>
       <span class="date">${formatSubscribeDate(s.subscribedAt)}</span>
-      <button type="button" class="del-btn" data-id="${s.id}" data-email="${escapeHtml(s.email || '')}" title="Remove subscriber">
+      <button type="button" class="del-btn btn-danger" data-id="${s.id}" data-email="${escapeHtml(s.email || '')}" title="Remove subscriber">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
@@ -5659,7 +5660,7 @@ function appendChecklistEditRow(item) {
     <textarea class="edit-item-text" placeholder="Checklist step…">${escapeHtml(item.text)}</textarea>
     <div class="checklist-edit-item-controls">
       <label><input type="checkbox" class="edit-item-critical" ${item.critical ? 'checked' : ''}> Critical</label>
-      <button type="button" class="checklist-remove-item-btn" title="Remove"><i class="fa-solid fa-trash"></i></button>
+      <button type="button" class="checklist-remove-item-btn btn-danger" title="Remove"><i class="fa-solid fa-trash"></i></button>
     </div>
   `;
   row.querySelector('.checklist-remove-item-btn').addEventListener('click', () => row.remove());
@@ -6104,5 +6105,6 @@ if ('serviceWorker' in navigator) {
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
 
+  <script src="shared-nav.js" defer></script>
 </body>
 </html>
