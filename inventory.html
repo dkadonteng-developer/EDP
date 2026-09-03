@@ -285,6 +285,12 @@
 #offlineBanner.show{display:block;}
 </style>
   <link rel="stylesheet" href="shared-nav.css">
+  <style>
+    /* The cart bar and the global nav bar occupy the same floating slot —
+       hide the global bar while the cart bar is actually showing, instead
+       of stacking both. */
+    body:has(#cartBar.is-visible) .app-tabbar{ display:none; }
+  </style>
 </head>
 <body>
 
