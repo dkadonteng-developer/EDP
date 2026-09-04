@@ -61,15 +61,6 @@
     padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
   }
   header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
-  .stores-admin-link{
-    display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;
-    font-size:.82rem;font-weight:600;background:rgba(255,255,255,.14);
-    padding:8px 14px;border-radius:20px;transition:background .15s ease;white-space:nowrap;
-  }
-  .stores-admin-link:hover{background:rgba(255,255,255,.26);text-decoration:none}
-  @media(max-width:520px){
-    .stores-admin-link span{display:none}
-  }
   header h1{font-size:1.05rem;font-weight:600;margin:0;text-align:center;flex:1}
   .header-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;min-width:110px}
 
@@ -305,9 +296,7 @@
 <header>
   <a href="index.html" id="headerBackLink" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
   <h1><i class="fa-solid fa-cart-shopping"></i> Spare Parts Inventory</h1>
-  <div class="header-right">
-    <a href="stores-admin.html" class="stores-admin-link" title="Stores Admin"><i class="fa-solid fa-user-shield"></i> <span>Stores Admin</span></a>
-  </div>
+  <div class="header-right"></div>
 </header>
 
 <div class="container">
