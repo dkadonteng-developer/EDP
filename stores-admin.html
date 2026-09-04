@@ -64,6 +64,13 @@
   }
   #headerSignOutBtn:hover{background:rgba(255,255,255,.3)}
   #headerSignOutBtn.show{display:flex}
+  #notifToggleBtn{
+    background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;
+    cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.95rem;margin-right:8px;
+  }
+  #notifToggleBtn:hover{background:rgba(255,255,255,.3)}
+  #notifToggleBtn.show{display:flex}
+  #notifToggleBtn.is-on{background:rgba(255,255,255,.32)}
   #headerSignedInAs{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
   @media(max-width:560px){
     header{padding:12px 16px;gap:10px}
@@ -495,6 +502,7 @@
 
 <header>
   <h1><i class="fa-solid fa-warehouse"></i> Stores Admin</h1>
+  <button type="button" id="notifToggleBtn" title="Enable notifications for new spare part orders"><i class="fa-solid fa-bell-slash"></i></button>
   <button type="button" id="headerSignOutBtn"><i class="fa-solid fa-right-from-bracket"></i> <span id="headerSignedInAs"></span></button>
 </header>
 
@@ -836,10 +844,12 @@ function renderAuthState(user) {
     signOutBtn.classList.add('show');
     signedInAs.textContent = user.email;
     loadPartOrders();
+    startNewOrderNotifications();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
     signOutBtn.classList.remove('show');
+    stopNewOrderNotifications();
     if (user && !user.isAnonymous) {
       if (adminCheckFailed) {
         document.getElementById('signInError').textContent =
@@ -849,6 +859,73 @@ function renderAuthState(user) {
         auth.signOut();
       }
     }
+  }
+}
+
+// ================= New-activity notifications =================
+// Fires a browser notification when a new spare part order is created,
+// as long as this tab/window is open somewhere -- even minimized or
+// backgrounded on desktop. This does NOT work if the browser is fully
+// closed, and is unreliable on iOS in the background (iOS suspends
+// background tab JS aggressively). True always-on push notifications
+// need a server-side trigger (Firebase Cloud Functions + Cloud
+// Messaging), which requires upgrading off Firebase's free Spark plan
+// -- a real cost decision, not something to build in silently.
+const notifSessionStart = new Date(); // ignore anything older than "now" so opening the tab doesn't notify about existing history
+let notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+let unsubscribeNewOrderNotifications = null;
+
+function updateNotifBtn() {
+  const btn = document.getElementById('notifToggleBtn');
+  if (!btn) return;
+  if (notifPermission === 'unsupported') { btn.classList.remove('show'); return; }
+  btn.classList.add('show');
+  btn.classList.toggle('is-on', notifPermission === 'granted');
+  btn.innerHTML = notifPermission === 'granted' ? '<i class="fa-solid fa-bell"></i>' : '<i class="fa-solid fa-bell-slash"></i>';
+  btn.title = notifPermission === 'granted'
+    ? 'Notifications on for new spare part orders'
+    : (notifPermission === 'denied'
+      ? "Notifications blocked -- enable them in your browser's site settings"
+      : 'Enable notifications for new spare part orders');
+}
+
+document.getElementById('notifToggleBtn').addEventListener('click', async () => {
+  if (typeof Notification === 'undefined' || notifPermission === 'denied') { updateNotifBtn(); return; }
+  notifPermission = await Notification.requestPermission();
+  updateNotifBtn();
+});
+
+function showAdminNotification(title, body) {
+  if (notifPermission !== 'granted') return;
+  try {
+    new Notification(title, { body, icon: 'assets/icons/stores-admin/icon-192.png' });
+  } catch (err) {
+    console.error('Notification failed', err);
+  }
+}
+
+function startNewOrderNotifications() {
+  updateNotifBtn();
+  if (unsubscribeNewOrderNotifications) return; // already listening
+  unsubscribeNewOrderNotifications = db.collection('partOrders').orderBy('createdAt', 'desc').limit(10)
+    .onSnapshot((snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type !== 'added') return;
+        const data = change.doc.data();
+        const ts = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
+        if (!ts || ts < notifSessionStart) return; // skip pre-existing orders on first load
+        showAdminNotification(
+          'New spare part order',
+          `${data.fullName || data.staffId || 'A technician'} requested ${data.quantityRequested || 1}x ${data.partName || 'a part'}`
+        );
+      });
+    }, (err) => console.error('New-order notification listener failed', err));
+}
+
+function stopNewOrderNotifications() {
+  if (unsubscribeNewOrderNotifications) {
+    unsubscribeNewOrderNotifications();
+    unsubscribeNewOrderNotifications = null;
   }
 }
 
