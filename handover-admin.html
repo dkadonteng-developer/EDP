@@ -230,6 +230,7 @@
       <button type="button" class="admin-tab-btn active" data-tab="overviewPanel"><i class="fa-solid fa-chart-column"></i> Overview</button>
       <button type="button" class="admin-tab-btn" data-tab="entriesPanel"><i class="fa-solid fa-list"></i> Log Entries</button>
       <button type="button" class="admin-tab-btn" data-tab="binPanel"><i class="fa-solid fa-trash-can"></i> Recycle Bin</button>
+      <button type="button" class="admin-tab-btn" data-tab="packingPanel"><i class="fa-solid fa-box"></i> Packing</button>
     </div>
 
     <!-- Overview -->
@@ -279,6 +280,16 @@
     <div class="admin-panel" id="binPanel">
       <p class="card-hint" style="margin-bottom:16px">Deleted log entries are kept here until permanently removed. Restore a record to return it to the active log list.</p>
       <div id="binListContainer"><p class="loading-text">Loading…</p></div>
+    </div>
+
+    <!-- Packing (separate structure from Milling — one note per shift, each with multiple equipment handover rows) -->
+    <div class="admin-panel" id="packingPanel">
+      <div class="stat-cards" id="packingStatCards"></div>
+      <div class="export-bar">
+        <button type="button" class="toolbar-btn outline btn-secondary" id="packingShowArchivedBtn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
+        <button type="button" class="toolbar-btn outline btn-secondary" id="packingExportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+      </div>
+      <div id="packingListContainer"><p class="loading-text">Loading…</p></div>
     </div>
   </div>
 
@@ -363,7 +374,7 @@ auth.onAuthStateChanged(async (user) => {
   }
   document.getElementById('adminGate').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('adminDashboard').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) loadAllHandoverLogs();
+  if (isAdmin) { loadAllHandoverLogs(); loadAllPackingLogs(); }
 });
 
 document.getElementById('adminSignInBtn').addEventListener('click', () => {
@@ -713,6 +724,162 @@ function renderBinList() {
     });
   });
 }
+
+// ---------- Packing (separate structure — one note per shift, each with
+// several equipment handover rows, rather than a single downtime log) ----------
+let allPackingLogs = [];
+let packingShowArchived = false;
+
+async function loadAllPackingLogs() {
+  document.getElementById('packingListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    const snap = await db.collection('packingHandoverLogs').get();
+    allPackingLogs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    allPackingLogs.sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
+    renderPackingStats();
+    renderPackingList();
+  } catch (err) {
+    console.error('Failed to load packing logs', err);
+    document.getElementById('packingListContainer').innerHTML = '<p class="empty-state">Could not load packing handover notes.</p>';
+  }
+}
+
+function renderPackingStats() {
+  const active = allPackingLogs.filter((l) => !l.archived);
+  const totalRows = active.reduce((s, l) => s + ((l.rows || []).length), 0);
+  document.getElementById('packingStatCards').innerHTML = `
+    <div class="stat-card"><div class="num">${active.length}</div><div class="label">Handover notes</div></div>
+    <div class="stat-card"><div class="num">${totalRows}</div><div class="label">Equipment rows logged</div></div>
+    <div class="stat-card"><div class="num">${allPackingLogs.filter((l) => l.archived).length}</div><div class="label">In recycle bin</div></div>
+  `;
+}
+
+function renderPackingList() {
+  const container = document.getElementById('packingListContainer');
+  const rows = allPackingLogs.filter((l) => !!l.archived === packingShowArchived);
+  if (!rows.length) {
+    container.innerHTML = packingShowArchived
+      ? '<p class="empty-state">Recycle bin is empty.</p>'
+      : '<p class="empty-state">No packing handover notes yet.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((r) => packingLogCardHtml(r, packingShowArchived
+    ? `
+      <button type="button" class="row-icon-btn" title="Restore" data-restore-packing="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
+      <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-packing="${r.id}"><i class="fa-solid fa-trash"></i></button>
+    `
+    : `<button type="button" class="row-icon-btn" title="Archive" data-archive-packing="${r.id}"><i class="fa-solid fa-box-archive"></i></button>`
+  )).join('');
+
+  container.querySelectorAll('[data-archive-packing]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Archive this handover note? It will move to the recycle bin and can be restored later.')) return;
+      try {
+        await db.collection('packingHandoverLogs').doc(btn.dataset.archivePacking).update({
+          archived: true,
+          archivedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          archivedBy: auth.currentUser ? auth.currentUser.email : '',
+        });
+        loadAllPackingLogs();
+      } catch (err) {
+        console.error('Failed to archive packing note', err);
+        alert('Could not archive this entry. Please try again.');
+      }
+    });
+  });
+  container.querySelectorAll('[data-restore-packing]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await db.collection('packingHandoverLogs').doc(btn.dataset.restorePacking).update({
+          archived: false,
+          archivedAt: firebase.firestore.FieldValue.delete(),
+          archivedBy: firebase.firestore.FieldValue.delete(),
+        });
+        loadAllPackingLogs();
+      } catch (err) {
+        console.error('Failed to restore packing note', err);
+        alert('Could not restore this entry. Please try again.');
+      }
+    });
+  });
+  container.querySelectorAll('[data-delete-packing]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirmPermanentDelete('this handover note')) return;
+      try {
+        await db.collection('packingHandoverLogs').doc(btn.dataset.deletePacking).delete();
+        loadAllPackingLogs();
+      } catch (err) {
+        console.error('Failed to delete packing note', err);
+        alert('Could not delete this entry. Please try again.');
+      }
+    });
+  });
+}
+
+function packingRowsSummaryHtml(rows) {
+  if (!(rows || []).length) return '<div class="log-row-stoppages" style="color:var(--muted)">No equipment rows.</div>';
+  return `<div class="log-row-stoppages">${rows.map((r) => `
+    <div>
+      <strong>${escapeHtml(r.equipmentName || 'Equipment')}</strong> — handed over ${escapeHtml(r.handoverTime || '—')}
+      ${r.reportedTo ? ` · reported to ${escapeHtml(r.reportedTo)}` : ''}
+      <div style="color:var(--muted);margin-top:2px">Maintenance: ${escapeHtml(r.maintenanceRepName || '—')}${r.productionRepName ? ` · Production: ${escapeHtml(r.productionRepName)}` : ''}</div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function packingLogCardHtml(r, actionsHtml) {
+  return `
+    <div class="log-row">
+      <div class="log-row-head">
+        <div>
+          <div class="log-row-title">Packing — Shift ${escapeHtml(r.shift || '—')}</div>
+          <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Verified by: ${escapeHtml(r.verifiedBy || '—')}</div>
+        </div>
+        <span class="log-row-badge">${(r.rows || []).length} equipment</span>
+      </div>
+      ${packingRowsSummaryHtml(r.rows)}
+      ${actionsHtml ? `<div class="log-row-btns">${actionsHtml}</div>` : ''}
+    </div>
+  `;
+}
+
+document.getElementById('packingShowArchivedBtn').addEventListener('click', () => {
+  packingShowArchived = !packingShowArchived;
+  const btn = document.getElementById('packingShowArchivedBtn');
+  btn.innerHTML = packingShowArchived
+    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
+    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
+  btn.classList.toggle('outline', !packingShowArchived);
+  renderPackingList();
+});
+
+document.getElementById('packingExportExcelBtn').addEventListener('click', () => {
+  const active = allPackingLogs.filter((l) => !l.archived);
+  if (!active.length) { alert('No packing handover notes to export.'); return; }
+  const sheetRows = [];
+  active.forEach((note) => {
+    (note.rows || []).forEach((r) => {
+      sheetRows.push({
+        Shift: note.shift,
+        'Recorded Date': note.recordedDate,
+        Equipment: r.equipmentName,
+        'Stop Time': r.stopTime,
+        'Reported To': r.reportedTo,
+        'Report Time': r.reportTime,
+        'Handover Time': r.handoverTime,
+        'Start Up Time': r.startUpTime,
+        'Maintenance Rep': r.maintenanceRepName,
+        'Production Rep': r.productionRepName,
+        'Verified By (Production Rep)': note.verifiedBy,
+      });
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  ws['!cols'] = [{ wch: 10 }, { wch: 14 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 22 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Packing Handover');
+  XLSX.writeFile(wb, `packing-handover-${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
 
 // ---------- Export (Excel / PDF) — active, filtered entries only ----------
 function exportRows() { return filteredEntries().sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || '')); }
