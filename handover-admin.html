@@ -52,6 +52,13 @@
     position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
   header h1{font-size:1.05rem;font-weight:600;margin:0;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
+  #notifToggleBtn{
+    background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;
+    cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.95rem;flex:0 0 auto;
+  }
+  #notifToggleBtn:hover{background:rgba(255,255,255,.3)}
+  #notifToggleBtn.show{display:flex}
+  #notifToggleBtn.is-on{background:rgba(255,255,255,.32)}
   header h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   @media(max-width:520px){
@@ -210,6 +217,7 @@
 
 <header>
   <h1><i class="fa-solid fa-user-shield"></i> <span>Handover Admin</span></h1>
+  <button type="button" id="notifToggleBtn" title="Enable notifications for new handover submissions"><i class="fa-solid fa-bell-slash"></i></button>
 </header>
 
 <div class="container">
@@ -408,10 +416,98 @@ auth.onAuthStateChanged(async (user) => {
   }
   document.getElementById('adminGate').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('adminDashboard').style.display = isAdmin ? 'block' : 'none';
-  if (isAdmin) { loadAllHandoverLogs(); loadAllPackingLogs(); }
+  if (isAdmin) {
+    loadAllHandoverLogs();
+    loadAllPackingLogs();
+    startNewHandoverNotifications();
+  } else {
+    stopNewHandoverNotifications();
+  }
   resolveAdminCheckDone();
   adminCheckDonePromise = new Promise((resolve) => { resolveAdminCheckDone = resolve; });
 });
+
+// ================= New-activity notifications =================
+// Fires a browser notification when a new Milling or Packing handover is
+// submitted, as long as this tab/window is open somewhere -- even
+// minimized or backgrounded on desktop. This does NOT work if the
+// browser is fully closed, and is unreliable on iOS in the background
+// (iOS suspends background tab JS aggressively). True always-on push
+// notifications need a server-side trigger (Firebase Cloud Functions +
+// Cloud Messaging), which requires upgrading off Firebase's free Spark
+// plan -- a real cost decision, not something to build in silently.
+const notifSessionStart = new Date(); // ignore anything older than "now" so opening the tab doesn't notify about existing history
+let notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+let unsubscribeMillingNotifications = null;
+let unsubscribePackingNotifications = null;
+
+function updateNotifBtn() {
+  const btn = document.getElementById('notifToggleBtn');
+  if (!btn) return;
+  if (notifPermission === 'unsupported') { btn.classList.remove('show'); return; }
+  btn.classList.add('show');
+  btn.classList.toggle('is-on', notifPermission === 'granted');
+  btn.innerHTML = notifPermission === 'granted' ? '<i class="fa-solid fa-bell"></i>' : '<i class="fa-solid fa-bell-slash"></i>';
+  btn.title = notifPermission === 'granted'
+    ? 'Notifications on for new handover submissions'
+    : (notifPermission === 'denied'
+      ? "Notifications blocked -- enable them in your browser's site settings"
+      : 'Enable notifications for new handover submissions');
+}
+
+document.getElementById('notifToggleBtn').addEventListener('click', async () => {
+  if (typeof Notification === 'undefined' || notifPermission === 'denied') { updateNotifBtn(); return; }
+  notifPermission = await Notification.requestPermission();
+  updateNotifBtn();
+});
+
+function showAdminNotification(title, body) {
+  if (notifPermission !== 'granted') return;
+  try {
+    new Notification(title, { body, icon: 'assets/icons/handover-admin/icon-192.png' });
+  } catch (err) {
+    console.error('Notification failed', err);
+  }
+}
+
+function startNewHandoverNotifications() {
+  updateNotifBtn();
+  if (!unsubscribeMillingNotifications) {
+    unsubscribeMillingNotifications = db.collection('handoverLogs').orderBy('createdAt', 'desc').limit(10)
+      .onSnapshot((snap) => {
+        snap.docChanges().forEach((change) => {
+          if (change.type !== 'added') return;
+          const data = change.doc.data();
+          const ts = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
+          if (!ts || ts < notifSessionStart) return; // skip pre-existing entries on first load
+          showAdminNotification(
+            'New Milling handover',
+            `${data.technicianName || 'A technician'} logged a handover for ${data.equipmentName || 'equipment'} (${data.shift || 'shift'})`
+          );
+        });
+      }, (err) => console.error('New-handover notification listener failed', err));
+  }
+  if (!unsubscribePackingNotifications) {
+    unsubscribePackingNotifications = db.collection('packingHandoverLogs').orderBy('submittedAt', 'desc').limit(10)
+      .onSnapshot((snap) => {
+        snap.docChanges().forEach((change) => {
+          if (change.type !== 'added') return;
+          const data = change.doc.data();
+          const ts = data.submittedAt && data.submittedAt.toDate ? data.submittedAt.toDate() : null;
+          if (!ts || ts < notifSessionStart) return; // skip pre-existing entries on first load
+          showAdminNotification(
+            'New Packing handover',
+            `A Packing handover note was submitted for Shift ${data.shift || '—'} (${(data.rows || []).length} equipment)`
+          );
+        });
+      }, (err) => console.error('New-packing notification listener failed', err));
+  }
+}
+
+function stopNewHandoverNotifications() {
+  if (unsubscribeMillingNotifications) { unsubscribeMillingNotifications(); unsubscribeMillingNotifications = null; }
+  if (unsubscribePackingNotifications) { unsubscribePackingNotifications(); unsubscribePackingNotifications = null; }
+}
 
 function firebaseAuthErrorMessage(err) {
   const code = err && err.code;
