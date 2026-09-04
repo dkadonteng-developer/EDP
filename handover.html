@@ -294,6 +294,17 @@
   <!-- ================= NEW LOG ENTRY ================= -->
   <div id="entryView">
     <div class="card">
+      <h2><i class="fa-solid fa-building"></i> Department</h2>
+      <div class="pf-field" style="margin-bottom:0">
+        <label for="departmentSelect">Which department's handover form do you need? *</label>
+        <select id="departmentSelect">
+          <option value="milling">Milling</option>
+          <option value="packing">Packing</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card" id="millingFormWrap">
       <h2><i class="fa-solid fa-clipboard-list"></i> Equipment Handover / Shift Log</h2>
       <p class="card-hint">Log stoppages for this shift — total downtime is calculated automatically.</p>
 
@@ -365,6 +376,45 @@
 
         <div class="pf-error" id="entryFormError"></div>
         <button type="submit" class="pf-submit-btn btn-primary" id="entrySubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Log Entry</button>
+      </form>
+    </div>
+
+    <div class="card" id="packingFormWrap" style="display:none">
+      <h2><i class="fa-solid fa-clipboard-list"></i> Equipment Handover Note — Packing Section</h2>
+      <p class="card-hint">One row per piece of equipment handed over this shift, each with its own maintenance and production rep sign-off.</p>
+
+      <div class="pf-success" id="packingEntrySuccess">
+        <i class="fa-solid fa-circle-check"></i>
+        <strong>Handover note saved</strong>
+        <p style="color:var(--muted);font-size:.88rem;margin:6px 0 0">Thanks — this shift's handover note has been recorded.</p>
+        <button type="button" class="toolbar-btn outline btn-secondary" id="packingEntryDoneBtn" style="margin-top:16px">Log Another Entry</button>
+      </div>
+
+      <form id="packingEntryForm">
+        <div class="pf-row">
+          <div class="pf-field">
+            <label for="packingShiftInput">Shift *</label>
+            <input type="text" id="packingShiftInput" required maxlength="20" placeholder="e.g. A">
+          </div>
+          <div class="pf-field">
+            <label for="packingDateInput">Date *</label>
+            <input type="date" id="packingDateInput" required>
+          </div>
+        </div>
+
+        <h2 style="font-size:.92rem;margin:18px 0 4px"><i class="fa-solid fa-list"></i> Equipment Handed Over</h2>
+        <div id="packingRowsList"></div>
+        <button type="button" class="add-stoppage-btn btn-secondary" id="packingAddRowBtn"><i class="fa-solid fa-plus"></i> Add Equipment Row</button>
+
+        <div class="pf-row" style="margin-top:18px">
+          <div class="pf-field" style="grid-column:1/-1">
+            <label for="packingVerificationInput">Verification by Production Rep (Name) *</label>
+            <input type="text" id="packingVerificationInput" required maxlength="100" placeholder="e.g. John Doe">
+          </div>
+        </div>
+
+        <div class="pf-error" id="packingEntryFormError"></div>
+        <button type="submit" class="pf-submit-btn btn-primary" id="packingEntrySubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Handover Note</button>
       </form>
     </div>
   </div>
@@ -649,6 +699,15 @@ document.addEventListener('keydown', (ev) => {
 });
 
 // ---------- New Log Entry form ----------
+const departmentSelect = document.getElementById('departmentSelect');
+const millingFormWrap = document.getElementById('millingFormWrap');
+const packingFormWrap = document.getElementById('packingFormWrap');
+departmentSelect.addEventListener('change', () => {
+  const isPacking = departmentSelect.value === 'packing';
+  millingFormWrap.style.display = isPacking ? 'none' : 'block';
+  packingFormWrap.style.display = isPacking ? 'block' : 'none';
+});
+
 const entryEl = {
   form: document.getElementById('entryForm'),
   shift: document.getElementById('shiftSelect'),
@@ -859,6 +918,142 @@ entryEl.doneBtn.addEventListener('click', () => {
   entryEl.success.classList.remove('show');
 });
 
+// ---------- Packing Section handover form (separate structure — one row
+// per piece of equipment handed over, each with its own maintenance/
+// production rep sign-off, rather than a single shift/stoppage log) ----------
+const packingEl = {
+  form: document.getElementById('packingEntryForm'),
+  shift: document.getElementById('packingShiftInput'),
+  date: document.getElementById('packingDateInput'),
+  rowsList: document.getElementById('packingRowsList'),
+  addRowBtn: document.getElementById('packingAddRowBtn'),
+  verification: document.getElementById('packingVerificationInput'),
+  error: document.getElementById('packingEntryFormError'),
+  submitBtn: document.getElementById('packingEntrySubmitBtn'),
+  success: document.getElementById('packingEntrySuccess'),
+  doneBtn: document.getElementById('packingEntryDoneBtn'),
+};
+
+packingEl.date.value = new Date().toISOString().slice(0, 10);
+
+let packingRowIdCounter = 0;
+let packingRows = [];
+
+function newPackingRow() {
+  return { rowId: ++packingRowIdCounter };
+}
+
+function renderPackingRows() {
+  packingEl.rowsList.innerHTML = packingRows.map((row) => `
+    <div class="stoppage-row" data-row-id="${row.rowId}">
+      <div class="stoppage-row-top">
+        <input type="text" class="pk-equip" placeholder="Equipment name *" maxlength="100">
+        <button type="button" class="row-icon-btn danger pk-remove-row" title="Remove row"><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <div class="stoppage-row-times">
+        <div class="pf-field"><label>Stop Time</label><input type="time" class="pk-stop-time"></div>
+        <div class="pf-field"><label>Reported To</label><input type="text" class="pk-reported-to" maxlength="100"></div>
+        <div class="pf-field"><label>Report Time</label><input type="time" class="pk-report-time"></div>
+      </div>
+      <div class="stoppage-row-times" style="margin-top:8px">
+        <div class="pf-field"><label>Handover Time *</label><input type="time" class="pk-handover-time"></div>
+        <div class="pf-field"><label>Start Up Time</label><input type="time" class="pk-startup-time"></div>
+      </div>
+      <div class="stoppage-row-times" style="margin-top:8px">
+        <div class="pf-field"><label>Maintenance Rep (Name) *</label><input type="text" class="pk-maint-rep" maxlength="100"></div>
+        <div class="pf-field"><label>Production Rep (Name)</label><input type="text" class="pk-prod-rep" maxlength="100"></div>
+      </div>
+    </div>
+  `).join('');
+
+  packingEl.rowsList.querySelectorAll('.pk-remove-row').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rowEl = btn.closest('[data-row-id]');
+      const rowId = Number(rowEl.dataset.rowId);
+      packingRows = packingRows.filter((r) => r.rowId !== rowId);
+      renderPackingRows();
+    });
+  });
+}
+
+packingEl.addRowBtn.addEventListener('click', () => {
+  packingRows.push(newPackingRow());
+  renderPackingRows();
+});
+packingRows.push(newPackingRow());
+renderPackingRows();
+
+packingEl.form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  packingEl.error.textContent = '';
+
+  const shift = packingEl.shift.value.trim();
+  const date = packingEl.date.value;
+  const verification = packingEl.verification.value.trim();
+
+  if (!shift || !date) {
+    packingEl.error.textContent = 'Fill in the shift and date before saving.';
+    return;
+  }
+  if (!verification) {
+    packingEl.error.textContent = 'Verification by Production Rep is required.';
+    return;
+  }
+
+  const rowEls = Array.from(packingEl.rowsList.querySelectorAll('[data-row-id]'));
+  const rows = rowEls.map((el) => ({
+    equipmentName: el.querySelector('.pk-equip').value.trim(),
+    stopTime: el.querySelector('.pk-stop-time').value,
+    reportedTo: el.querySelector('.pk-reported-to').value.trim(),
+    reportTime: el.querySelector('.pk-report-time').value,
+    handoverTime: el.querySelector('.pk-handover-time').value,
+    startUpTime: el.querySelector('.pk-startup-time').value,
+    maintenanceRepName: el.querySelector('.pk-maint-rep').value.trim(),
+    productionRepName: el.querySelector('.pk-prod-rep').value.trim(),
+  })).filter((r) => r.equipmentName || r.maintenanceRepName || r.handoverTime);
+
+  if (!rows.length) {
+    packingEl.error.textContent = 'Add at least one equipment row before saving.';
+    return;
+  }
+  const incomplete = rows.find((r) => !r.equipmentName || !r.handoverTime || !r.maintenanceRepName);
+  if (incomplete) {
+    packingEl.error.textContent = 'Each row needs at least an equipment name, handover time, and maintenance rep name.';
+    return;
+  }
+
+  packingEl.submitBtn.disabled = true;
+  packingEl.submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    await authReady;
+    await db.collection('packingHandoverLogs').add({
+      shift,
+      recordedDate: date,
+      rows,
+      verifiedBy: verification,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      archived: false,
+    });
+    packingEl.form.style.display = 'none';
+    packingEl.success.classList.add('show');
+  } catch (err) {
+    console.error('Failed to save packing handover note', err);
+    packingEl.error.textContent = 'Could not save this handover note. Please check your connection and try again.';
+  } finally {
+    packingEl.submitBtn.disabled = false;
+    packingEl.submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Handover Note';
+  }
+});
+
+packingEl.doneBtn.addEventListener('click', () => {
+  packingEl.form.reset();
+  packingEl.date.value = new Date().toISOString().slice(0, 10);
+  packingRows = [newPackingRow()];
+  renderPackingRows();
+  packingEl.form.style.display = '';
+  packingEl.success.classList.remove('show');
+});
+
 // ---------- Admin detection (passive — no sign-in UI lives on this page;
 // this only picks up an existing session from having signed in on the
 // separate handover-admin.html page, so History can show full results to
@@ -887,27 +1082,36 @@ async function loadHistoryView() {
   const hint = document.getElementById('historyHint');
   container.innerHTML = '<p class="loading-text">Loading…</p>';
   try {
-    const snap = await db.collection('handoverLogs').where('archived', '==', false).get();
-    let rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const [millingSnap, packingSnap] = await Promise.all([
+      db.collection('handoverLogs').where('archived', '==', false).get(),
+      db.collection('packingHandoverLogs').where('archived', '==', false).get(),
+    ]);
+    let millingRows = millingSnap.docs.map((doc) => ({ id: doc.id, department: 'milling', ...doc.data() }));
+    let packingRows = packingSnap.docs.map((doc) => ({ id: doc.id, department: 'packing', ...doc.data() }));
 
     if (isAdmin) {
       hint.textContent = 'Showing all entries (admin access).';
     } else {
       const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      rows = rows.filter((r) => {
+      millingRows = millingRows.filter((r) => {
+        const d = new Date(r.recordedDate);
+        return !Number.isNaN(d.getTime()) && d.getTime() >= cutoff;
+      });
+      packingRows = packingRows.filter((r) => {
         const d = new Date(r.recordedDate);
         return !Number.isNaN(d.getTime()) && d.getTime() >= cutoff;
       });
       hint.textContent = 'Showing entries from the last 7 days.';
     }
 
+    const rows = [...millingRows, ...packingRows];
     rows.sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
 
     if (!rows.length) {
       container.innerHTML = '<p class="empty-state">No log entries to show.</p>';
       return;
     }
-    container.innerHTML = rows.map((r) => logCardHtml(r, '')).join('');
+    container.innerHTML = rows.map((r) => r.department === 'packing' ? packingLogCardHtml(r, '') : logCardHtml(r, '')).join('');
   } catch (err) {
     console.error('Failed to load log history', err);
     container.innerHTML = '<p class="empty-state">Could not load log history.</p>';
@@ -923,6 +1127,34 @@ function stoppagesSummaryHtml(stoppages) {
     </div>
   `).join('')}</div>`;
 }
+
+function packingRowsSummaryHtml(rows) {
+  if (!(rows || []).length) return '<div class="log-row-stoppages" style="color:var(--muted)">No equipment rows.</div>';
+  return `<div class="log-row-stoppages">${rows.map((r) => `
+    <div>
+      <strong>${escapeHtml(r.equipmentName || 'Equipment')}</strong> — handed over ${escapeHtml(r.handoverTime || '—')}
+      ${r.reportedTo ? ` · reported to ${escapeHtml(r.reportedTo)}` : ''}
+      <div style="color:var(--muted);margin-top:2px">Maintenance: ${escapeHtml(r.maintenanceRepName || '—')}${r.productionRepName ? ` · Production: ${escapeHtml(r.productionRepName)}` : ''}</div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function packingLogCardHtml(r, actionsHtml) {
+  return `
+    <div class="log-row">
+      <div class="log-row-head">
+        <div>
+          <div class="log-row-title">Packing — Shift ${escapeHtml(r.shift || '—')}</div>
+          <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Verified by: ${escapeHtml(r.verifiedBy || '—')}</div>
+        </div>
+        <span class="log-row-badge">${(r.rows || []).length} equipment</span>
+      </div>
+      ${packingRowsSummaryHtml(r.rows)}
+      ${actionsHtml ? `<div class="log-row-btns">${actionsHtml}</div>` : ''}
+    </div>
+  `;
+}
+
 
 function logCardHtml(r, actionsHtml) {
   return `
