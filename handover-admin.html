@@ -68,7 +68,7 @@
     .header-right{min-width:0}
   }
 
-  .container{max-width:1100px;margin:auto;padding:22px 20px 100px}
+  .container{max-width:1300px;margin:auto;padding:22px 20px 100px}
 
   .card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
   .card h2{margin:0 0 4px;font-size:1.05rem;display:flex;align-items:center;gap:8px}
@@ -146,6 +146,11 @@
   .stat-card .label{font-size:.76rem;color:var(--muted)}
 
   .chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+  /* On phones this collapses to one column (same as before); on
+     tablet/desktop widths it lets the three charts sit side by side
+     instead of each wasting the full container width stacked vertically. */
+  .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px}
+  .chart-grid .chart-card{margin-bottom:0}
   .chart-card h3{margin:0 0 12px;font-size:.9rem;color:var(--text)}
   .chart-card canvas{max-height:240px}
 
@@ -163,6 +168,11 @@
   }
   .log-row-stoppages{font-size:.8rem;color:var(--text);margin-top:8px}
   .log-row-stoppages div{padding:3px 0;border-top:1px dashed var(--border)}
+
+  .packing-rows-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px}
+  .packing-rows-table th,.packing-rows-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+  .packing-rows-table th{color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
+  .packing-rows-table tbody tr:last-child td{border-bottom:none}
   .log-row-btns{display:flex;gap:8px;margin-top:10px}
   .row-icon-btn{background:#f2f4f3;border:none;color:#555;width:34px;height:34px;border-radius:8px;cursor:pointer}
   .row-icon-btn:hover{background:#e5e8e7}
@@ -253,9 +263,11 @@
         </select>
       </div>
       <div class="stat-cards" id="statCards"></div>
-      <div class="chart-card"><h3>Downtime by equipment (hrs)</h3><canvas id="chartByMill"></canvas></div>
-      <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
-      <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
+      <div class="chart-grid">
+        <div class="chart-card"><h3>Downtime by equipment (hrs)</h3><canvas id="chartByMill"></canvas></div>
+        <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
+        <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
+      </div>
       <div class="chart-card">
         <h3 id="groupSummaryTitle">Grouped Summary</h3>
         <div id="groupSummaryTable"></div>
@@ -817,14 +829,33 @@ function renderPackingList() {
 }
 
 function packingRowsSummaryHtml(rows) {
-  if (!(rows || []).length) return '<div class="log-row-stoppages" style="color:var(--muted)">No equipment rows.</div>';
-  return `<div class="log-row-stoppages">${rows.map((r) => `
-    <div>
-      <strong>${escapeHtml(r.equipmentName || 'Equipment')}</strong> — handed over ${escapeHtml(r.handoverTime || '—')}
-      ${r.reportedTo ? ` · reported to ${escapeHtml(r.reportedTo)}` : ''}
-      <div style="color:var(--muted);margin-top:2px">Maintenance: ${escapeHtml(r.maintenanceRepName || '—')}${r.productionRepName ? ` · Production: ${escapeHtml(r.productionRepName)}` : ''}</div>
+  if (!(rows || []).length) return '<p class="empty-state" style="padding:14px">No equipment rows.</p>';
+  return `
+    <div style="overflow-x:auto">
+    <table class="packing-rows-table">
+      <thead>
+        <tr>
+          <th>Equipment</th><th>Stop Time</th><th>Reported To</th><th>Report Time</th>
+          <th>Handover Time</th><th>Start Up Time</th><th>Maintenance Rep</th><th>Production Rep</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r) => `
+          <tr>
+            <td>${escapeHtml(r.equipmentName || '—')}</td>
+            <td>${escapeHtml(r.stopTime || '—')}</td>
+            <td>${escapeHtml(r.reportedTo || '—')}</td>
+            <td>${escapeHtml(r.reportTime || '—')}</td>
+            <td>${escapeHtml(r.handoverTime || '—')}</td>
+            <td>${escapeHtml(r.startUpTime || '—')}</td>
+            <td>${escapeHtml(r.maintenanceRepName || '—')}</td>
+            <td>${escapeHtml(r.productionRepName || '—')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
     </div>
-  `).join('')}</div>`;
+  `;
 }
 
 function packingLogCardHtml(r, actionsHtml) {
