@@ -60,8 +60,6 @@
     display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   }
   header h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:10px;flex:1;}
-  .header-back{color:#fff;text-decoration:none;font-size:.85rem;display:flex;align-items:center;gap:6px;opacity:.9;}
-  .header-back:hover{opacity:1;}
   #headerSignOutBtn{
     background:rgba(255,255,255,.18);color:#fff;border:none;padding:9px 16px;border-radius:20px;
     font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;display:none;align-items:center;gap:8px;
@@ -465,19 +463,6 @@
   .history-risk-chip.amber{background:#f59e0b;}
   .history-risk-chip.red,.history-risk-chip.unreviewed{background:#d92d20;}
 
-  /* ---------- Spare parts link card ---------- */
-  .link-out-card{
-    background:#fff;border-radius:14px;padding:26px;text-align:center;box-shadow:0 4px 10px rgba(0,0,0,.04);
-  }
-  .link-out-card i{font-size:32px;color:var(--brand);margin-bottom:14px;}
-  .link-out-card h3{margin:0 0 8px;color:var(--brand);}
-  .link-out-card p{color:var(--muted);font-size:.88rem;margin:0 0 18px;}
-  .link-out-card a{
-    display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;text-decoration:none;
-    padding:12px 22px;border-radius:24px;font-size:.85rem;font-weight:600;
-  }
-  .link-out-card a:hover{background:#005229;}
-
   .loading-text{color:var(--muted);font-size:.85rem;padding:20px;text-align:center;}
 </style>
   <link rel="stylesheet" href="shared-nav.css">
@@ -493,7 +478,6 @@
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <header>
-  <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
   <h1><i class="fa-solid fa-user-shield"></i> Admin</h1>
   <button type="button" id="headerSignOutBtn"><i class="fa-solid fa-right-from-bracket"></i> <span id="headerSignedInAs"></span></button>
 </header>
@@ -536,9 +520,6 @@
       </button>
       <button type="button" class="admin-tab-btn" data-tab="historyPanel">
         <i class="fa-solid fa-clock-rotate-left"></i> Maintenance History
-      </button>
-      <button type="button" class="admin-tab-btn" data-tab="partsPanel">
-        <i class="fa-solid fa-warehouse"></i> Spare Parts
       </button>
       <button type="button" class="admin-tab-btn" data-tab="resourcesPanel">
         <i class="fa-solid fa-book"></i> Resources
@@ -613,16 +594,6 @@
       <div class="history-section">
         <h3><i class="fa-solid fa-clipboard-list"></i> PM Checklist Records</h3>
         <div id="pmCompletionsHistoryContainer"><p class="loading-text">Loading…</p></div>
-      </div>
-    </div>
-
-    <!-- ---- Spare parts panel ---- -->
-    <div class="admin-panel" id="partsPanel">
-      <div class="link-out-card">
-        <i class="fa-solid fa-warehouse"></i>
-        <h3>Stores Admin</h3>
-        <p>Spare parts inventory (add, edit, remove parts, adjust stock, bulk Excel import/export) and technician pick-ticket orders have their own dedicated screen, on a separate page. It uses the same admin sign-in as this page.</p>
-        <a href="stores-admin.html"><i class="fa-solid fa-arrow-right"></i> Open Stores Admin</a>
       </div>
     </div>
 
