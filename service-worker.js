@@ -2,7 +2,7 @@
 //
 // Bump CACHE_VERSION whenever the HTML/CSS/JS in this site changes.
 // Old caches from previous versions are deleted automatically on activate.
-const CACHE_VERSION = 'infoport-v5';
+const CACHE_VERSION = 'infoport-v6';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -27,12 +27,16 @@ const SHELL_FILES = [
   '/assets/icons/user/icon-512.png',
   '/assets/icons/user/icon-192-maskable.png',
   '/assets/icons/user/icon-512-maskable.png',
+  '/assets/icons/user/icon-monochrome.png',
   '/assets/icons/stores-admin/icon-192.png',
   '/assets/icons/stores-admin/icon-512.png',
+  '/assets/icons/stores-admin/icon-monochrome.png',
   '/assets/icons/general-admin/icon-192.png',
   '/assets/icons/general-admin/icon-512.png',
+  '/assets/icons/general-admin/icon-monochrome.png',
   '/assets/icons/handover-admin/icon-192.png',
-  '/assets/icons/handover-admin/icon-512.png'
+  '/assets/icons/handover-admin/icon-512.png',
+  '/assets/icons/handover-admin/icon-monochrome.png'
 ];
 
 self.addEventListener('install', (event) => {
