@@ -6,7 +6,7 @@
 (function(){
 
   var TABS = [
-    { href:'index.html',    icon:'fa-toolbox',         label:'Equipment', match:['index.html','equipment.html'] },
+    { href:'index.html',    icon:'fa-house',           label:'Home',      match:['index.html'] },
     { href:'groups.html',   icon:'fa-layer-group',     label:'Groups',    match:['groups.html','group.html'] },
     { href:'inventory.html',icon:'fa-boxes-stacked',   label:'Inventory', match:['inventory.html','stores-admin.html'] },
     { href:'handover.html', icon:'fa-clipboard-list',  label:'Handover',  match:['handover.html'] }
