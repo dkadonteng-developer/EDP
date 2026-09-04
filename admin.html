@@ -121,6 +121,11 @@
   .admin-panel.active{display:block;}
 
   .panel-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+  .list-controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+  .list-controls input[type="text"],.list-controls select{
+    padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85rem;background:#fff;
+  }
+  .list-controls input[type="text"]{flex:1;min-width:200px}
   .panel-toolbar h2{font-size:1.05rem;margin:0;color:var(--brand);}
   .panel-toolbar .btns{display:flex;gap:10px;flex-wrap:wrap;}
   .toolbar-btn{
@@ -550,6 +555,16 @@
             <i class="fa-solid fa-plus"></i> Add Equipment
           </button>
         </div>
+      </div>
+      <div class="list-controls">
+        <input type="text" id="equipSearchInput" placeholder="Search by name, ID, manufacturer, department…">
+        <select id="equipGroupFilter"><option value="">All groups</option></select>
+        <select id="equipSortSelect">
+          <option value="name-asc">Sort: Name (A–Z)</option>
+          <option value="name-desc">Sort: Name (Z–A)</option>
+          <option value="id-asc">Sort: ID (A–Z)</option>
+          <option value="id-desc">Sort: ID (Z–A)</option>
+        </select>
       </div>
       <div id="equipListContainer"><p class="loading-text">Loading equipment…</p></div>
     </div>
@@ -1475,6 +1490,7 @@ async function loadEquipmentList() {
   try {
     const snap = await db.collection('equipment').orderBy('name').get();
     equipmentCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    populateEquipGroupFilter();
     renderEquipmentList();
   } catch (err) {
     console.error('Failed to load equipment', err);
@@ -1483,6 +1499,9 @@ async function loadEquipmentList() {
 }
 
 let equipShowArchived = false;
+document.getElementById('equipSearchInput').addEventListener('input', renderEquipmentList);
+document.getElementById('equipGroupFilter').addEventListener('change', renderEquipmentList);
+document.getElementById('equipSortSelect').addEventListener('change', renderEquipmentList);
 document.getElementById('equipShowArchivedBtn').addEventListener('click', () => {
   equipShowArchived = !equipShowArchived;
   const btn = document.getElementById('equipShowArchivedBtn');
@@ -1493,21 +1512,58 @@ document.getElementById('equipShowArchivedBtn').addEventListener('click', () => 
   renderEquipmentList();
 });
 
+function populateEquipGroupFilter() {
+  const sel = document.getElementById('equipGroupFilter');
+  const current = sel.value;
+  const names = new Set();
+  equipmentCache.forEach((e) => getEquipGroups(e).forEach((g) => { if (g) names.add(g); }));
+  const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = '<option value="">All groups</option>' + sorted.map((n) => `<option>${escapeHtml(n)}</option>`).join('');
+  sel.value = current;
+}
+
 function renderEquipmentList() {
   const container = document.getElementById('equipListContainer');
-  const visible = equipmentCache.filter((e) => !!e.archived === equipShowArchived);
+  const search = document.getElementById('equipSearchInput').value.trim().toLowerCase();
+  const groupFilter = document.getElementById('equipGroupFilter').value;
+  const sortMode = document.getElementById('equipSortSelect').value;
+
+  let visible = equipmentCache.filter((e) => !!e.archived === equipShowArchived);
+
+  if (search) {
+    visible = visible.filter((e) => {
+      const haystack = `${e.name || ''} ${e.id || ''} ${e.manufacturer || ''} ${e.department || ''}`.toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+  if (groupFilter) {
+    visible = visible.filter((e) => getEquipGroups(e).includes(groupFilter));
+  }
+
+  const [sortField, sortDir] = sortMode.split('-');
+  visible = visible.slice().sort((a, b) => {
+    const av = (sortField === 'id' ? a.id : (a.name || a.id)) || '';
+    const bv = (sortField === 'id' ? b.id : (b.name || b.id)) || '';
+    const cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+    return sortDir === 'desc' ? -cmp : cmp;
+  });
+
   if (!visible.length) {
-    container.innerHTML = equipShowArchived
-      ? '<p class="empty-state">No archived equipment.</p>'
-      : '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
+    if (search || groupFilter) {
+      container.innerHTML = '<p class="empty-state">No equipment matches your search/filter.</p>';
+    } else {
+      container.innerHTML = equipShowArchived
+        ? '<p class="empty-state">No archived equipment.</p>'
+        : '<p class="empty-state">No equipment yet. Add your first piece of equipment, or import your existing data.</p>';
+    }
     return;
   }
 
   // Group equipment by every Group it's assigned to (equipment can belong
   // to more than one — see the Groups field in the form below). Anything
-  // with no group lands in its own "Ungrouped" bucket, shown last.
-  // Equipment stays name-sorted within each bucket since equipmentCache
-  // already comes ordered that way from Firestore.
+  // with no group lands in its own "Ungrouped" bucket, shown last. Within
+  // each bucket, order follows whatever sort was picked above rather than
+  // always the raw Firestore name order.
   const buckets = new Map();
   visible.forEach((e) => {
     const names = getEquipGroups(e);
