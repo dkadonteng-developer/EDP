@@ -402,6 +402,26 @@ document.addEventListener('keydown', (ev) => {
     document.getElementById('adminSignInOverlay').classList.remove('is-open');
   }
 });
+function firebaseAuthErrorMessage(err) {
+  const code = err && err.code;
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return 'Incorrect email or password.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'Too many failed attempts — please wait a few minutes and try again.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Network error — check your connection and try again.';
+  }
+  if (code === 'auth/invalid-email') {
+    return "That email address doesn't look valid.";
+  }
+  if (code === 'auth/user-disabled') {
+    return 'This account has been disabled.';
+  }
+  return `Sign-in failed (${code || 'unknown error'}). Please try again.`;
+}
+
 document.getElementById('adminSignInForm').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const errorEl = document.getElementById('adminSignInError');
@@ -424,7 +444,7 @@ document.getElementById('adminSignInForm').addEventListener('submit', async (ev)
     document.getElementById('adminSignInOverlay').classList.remove('is-open');
   } catch (err) {
     console.error('Admin sign-in failed', err);
-    errorEl.textContent = 'Incorrect email or password.';
+    errorEl.textContent = firebaseAuthErrorMessage(err);
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
@@ -1065,6 +1085,5 @@ if ('serviceWorker' in navigator) {
 </script>
 
 <script src="loading-screen.js" defer></script>
-<script src="shared-nav.js" defer></script>
 </body>
 </html>
