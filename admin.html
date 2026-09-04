@@ -546,6 +546,9 @@
       <button type="button" class="admin-tab-btn" data-tab="pmChecklistsPanel">
         <i class="fa-solid fa-clipboard-list"></i> PM Checklists
       </button>
+      <button type="button" class="admin-tab-btn" data-tab="safetyChecklistPanel">
+        <i class="fa-solid fa-shield-halved"></i> Safety Checklist
+      </button>
       <button type="button" class="admin-tab-btn" data-tab="aiAssistantPanel">
         <i class="fa-solid fa-robot"></i> AI Assistant
       </button>
@@ -717,6 +720,45 @@
           <button type="button" class="toolbar-btn outline btn-secondary" id="pmChecklistCancelBtn">Cancel</button>
           <button type="button" class="toolbar-btn btn-secondary" id="pmChecklistSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ---- Safety Checklist panel ---- -->
+    <div class="admin-panel" id="safetyChecklistPanel">
+      <div class="panel-toolbar">
+        <h2>Safety Checklist</h2>
+      </div>
+      <p class="panel-hint">Each equipment has one pre-task safety checklist that technicians sign off on before starting work — separate from the PM checklists above. Starter drafts are NOT verified procedure; review and edit before marking one "Reviewed".</p>
+
+      <div class="ef-subsection" style="margin-top:0;padding-top:0;border-top:none">
+        <div class="ef-field" style="margin-bottom:12px">
+          <label for="safetyChecklistEquipSelect">Equipment *</label>
+          <select id="safetyChecklistEquipSelect">
+            <option value="">Select equipment…</option>
+          </select>
+        </div>
+
+        <div id="safetyChecklistFormWrap" style="display:none">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:#444;margin-bottom:14px">
+            <input type="checkbox" id="safetyChecklistReviewedCheckbox" style="width:16px;height:16px">
+            Reviewed and approved by safety/engineering team
+          </label>
+          <div id="safetyChecklistEditItems" class="checklist-edit-items"></div>
+          <button type="button" id="safetyChecklistAddItemBtn" class="checklist-add-item-btn btn-secondary"><i class="fa-solid fa-plus"></i> Add Item</button>
+          <button type="button" id="safetyChecklistLoadStarterBtn" class="toolbar-btn outline btn-secondary" style="margin-top:12px"><i class="fa-solid fa-wand-magic-sparkles"></i> Load Starter Draft</button>
+          <div class="cf-actions" style="margin-top:16px">
+            <span id="safetyChecklistError" class="ef-error"></span>
+            <button type="button" class="toolbar-btn btn-secondary" id="safetyChecklistSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save Checklist</button>
+          </div>
+        </div>
+
+        <div id="safetyChecklistEmptyHint" class="empty-state">Select equipment above to manage its safety checklist.</div>
+      </div>
+
+      <div class="ef-subsection">
+        <h3 style="font-size:.95rem;margin:0 0 4px">Email Subscribers</h3>
+        <p class="panel-hint" style="margin-bottom:14px">People notified by email whenever a new log entry is filed for this equipment.</p>
+        <div id="safetySubscribersList"><p class="empty-state">Select equipment above to view its subscribers.</p></div>
       </div>
     </div>
 
@@ -1307,7 +1349,7 @@ function renderAuthState(user) {
     dashboard.classList.add('show');
     signOutBtn.classList.add('show');
     signedInAs.textContent = user.email;
-    loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect).then(populatePmEquipmentSelect);
+    loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect).then(populatePmEquipmentSelect).then(populateSafetyChecklistEquipSelect);
     loadHistoryEquipmentOptions();
     startInactivityTracking();
   } else {
@@ -2394,6 +2436,212 @@ pmChecklistEl.saveBtn.addEventListener('click', async () => {
     pmChecklistEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
   }
 });
+
+// ================= Safety Checklist (moved here from equipment.html so
+// normal users never see any admin-editing UI on that page) =================
+//
+// safetyChecklists/{equipmentId} — one checklist definition per equipment.
+// emailSubscribers/{autoId}      — { equipmentId, email, subscribedAt }.
+
+function newSafetyChecklistItemId() {
+  return 'item_' + Math.random().toString(36).slice(2, 10);
+}
+
+// Equipment-type-specific starter drafts, ported as-is from equipment.html.
+// These are NOT verified procedure — generic baselines until reviewed.
+function getStarterChecklistItems(equipmentId) {
+  const id = (equipmentId || '').toLowerCase();
+
+  if (id.startsWith('be')) {
+    return [
+      { text: 'Lock out and tag out the main drive motor before any work begins — verify zero energy state.', critical: true },
+      { text: 'Fully drain the fluid coupling oil and visually confirm it is empty before working on a jammed or stopped elevator.', critical: true },
+      { text: 'Mechanically block or chain the boot and head sections to prevent the belt/buckets from reversing or free-wheeling once a jam is cleared.', critical: true },
+      { text: 'Confirm the reduction gearbox output is isolated/blocked so reverse rotation cannot transmit back through the fluid coupling.', critical: true },
+      { text: 'Do not resume work immediately after clearing a jam — re-verify isolation, since the equipment\'s state may have changed.', critical: true },
+      { text: 'Barricade the area beneath and around the elevator boot/head before entering.', critical: false },
+      { text: 'Obtain a valid Permit to Work signed off by the shift supervisor before starting.', critical: false }
+    ];
+  }
+  if (id.startsWith('vs')) {
+    return [
+      { text: 'Lock out and tag out the drive motor before any work begins.', critical: true },
+      { text: 'Confirm the screen deck has fully stopped vibrating before approaching or touching it.', critical: true },
+      { text: 'Support/block the screen deck if working underneath it, to prevent unexpected drop.', critical: true },
+      { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+    ];
+  }
+  if (id.startsWith('rt')) {
+    return [
+      { text: 'Lock out and tag out all drive motors and pneumatic supply before entry.', critical: true },
+      { text: 'Confirm the rotor has come to a complete stop and cannot be manually rotated before working inside.', critical: true },
+      { text: 'De-energize and bleed down any pneumatic/hydraulic pressure in the filling valves.', critical: true },
+      { text: 'Barricade the packer area and post warning signage.', critical: false },
+      { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+    ];
+  }
+  return [
+    { text: 'Lock out, tag out, and verify zero energy state on all relevant power sources before work begins.', critical: true },
+    { text: 'Confirm all moving/rotating parts have come to a complete stop before approaching.', critical: true },
+    { text: 'De-energize and discharge any stored energy — electrical, pneumatic, hydraulic, or mechanical.', critical: true },
+    { text: 'Obtain a valid Permit to Work before starting.', critical: false }
+  ];
+}
+
+const safetyChecklistEl = {
+  equipment: document.getElementById('safetyChecklistEquipSelect'),
+  formWrap: document.getElementById('safetyChecklistFormWrap'),
+  emptyHint: document.getElementById('safetyChecklistEmptyHint'),
+  reviewedCheckbox: document.getElementById('safetyChecklistReviewedCheckbox'),
+  itemsWrap: document.getElementById('safetyChecklistEditItems'),
+  addItemBtn: document.getElementById('safetyChecklistAddItemBtn'),
+  loadStarterBtn: document.getElementById('safetyChecklistLoadStarterBtn'),
+  saveBtn: document.getElementById('safetyChecklistSaveBtn'),
+  error: document.getElementById('safetyChecklistError'),
+  subscribersList: document.getElementById('safetySubscribersList'),
+};
+
+function populateSafetyChecklistEquipSelect() {
+  const current = safetyChecklistEl.equipment.value;
+  safetyChecklistEl.equipment.innerHTML = '<option value="">Select equipment…</option>' +
+    equipmentCache.map((e) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name || e.id)}</option>`).join('');
+  safetyChecklistEl.equipment.value = current;
+}
+
+function renderSafetyChecklistItems(items) {
+  safetyChecklistEl.itemsWrap.innerHTML = '';
+  items.forEach((item) => appendSafetyChecklistEditRow(item));
+}
+
+function appendSafetyChecklistEditRow(item) {
+  const row = document.createElement('div');
+  row.className = 'checklist-edit-item-row';
+  row.dataset.id = item.id;
+  row.innerHTML = `
+    <textarea class="edit-item-text" placeholder="Checklist step…">${escapeHtml(item.text)}</textarea>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.76rem;color:#666;white-space:nowrap"><input type="checkbox" class="edit-item-critical" ${item.critical ? 'checked' : ''}> Critical</label>
+      <button type="button" class="checklist-remove-item-btn" title="Remove"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `;
+  row.querySelector('.checklist-remove-item-btn').addEventListener('click', () => row.remove());
+  safetyChecklistEl.itemsWrap.appendChild(row);
+}
+
+async function onSafetyChecklistEquipChange() {
+  const equipId = safetyChecklistEl.equipment.value;
+  safetyChecklistEl.error.textContent = '';
+  if (!equipId) {
+    safetyChecklistEl.formWrap.style.display = 'none';
+    safetyChecklistEl.emptyHint.style.display = 'block';
+    safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">Select equipment above to view its subscribers.</p>';
+    return;
+  }
+  safetyChecklistEl.emptyHint.style.display = 'none';
+  safetyChecklistEl.formWrap.style.display = 'block';
+  safetyChecklistEl.itemsWrap.innerHTML = '<p class="loading-text">Loading…</p>';
+
+  try {
+    const doc = await db.collection('safetyChecklists').doc(equipId).get();
+    const checklist = doc.exists ? doc.data() : null;
+    renderSafetyChecklistItems(checklist && Array.isArray(checklist.items) ? checklist.items : []);
+    safetyChecklistEl.reviewedCheckbox.checked = !!(checklist && checklist.reviewed);
+  } catch (err) {
+    console.error('Failed to load safety checklist', err);
+    safetyChecklistEl.itemsWrap.innerHTML = '';
+    safetyChecklistEl.error.textContent = 'Could not load this checklist. Please try again.';
+  }
+
+  loadSafetySubscribers(equipId);
+}
+safetyChecklistEl.equipment.addEventListener('change', onSafetyChecklistEquipChange);
+
+safetyChecklistEl.addItemBtn.addEventListener('click', () => {
+  appendSafetyChecklistEditRow({ id: newSafetyChecklistItemId(), text: '', critical: false });
+});
+
+safetyChecklistEl.loadStarterBtn.addEventListener('click', () => {
+  const equipId = safetyChecklistEl.equipment.value;
+  if (!equipId) return;
+  const hasExisting = safetyChecklistEl.itemsWrap.children.length > 0;
+  if (hasExisting && !confirm('This will replace the current items below with a starter draft. Continue?')) return;
+
+  const starter = getStarterChecklistItems(equipId).map((i) => ({ ...i, id: newSafetyChecklistItemId() }));
+  renderSafetyChecklistItems(starter);
+  safetyChecklistEl.reviewedCheckbox.checked = false; // starter drafts are never pre-approved
+});
+
+safetyChecklistEl.saveBtn.addEventListener('click', async () => {
+  const equipId = safetyChecklistEl.equipment.value;
+  if (!equipId) return;
+  safetyChecklistEl.error.textContent = '';
+
+  const rows = Array.from(safetyChecklistEl.itemsWrap.querySelectorAll('.checklist-edit-item-row'));
+  const items = rows.map((row) => ({
+    id: row.dataset.id || newSafetyChecklistItemId(),
+    text: row.querySelector('.edit-item-text').value.trim(),
+    critical: row.querySelector('.edit-item-critical').checked,
+  })).filter((item) => item.text.length > 0);
+
+  if (!items.length) {
+    safetyChecklistEl.error.textContent = 'Add at least one checklist item before saving.';
+    return;
+  }
+
+  safetyChecklistEl.saveBtn.disabled = true;
+  safetyChecklistEl.saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  try {
+    await db.collection('safetyChecklists').doc(equipId).set({
+      equipmentId: equipId,
+      items,
+      reviewed: safetyChecklistEl.reviewedCheckbox.checked,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error('Failed to save safety checklist', err);
+    safetyChecklistEl.error.textContent = 'Could not save the checklist right now. Please try again.';
+  } finally {
+    safetyChecklistEl.saveBtn.disabled = false;
+    safetyChecklistEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
+  }
+});
+
+// ---------- Email subscribers (view/remove only — subscribing itself
+// still happens from equipment.html, which is the public-facing flow) ----------
+async function loadSafetySubscribers(equipmentId) {
+  safetyChecklistEl.subscribersList.innerHTML = '<p class="loading-text">Loading…</p>';
+  try {
+    const snap = await db.collection('emailSubscribers').where('equipmentId', '==', equipmentId).get();
+    const subs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    if (!subs.length) {
+      safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">No one has subscribed to this equipment yet.</p>';
+      return;
+    }
+    safetyChecklistEl.subscribersList.innerHTML = subs.map((s) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
+        <span style="font-size:.86rem;color:#333"><i class="fa-solid fa-envelope" style="color:var(--muted);margin-right:6px"></i>${escapeHtml(s.email || '')}</span>
+        <button type="button" class="row-icon-btn danger" title="Remove subscriber" data-remove-subscriber="${s.id}"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    `).join('');
+    safetyChecklistEl.subscribersList.querySelectorAll('[data-remove-subscriber]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Remove this subscriber from the equipment\'s notification list?')) return;
+        btn.disabled = true;
+        try {
+          await db.collection('emailSubscribers').doc(btn.dataset.removeSubscriber).delete();
+          loadSafetySubscribers(equipmentId);
+        } catch (err) {
+          console.error('Failed to remove subscriber', err);
+          alert('Could not remove this subscriber right now. Please try again.');
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (err) {
+    console.error('Failed to load subscribers', err);
+    safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">Could not load subscribers right now.</p>';
+  }
+}
 
 // ================= AI Assistant (provider keys) =================
 //
