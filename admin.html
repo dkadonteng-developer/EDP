@@ -1420,6 +1420,31 @@ function stopInactivityTracking() {
   localStorage.removeItem(LAST_ACTIVE_KEY);
 }
 
+// Surfaces the real reason a sign-in failed instead of a single generic
+// message for everything — "incorrect password" and "too many attempts"
+// and "no network" all need different responses from the person signing
+// in, and collapsing them into one message hides which one actually
+// happened.
+function firebaseAuthErrorMessage(err) {
+  const code = err && err.code;
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+    return 'Incorrect email or password.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'Too many failed attempts — please wait a few minutes and try again.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Network error — check your connection and try again.';
+  }
+  if (code === 'auth/invalid-email') {
+    return "That email address doesn't look valid.";
+  }
+  if (code === 'auth/user-disabled') {
+    return 'This account has been disabled.';
+  }
+  return `Sign-in failed (${code || 'unknown error'}). Please try again.`;
+}
+
 document.getElementById('signInForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById('signInError');
@@ -1436,7 +1461,7 @@ document.getElementById('signInForm').addEventListener('submit', async (e) => {
     // onAuthStateChanged above handles the rest (admin check + rendering)
   } catch (err) {
     console.error('Sign-in failed', err);
-    errorEl.textContent = 'Incorrect email or password.';
+    errorEl.textContent = firebaseAuthErrorMessage(err);
   } finally {
     submitBtn.disabled = false;
     submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
@@ -4062,6 +4087,5 @@ if ('serviceWorker' in navigator) {
 <script src="pull-to-refresh.js" defer></script>
 <script src="loading-screen.js" defer></script>
 
-  <script src="shared-nav.js" defer></script>
 </body>
 </html>
