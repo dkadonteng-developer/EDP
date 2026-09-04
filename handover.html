@@ -223,8 +223,9 @@
     background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;
   }
   .log-row-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-  .log-row-title{font-weight:700;font-size:.92rem}
-  .log-row-meta{color:var(--muted);font-size:.78rem}
+  .log-row-info{min-width:0;flex:1}
+  .log-row-title{font-weight:700;font-size:.92rem;overflow-wrap:break-word;word-break:break-word}
+  .log-row-meta{color:var(--muted);font-size:.78rem;overflow-wrap:break-word;word-break:break-word}
   .log-row-badge{
     background:var(--amber-bg);color:var(--amber);padding:3px 10px;border-radius:20px;font-size:.74rem;font-weight:600;white-space:nowrap
   }
@@ -409,7 +410,7 @@
         <div class="pf-row" style="margin-top:18px">
           <div class="pf-field" style="grid-column:1/-1">
             <label for="packingVerificationInput">Verification by Production Rep (Name) *</label>
-            <input type="text" id="packingVerificationInput" required maxlength="100" placeholder="e.g. John Doe">
+            <input type="text" id="packingVerificationInput" required maxlength="100" placeholder="e.g. Yaw Owusu">
           </div>
         </div>
 
@@ -1143,7 +1144,7 @@ function packingLogCardHtml(r, actionsHtml) {
   return `
     <div class="log-row">
       <div class="log-row-head">
-        <div>
+        <div class="log-row-info">
           <div class="log-row-title">Packing — Shift ${escapeHtml(r.shift || '—')}</div>
           <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Verified by: ${escapeHtml(r.verifiedBy || '—')}</div>
         </div>
@@ -1160,7 +1161,7 @@ function logCardHtml(r, actionsHtml) {
   return `
     <div class="log-row">
       <div class="log-row-head">
-        <div>
+        <div class="log-row-info">
           <div class="log-row-title">${escapeHtml(r.equipmentName || 'Unknown equipment')} — ${escapeHtml(r.shift)}</div>
           <div class="log-row-meta">${escapeHtml(r.recordedDate)} • Technician: ${escapeHtml(r.technicianName || '—')} • Supervisor: ${escapeHtml(r.supervisorName)}</div>
         </div>
