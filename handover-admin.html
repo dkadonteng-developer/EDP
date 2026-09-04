@@ -51,21 +51,12 @@
     display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;row-gap:8px;
     position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.12);
   }
-  header a.header-back{
-    display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;
-    font-size:.9rem;font-weight:600;background:rgba(255,255,255,.14);
-    padding:9px 16px;border-radius:20px;transition:background .15s ease;flex:0 0 auto;
-  }
-  header a.header-back:hover{background:rgba(255,255,255,.26);text-decoration:none}
   header h1{font-size:1.05rem;font-weight:600;margin:0;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
   header h1 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .header-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:110px;justify-content:flex-end}
 
   @media(max-width:520px){
     header{padding:12px 16px}
-    header a.header-back{font-size:.85rem;padding:8px 13px}
     header h1{font-size:.95rem}
-    .header-right{min-width:0}
   }
 
   .container{max-width:1300px;margin:auto;padding:22px 20px 100px}
@@ -217,9 +208,7 @@
 <div id="offlineBanner">You're offline — showing the last saved data.</div>
 
 <header>
-  <a href="handover.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Handover Log</a>
   <h1><i class="fa-solid fa-user-shield"></i> <span>Handover Admin</span></h1>
-  <div class="header-right"></div>
 </header>
 
 <div class="container">
