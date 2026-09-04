@@ -99,28 +99,13 @@
   .group-summary-table th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
 
   /* ---------- Admin sign-in ---------- */
-  #adminSignInOverlay{
-    position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;
-    display:none;align-items:center;justify-content:center;padding:16px;
-  }
-  #adminSignInOverlay.is-open{display:flex}
-  .admin-modal{
-    background:#fff;border-radius:16px;max-width:380px;width:100%;
-    display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;
-  }
-  .admin-modal-head{background:var(--brand);color:#fff;padding:18px 20px;position:relative}
-  .admin-modal-head h3{margin:0 0 3px;font-size:1.05rem}
-  .admin-modal-head p{margin:0;font-size:.82rem;opacity:.92}
-  .admin-modal-close{
-    position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;
-    width:28px;height:28px;border-radius:50%;cursor:pointer;
-  }
-  .admin-modal-close:hover{background:rgba(255,255,255,.35)}
-  .admin-modal-body{padding:20px}
-  .admin-modal-body form{display:flex;flex-direction:column;gap:14px}
-  .admin-modal-body label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;font-weight:600;color:#444}
-  .admin-modal-body input{font-family:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--border);border-radius:8px}
-  .admin-modal-body input:focus{outline:none;border-color:var(--brand)}
+  /* Sign-in form lives directly on #adminGate — this page has nothing
+     else to show until you're signed in, so there's no reason to hide
+     the form behind a "Sign In" button and a modal on top of it. */
+  #adminGate form{display:flex;flex-direction:column;gap:14px;max-width:360px;margin-top:6px}
+  #adminGate label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;font-weight:600;color:#444}
+  #adminGate input{font-family:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--border);border-radius:8px}
+  #adminGate input:focus{outline:none;border-color:var(--brand)}
   .admin-signin-error{color:var(--danger);font-size:.82rem;min-height:1em}
   .admin-signin-btn{
     background:var(--brand);color:#fff;border:none;border-radius:10px;padding:13px;
@@ -233,7 +218,18 @@
   <div class="card" id="adminGate">
     <h2><i class="fa-solid fa-lock"></i> Admin Access</h2>
     <p class="card-hint">Sign in with your admin account to view submitted logs, run reports, and manage the recycle bin.</p>
-    <button type="button" class="toolbar-btn btn-secondary" id="adminSignInBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+    <form id="adminSignInForm">
+      <label>Email
+        <input type="email" id="adminEmailInput" required autocomplete="username">
+      </label>
+      <label>Password
+        <input type="password" id="adminPasswordInput" required autocomplete="current-password">
+      </label>
+      <div class="admin-signin-error" id="adminSignInError"></div>
+      <button type="submit" class="admin-signin-btn btn-primary" id="adminSignInSubmitBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+      </button>
+    </form>
   </div>
 
   <div id="adminDashboard" style="display:none">
@@ -313,32 +309,6 @@
   <img id="logPhotoLightboxImg" alt="Report photo">
 </div>
 
-<div id="adminSignInOverlay">
-  <div class="admin-modal">
-    <div class="admin-modal-head">
-      <div>
-        <h3><i class="fa-solid fa-user-shield"></i> Admin Sign In</h3>
-        <p>Sign in with your admin account to view the handover &amp; report log admin dashboard.</p>
-      </div>
-      <button type="button" class="admin-modal-close" id="adminSignInCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="admin-modal-body">
-      <form id="adminSignInForm">
-        <label>Email
-          <input type="email" id="adminEmailInput" required autocomplete="username">
-        </label>
-        <label>Password
-          <input type="password" id="adminPasswordInput" required autocomplete="current-password">
-        </label>
-        <div class="admin-signin-error" id="adminSignInError"></div>
-        <button type="submit" class="admin-signin-btn btn-primary" id="adminSignInSubmitBtn">
-          <i class="fa-solid fa-right-to-bracket"></i> Sign In
-        </button>
-      </form>
-    </div>
-  </div>
-</div>
-
 <script>
 // ---------- Firebase (shared with the rest of InfoPort) ----------
 const firebaseConfig = {
@@ -400,18 +370,6 @@ auth.onAuthStateChanged(async (user) => {
   adminCheckDonePromise = new Promise((resolve) => { resolveAdminCheckDone = resolve; });
 });
 
-document.getElementById('adminSignInBtn').addEventListener('click', () => {
-  document.getElementById('adminSignInError').textContent = '';
-  document.getElementById('adminSignInOverlay').classList.add('is-open');
-});
-document.getElementById('adminSignInCloseX').addEventListener('click', () => {
-  document.getElementById('adminSignInOverlay').classList.remove('is-open');
-});
-document.addEventListener('keydown', (ev) => {
-  if (ev.key === 'Escape' && document.getElementById('adminSignInOverlay').classList.contains('is-open')) {
-    document.getElementById('adminSignInOverlay').classList.remove('is-open');
-  }
-});
 function firebaseAuthErrorMessage(err) {
   const code = err && err.code;
   if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
@@ -460,7 +418,9 @@ document.getElementById('adminSignInForm').addEventListener('submit', async (ev)
       return;
     }
     ev.target.reset();
-    document.getElementById('adminSignInOverlay').classList.remove('is-open');
+    // No need to hide anything here — the onAuthStateChanged listener
+    // above already hides #adminGate and shows #adminDashboard once
+    // isAdmin is confirmed true.
   } catch (err) {
     console.error('Admin sign-in failed', err);
     errorEl.textContent = firebaseAuthErrorMessage(err);
