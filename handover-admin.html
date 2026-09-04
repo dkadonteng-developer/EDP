@@ -373,6 +373,14 @@ function confirmPermanentDelete(label) {
 // ---------- Admin authentication (same real Firebase Auth + admins collection pattern used across the app) ----------
 let isAdmin = false;
 
+// Lets the sign-in handler below wait for this listener's own admin
+// check to actually finish, instead of either (a) racing it with a
+// redundant inline read right after sign-in, which is what caused the
+// permission-denied bug, or (b) closing the sign-in modal optimistically
+// before knowing whether the account is really an admin.
+let resolveAdminCheckDone = null;
+let adminCheckDonePromise = new Promise((resolve) => { resolveAdminCheckDone = resolve; });
+
 auth.onAuthStateChanged(async (user) => {
   if (user && !user.isAnonymous) {
     try {
@@ -388,6 +396,8 @@ auth.onAuthStateChanged(async (user) => {
   document.getElementById('adminGate').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('adminDashboard').style.display = isAdmin ? 'block' : 'none';
   if (isAdmin) { loadAllHandoverLogs(); loadAllPackingLogs(); }
+  resolveAdminCheckDone();
+  adminCheckDonePromise = new Promise((resolve) => { resolveAdminCheckDone = resolve; });
 });
 
 document.getElementById('adminSignInBtn').addEventListener('click', () => {
@@ -433,9 +443,18 @@ document.getElementById('adminSignInForm').addEventListener('submit', async (ev)
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
   try {
-    const cred = await auth.signInWithEmailAndPassword(email, password);
-    const adminDoc = await db.collection('admins').doc(cred.user.uid).get();
-    if (!adminDoc.exists) {
+    // The actual admin-membership check happens in the onAuthStateChanged
+    // listener above — that's Firebase's own recommended sync point for
+    // "auth state has actually settled." Reading it back immediately
+    // inline here, right after signInWithEmailAndPassword resolves, is
+    // prone to a real race: Firestore's request channel can occasionally
+    // still be carrying the pre-sign-in auth context for a moment, which
+    // gets a same-instant read rejected with permission-denied even
+    // though the account is a legitimate admin. So we wait for that
+    // listener's own check to actually finish instead of duplicating it.
+    await auth.signInWithEmailAndPassword(email, password);
+    await adminCheckDonePromise;
+    if (!isAdmin) {
       await auth.signOut();
       errorEl.textContent = 'This account is not authorized as an admin.';
       return;
