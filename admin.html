@@ -67,6 +67,13 @@
   }
   #headerSignOutBtn:hover{background:rgba(255,255,255,.3);}
   #headerSignOutBtn.show{display:flex;}
+  #notifToggleBtn{
+    background:rgba(255,255,255,.18);color:#fff;border:none;width:38px;height:38px;border-radius:50%;
+    cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.95rem;margin-right:8px;
+  }
+  #notifToggleBtn:hover{background:rgba(255,255,255,.3);}
+  #notifToggleBtn.show{display:flex;}
+  #notifToggleBtn.is-on{background:rgba(255,255,255,.32);}
   #headerSignedInAs{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;}
 
   @media(max-width:560px){
@@ -484,6 +491,7 @@
 
 <header>
   <h1><i class="fa-solid fa-user-shield"></i> Admin</h1>
+  <button type="button" id="notifToggleBtn" title="Enable notifications for new maintenance log entries"><i class="fa-solid fa-bell-slash"></i></button>
   <button type="button" id="headerSignOutBtn"><i class="fa-solid fa-right-from-bracket"></i> <span id="headerSignedInAs"></span></button>
 </header>
 
@@ -1337,12 +1345,12 @@ function renderAuthState(user) {
     signedInAs.textContent = user.email;
     loadEquipmentList().then(loadGroupsList).then(populateResourceEquipmentSelect).then(populatePmEquipmentSelect).then(populateSafetyChecklistEquipSelect);
     loadHistoryEquipmentOptions();
-    startInactivityTracking();
+    startNewLogNotifications();
   } else {
     signInScreen.style.display = 'block';
     dashboard.classList.remove('show');
     signOutBtn.classList.remove('show');
-    stopInactivityTracking();
+    stopNewLogNotifications();
     if (user && !user.isAnonymous) {
       if (adminCheckFailed) {
         // Could not confirm either way (offline / transient error). Stay
@@ -1358,52 +1366,72 @@ function renderAuthState(user) {
   }
 }
 
-// ================= Inactivity auto sign-out =================
-// Signs the admin out after 5 minutes with no activity — clicks, taps,
-// key presses, or scrolling. The "last active" timestamp lives in
-// localStorage (not just a JS variable), so a page refresh resumes the
-// countdown from wherever it left off instead of restarting — refreshing
-// the page is never itself a reason to be signed out.
-const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
-const LAST_ACTIVE_KEY = 'infoport_admin_last_active';
-const ACTIVITY_EVENTS = ['click', 'keydown', 'touchstart', 'mousemove', 'scroll'];
-let inactivityTimer = null;
-let lastActivityWriteAt = 0;
+// ================= New-activity notifications =================
+// Fires a browser notification when a new maintenance log entry is
+// created, as long as this tab/window is open somewhere -- even
+// minimized or backgrounded on desktop. This does NOT work if the
+// browser is fully closed, and is unreliable on iOS in the background
+// (iOS suspends background tab JS aggressively). True always-on push
+// notifications need a server-side trigger (Firebase Cloud Functions +
+// Cloud Messaging), which requires upgrading off Firebase's free Spark
+// plan -- a real cost decision, not something to build in silently.
+const notifSessionStart = new Date(); // ignore anything older than "now" so opening the tab doesn't notify about existing history
+let notifPermission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+let unsubscribeNewLogNotifications = null;
 
-function markAdminActive() {
-  const now = Date.now();
-  if (now - lastActivityWriteAt < 5000) return; // throttle localStorage writes
-  lastActivityWriteAt = now;
-  localStorage.setItem(LAST_ACTIVE_KEY, String(now));
+function updateNotifBtn() {
+  const btn = document.getElementById('notifToggleBtn');
+  if (!btn) return;
+  if (notifPermission === 'unsupported') { btn.classList.remove('show'); return; }
+  btn.classList.add('show');
+  btn.classList.toggle('is-on', notifPermission === 'granted');
+  btn.innerHTML = notifPermission === 'granted' ? '<i class="fa-solid fa-bell"></i>' : '<i class="fa-solid fa-bell-slash"></i>';
+  btn.title = notifPermission === 'granted'
+    ? 'Notifications on for new maintenance log entries'
+    : (notifPermission === 'denied'
+      ? "Notifications blocked -- enable them in your browser's site settings"
+      : 'Enable notifications for new maintenance log entries');
 }
 
-function scheduleInactivityCheck() {
-  clearTimeout(inactivityTimer);
-  if (!isAdmin) return;
-  const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY)) || Date.now();
-  const remaining = INACTIVITY_LIMIT_MS - (Date.now() - lastActive);
-  if (remaining <= 0) {
-    auth.signOut();
-    return;
+document.getElementById('notifToggleBtn').addEventListener('click', async () => {
+  if (typeof Notification === 'undefined' || notifPermission === 'denied') { updateNotifBtn(); return; }
+  notifPermission = await Notification.requestPermission();
+  updateNotifBtn();
+});
+
+function showAdminNotification(title, body) {
+  if (notifPermission !== 'granted') return;
+  try {
+    new Notification(title, { body, icon: 'assets/icons/general-admin/icon-192.png' });
+  } catch (err) {
+    console.error('Notification failed', err);
   }
-  // Re-checks once the current window's worth of inactivity would elapse;
-  // if activity happened in the meantime (this tab or another one sharing
-  // the same localStorage key) it just reschedules for the new remaining
-  // time instead of signing out.
-  inactivityTimer = setTimeout(scheduleInactivityCheck, remaining);
 }
 
-function startInactivityTracking() {
-  markAdminActive();
-  ACTIVITY_EVENTS.forEach((evt) => document.addEventListener(evt, markAdminActive, { passive: true }));
-  scheduleInactivityCheck();
+function startNewLogNotifications() {
+  updateNotifBtn();
+  if (unsubscribeNewLogNotifications) return; // already listening
+  unsubscribeNewLogNotifications = db.collection('equipmentLogs').orderBy('timestamp', 'desc').limit(10)
+    .onSnapshot((snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type !== 'added') return;
+        const data = change.doc.data();
+        const ts = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : null;
+        if (!ts || ts < notifSessionStart) return; // skip pre-existing entries on first load
+        const equip = equipmentCache.find((e) => e.id === data.equipmentId);
+        showAdminNotification(
+          'New maintenance log entry',
+          `${data.fullName || 'Someone'} logged "${data.category || 'an entry'}" on ${equip ? (equip.name || equip.id) : (data.equipmentId || 'equipment')}`
+        );
+      });
+    }, (err) => console.error('New-log notification listener failed', err));
 }
 
-function stopInactivityTracking() {
-  clearTimeout(inactivityTimer);
-  inactivityTimer = null;
-  ACTIVITY_EVENTS.forEach((evt) => document.removeEventListener(evt, markAdminActive));
-  localStorage.removeItem(LAST_ACTIVE_KEY);
+function stopNewLogNotifications() {
+  if (unsubscribeNewLogNotifications) {
+    unsubscribeNewLogNotifications();
+    unsubscribeNewLogNotifications = null;
+  }
 }
 
 // Surfaces the real reason a sign-in failed instead of a single generic
