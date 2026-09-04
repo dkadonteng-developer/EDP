@@ -116,6 +116,15 @@
   .admin-signin-btn:disabled{background:#ccc;cursor:not-allowed}
 
   /* ---------- Admin dashboard ---------- */
+  /* Department switcher sits above the Overview/Entries/Bin tabs — bolder
+     and larger since it's the higher-level choice; which department is
+     selected persists across whichever of those three tabs you're on. */
+  .dept-tabs{display:flex;gap:10px;margin-bottom:16px}
+  .dept-tab-btn{
+    flex:1;background:#fff;border:2px solid var(--border);color:#555;padding:12px 18px;border-radius:12px;
+    font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .dept-tab-btn.active{background:var(--brand);border-color:var(--brand);color:#fff}
   .admin-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
   .admin-tab-btn{
     background:#fff;border:1.5px solid var(--border);color:#555;padding:9px 16px;border-radius:20px;
@@ -233,73 +242,87 @@
   </div>
 
   <div id="adminDashboard" style="display:none">
+    <div class="dept-tabs">
+      <button type="button" class="dept-tab-btn active" data-dept="milling"><i class="fa-solid fa-industry"></i> Milling</button>
+      <button type="button" class="dept-tab-btn" data-dept="packing"><i class="fa-solid fa-box"></i> Packing</button>
+    </div>
+
     <div class="admin-tabs">
       <button type="button" class="admin-tab-btn active" data-tab="overviewPanel"><i class="fa-solid fa-chart-column"></i> Overview</button>
       <button type="button" class="admin-tab-btn" data-tab="entriesPanel"><i class="fa-solid fa-list"></i> Log Entries</button>
       <button type="button" class="admin-tab-btn" data-tab="binPanel"><i class="fa-solid fa-trash-can"></i> Recycle Bin</button>
-      <button type="button" class="admin-tab-btn" data-tab="packingPanel"><i class="fa-solid fa-box"></i> Packing</button>
     </div>
 
     <!-- Overview -->
     <div class="admin-panel active" id="overviewPanel">
-      <div class="overview-filters">
-        <input type="text" id="overviewSearch" placeholder="Search by technician or supervisor name…">
-        <select id="overviewFilterMill"><option value="">All equipment</option></select>
-        <select id="overviewFilterShift"><option value="">All shifts</option></select>
-        <select id="overviewGroupBy">
-          <option value="equipmentName">Group by: Equipment</option>
-          <option value="shift">Group by: Shift</option>
-          <option value="technicianName">Group by: Technician</option>
-          <option value="supervisorName">Group by: Supervisor</option>
-        </select>
-        <select id="overviewSort">
-          <option value="downtime-desc">Sort: Downtime (High–Low)</option>
-          <option value="downtime-asc">Sort: Downtime (Low–High)</option>
-          <option value="name-asc">Sort: Name (A–Z)</option>
-          <option value="entries-desc">Sort: Entries (Most–Fewest)</option>
-        </select>
+      <div id="millingOverviewView">
+        <div class="overview-filters">
+          <input type="text" id="overviewSearch" placeholder="Search by technician or supervisor name…">
+          <select id="overviewFilterMill"><option value="">All equipment</option></select>
+          <select id="overviewFilterShift"><option value="">All shifts</option></select>
+          <select id="overviewGroupBy">
+            <option value="equipmentName">Group by: Equipment</option>
+            <option value="shift">Group by: Shift</option>
+            <option value="technicianName">Group by: Technician</option>
+            <option value="supervisorName">Group by: Supervisor</option>
+          </select>
+          <select id="overviewSort">
+            <option value="downtime-desc">Sort: Downtime (High–Low)</option>
+            <option value="downtime-asc">Sort: Downtime (Low–High)</option>
+            <option value="name-asc">Sort: Name (A–Z)</option>
+            <option value="entries-desc">Sort: Entries (Most–Fewest)</option>
+          </select>
+        </div>
+        <div class="stat-cards" id="statCards"></div>
+        <div class="chart-grid">
+          <div class="chart-card"><h3>Downtime by equipment (hrs)</h3><canvas id="chartByMill"></canvas></div>
+          <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
+          <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3 id="groupSummaryTitle">Grouped Summary</h3>
+          <div id="groupSummaryTable"></div>
+        </div>
       </div>
-      <div class="stat-cards" id="statCards"></div>
-      <div class="chart-grid">
-        <div class="chart-card"><h3>Downtime by equipment (hrs)</h3><canvas id="chartByMill"></canvas></div>
-        <div class="chart-card"><h3>Downtime by shift (hrs)</h3><canvas id="chartByShift"></canvas></div>
-        <div class="chart-card"><h3>Top stoppage reasons (count)</h3><canvas id="chartByReason"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <h3 id="groupSummaryTitle">Grouped Summary</h3>
-        <div id="groupSummaryTable"></div>
+      <div id="packingOverviewView" style="display:none">
+        <div class="stat-cards" id="packingStatCards"></div>
       </div>
     </div>
 
     <!-- Log Entries -->
     <div class="admin-panel" id="entriesPanel">
-      <div class="history-filter">
-        <select id="filterMill"><option value="">All equipment</option></select>
-        <select id="filterShift"><option value="">All shifts</option></select>
-        <button type="button" class="toolbar-btn outline btn-secondary" id="clearFiltersBtn">Clear filters</button>
+      <div id="millingEntriesView">
+        <div class="history-filter">
+          <select id="filterMill"><option value="">All equipment</option></select>
+          <select id="filterShift"><option value="">All shifts</option></select>
+          <button type="button" class="toolbar-btn outline btn-secondary" id="clearFiltersBtn">Clear filters</button>
+        </div>
+        <div class="export-bar">
+          <button type="button" class="toolbar-btn outline btn-secondary" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button type="button" class="toolbar-btn outline btn-secondary" id="exportPdfBtn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+        </div>
+        <div id="entriesListContainer"><p class="loading-text">Loading entries…</p></div>
       </div>
-      <div class="export-bar">
-        <button type="button" class="toolbar-btn outline btn-secondary" id="exportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-        <button type="button" class="toolbar-btn outline btn-secondary" id="exportPdfBtn"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+      <div id="packingEntriesView" style="display:none">
+        <div class="export-bar">
+          <button type="button" class="toolbar-btn outline btn-secondary" id="packingExportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+        </div>
+        <div id="packingEntriesListContainer"><p class="loading-text">Loading…</p></div>
       </div>
-      <div id="entriesListContainer"><p class="loading-text">Loading entries…</p></div>
     </div>
 
     <!-- Recycle Bin -->
     <div class="admin-panel" id="binPanel">
-      <p class="card-hint" style="margin-bottom:16px">Deleted log entries are kept here until permanently removed. Restore a record to return it to the active log list.</p>
-      <div id="binListContainer"><p class="loading-text">Loading…</p></div>
+      <div id="millingBinView">
+        <p class="card-hint" style="margin-bottom:16px">Deleted log entries are kept here until permanently removed. Restore a record to return it to the active log list.</p>
+        <div id="binListContainer"><p class="loading-text">Loading…</p></div>
+      </div>
+      <div id="packingBinView" style="display:none">
+        <p class="card-hint" style="margin-bottom:16px">Deleted packing handover notes are kept here until permanently removed. Restore a note to return it to the active list.</p>
+        <div id="packingBinListContainer"><p class="loading-text">Loading…</p></div>
+      </div>
     </div>
 
-    <!-- Packing (separate structure from Milling — one note per shift, each with multiple equipment handover rows) -->
-    <div class="admin-panel" id="packingPanel">
-      <div class="stat-cards" id="packingStatCards"></div>
-      <div class="export-bar">
-        <button type="button" class="toolbar-btn outline btn-secondary" id="packingShowArchivedBtn"><i class="fa-solid fa-box-archive"></i> Show Archived</button>
-        <button type="button" class="toolbar-btn outline btn-secondary" id="packingExportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
-      </div>
-      <div id="packingListContainer"><p class="loading-text">Loading…</p></div>
-    </div>
   </div>
 
 </div>
@@ -437,6 +460,25 @@ document.querySelectorAll('.admin-tab-btn').forEach((btn) => {
     document.querySelectorAll('.admin-panel').forEach((p) => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Department switcher — Milling and Packing each get their own
+// Overview/Log Entries/Recycle Bin; this just toggles which department's
+// content shows within whichever of those three tabs is currently active,
+// rather than merging the two departments' data together. ----------
+let currentDept = 'milling';
+document.querySelectorAll('.dept-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentDept = btn.dataset.dept;
+    document.querySelectorAll('.dept-tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
+    const isPacking = currentDept === 'packing';
+    document.getElementById('millingOverviewView').style.display = isPacking ? 'none' : 'block';
+    document.getElementById('packingOverviewView').style.display = isPacking ? 'block' : 'none';
+    document.getElementById('millingEntriesView').style.display = isPacking ? 'none' : 'block';
+    document.getElementById('packingEntriesView').style.display = isPacking ? 'block' : 'none';
+    document.getElementById('millingBinView').style.display = isPacking ? 'none' : 'block';
+    document.getElementById('packingBinView').style.display = isPacking ? 'block' : 'none';
   });
 });
 
@@ -740,19 +782,20 @@ function renderBinList() {
 // ---------- Packing (separate structure — one note per shift, each with
 // several equipment handover rows, rather than a single downtime log) ----------
 let allPackingLogs = [];
-let packingShowArchived = false;
 
 async function loadAllPackingLogs() {
-  document.getElementById('packingListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
+  document.getElementById('packingEntriesListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
+  document.getElementById('packingBinListContainer').innerHTML = '<p class="loading-text">Loading…</p>';
   try {
     const snap = await db.collection('packingHandoverLogs').get();
     allPackingLogs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     allPackingLogs.sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
     renderPackingStats();
-    renderPackingList();
+    renderPackingEntriesList();
+    renderPackingBinList();
   } catch (err) {
     console.error('Failed to load packing logs', err);
-    document.getElementById('packingListContainer').innerHTML = '<p class="empty-state">Could not load packing handover notes.</p>';
+    document.getElementById('packingEntriesListContainer').innerHTML = '<p class="empty-state">Could not load packing handover notes.</p>';
   }
 }
 
@@ -766,21 +809,15 @@ function renderPackingStats() {
   `;
 }
 
-function renderPackingList() {
-  const container = document.getElementById('packingListContainer');
-  const rows = allPackingLogs.filter((l) => !!l.archived === packingShowArchived);
+function renderPackingEntriesList() {
+  const container = document.getElementById('packingEntriesListContainer');
+  const rows = allPackingLogs.filter((l) => !l.archived);
   if (!rows.length) {
-    container.innerHTML = packingShowArchived
-      ? '<p class="empty-state">Recycle bin is empty.</p>'
-      : '<p class="empty-state">No packing handover notes yet.</p>';
+    container.innerHTML = '<p class="empty-state">No packing handover notes yet.</p>';
     return;
   }
-  container.innerHTML = rows.map((r) => packingLogCardHtml(r, packingShowArchived
-    ? `
-      <button type="button" class="row-icon-btn" title="Restore" data-restore-packing="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
-      <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-packing="${r.id}"><i class="fa-solid fa-trash"></i></button>
-    `
-    : `<button type="button" class="row-icon-btn" title="Archive" data-archive-packing="${r.id}"><i class="fa-solid fa-box-archive"></i></button>`
+  container.innerHTML = rows.map((r) => packingLogCardHtml(r,
+    `<button type="button" class="row-icon-btn" title="Archive" data-archive-packing="${r.id}"><i class="fa-solid fa-box-archive"></i></button>`
   )).join('');
 
   container.querySelectorAll('[data-archive-packing]').forEach((btn) => {
@@ -799,6 +836,20 @@ function renderPackingList() {
       }
     });
   });
+}
+
+function renderPackingBinList() {
+  const container = document.getElementById('packingBinListContainer');
+  const rows = allPackingLogs.filter((l) => !!l.archived);
+  if (!rows.length) {
+    container.innerHTML = '<p class="empty-state">Recycle bin is empty.</p>';
+    return;
+  }
+  container.innerHTML = rows.map((r) => packingLogCardHtml(r, `
+    <button type="button" class="row-icon-btn" title="Restore" data-restore-packing="${r.id}"><i class="fa-solid fa-rotate-left"></i></button>
+    <button type="button" class="row-icon-btn danger" title="Delete permanently" data-delete-packing="${r.id}"><i class="fa-solid fa-trash"></i></button>
+  `)).join('');
+
   container.querySelectorAll('[data-restore-packing]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       try {
@@ -873,16 +924,6 @@ function packingLogCardHtml(r, actionsHtml) {
     </div>
   `;
 }
-
-document.getElementById('packingShowArchivedBtn').addEventListener('click', () => {
-  packingShowArchived = !packingShowArchived;
-  const btn = document.getElementById('packingShowArchivedBtn');
-  btn.innerHTML = packingShowArchived
-    ? '<i class="fa-solid fa-arrow-left"></i> Back to Active'
-    : '<i class="fa-solid fa-box-archive"></i> Show Archived';
-  btn.classList.toggle('outline', !packingShowArchived);
-  renderPackingList();
-});
 
 document.getElementById('packingExportExcelBtn').addEventListener('click', () => {
   const active = allPackingLogs.filter((l) => !l.archived);
