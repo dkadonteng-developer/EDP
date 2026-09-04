@@ -141,6 +141,7 @@
 
   .history-filter{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
   .history-filter select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85rem}
+  .history-filter input[type="text"]{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85rem;flex:1;min-width:200px}
 
   .log-row{
     background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;
@@ -282,8 +283,15 @@
     <div class="admin-panel" id="entriesPanel">
       <div id="millingEntriesView">
         <div class="history-filter">
+          <input type="text" id="entriesSearchInput" placeholder="Search technician or supervisor…">
           <select id="filterMill"><option value="">All equipment</option></select>
           <select id="filterShift"><option value="">All shifts</option></select>
+          <select id="entriesSortSelect">
+            <option value="date-desc">Sort: Date (Newest)</option>
+            <option value="date-asc">Sort: Date (Oldest)</option>
+            <option value="downtime-desc">Sort: Downtime (High–Low)</option>
+            <option value="downtime-asc">Sort: Downtime (Low–High)</option>
+          </select>
           <button type="button" class="toolbar-btn outline btn-secondary" id="clearFiltersBtn">Clear filters</button>
         </div>
         <div class="export-bar">
@@ -293,6 +301,15 @@
         <div id="entriesListContainer"><p class="loading-text">Loading entries…</p></div>
       </div>
       <div id="packingEntriesView" style="display:none">
+        <div class="history-filter">
+          <input type="text" id="packingEntriesSearchInput" placeholder="Search shift, equipment, or rep name…">
+          <select id="packingEntriesSortSelect">
+            <option value="date-desc">Sort: Date (Newest)</option>
+            <option value="date-asc">Sort: Date (Oldest)</option>
+            <option value="rows-desc">Sort: Equipment count (Most)</option>
+            <option value="rows-asc">Sort: Equipment count (Fewest)</option>
+          </select>
+        </div>
         <div class="export-bar">
           <button type="button" class="toolbar-btn outline btn-secondary" id="packingExportExcelBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
         </div>
@@ -304,10 +321,24 @@
     <div class="admin-panel" id="binPanel">
       <div id="millingBinView">
         <p class="card-hint" style="margin-bottom:16px">Deleted log entries are kept here until permanently removed. Restore a record to return it to the active log list.</p>
+        <div class="history-filter">
+          <input type="text" id="binSearchInput" placeholder="Search technician or supervisor…">
+          <select id="binSortSelect">
+            <option value="date-desc">Sort: Date (Newest)</option>
+            <option value="date-asc">Sort: Date (Oldest)</option>
+          </select>
+        </div>
         <div id="binListContainer"><p class="loading-text">Loading…</p></div>
       </div>
       <div id="packingBinView" style="display:none">
         <p class="card-hint" style="margin-bottom:16px">Deleted packing handover notes are kept here until permanently removed. Restore a note to return it to the active list.</p>
+        <div class="history-filter">
+          <input type="text" id="packingBinSearchInput" placeholder="Search shift, equipment, or rep name…">
+          <select id="packingBinSortSelect">
+            <option value="date-desc">Sort: Date (Newest)</option>
+            <option value="date-asc">Sort: Date (Oldest)</option>
+          </select>
+        </div>
         <div id="packingBinListContainer"><p class="loading-text">Loading…</p></div>
       </div>
     </div>
@@ -517,17 +548,39 @@ function populateFilterOptions() {
 function activeLogs() { return allHandoverLogs.filter((l) => !l.archived); }
 function archivedLogs() { return allHandoverLogs.filter((l) => !!l.archived); }
 
+function sortLogRows(rows, sortMode) {
+  const [field, dir] = sortMode.split('-');
+  return rows.slice().sort((a, b) => {
+    let cmp;
+    if (field === 'downtime') {
+      cmp = (a.totalDowntimeHrs || 0) - (b.totalDowntimeHrs || 0);
+    } else {
+      cmp = (a.recordedDate || '').localeCompare(b.recordedDate || '');
+    }
+    return dir === 'desc' ? -cmp : cmp;
+  });
+}
+
 function filteredEntries() {
   const equipName = document.getElementById('filterMill').value;
   const shift = document.getElementById('filterShift').value;
-  return activeLogs().filter((l) => (!equipName || l.equipmentName === equipName) && (!shift || l.shift === shift));
+  const search = document.getElementById('entriesSearchInput').value.trim().toLowerCase();
+  const sortMode = document.getElementById('entriesSortSelect').value;
+  let rows = activeLogs().filter((l) => (!equipName || l.equipmentName === equipName) && (!shift || l.shift === shift));
+  if (search) {
+    rows = rows.filter((l) => `${l.technicianName || ''} ${l.supervisorName || ''}`.toLowerCase().includes(search));
+  }
+  return sortLogRows(rows, sortMode);
 }
 
 document.getElementById('filterMill').addEventListener('change', renderEntriesList);
 document.getElementById('filterShift').addEventListener('change', renderEntriesList);
+document.getElementById('entriesSearchInput').addEventListener('input', renderEntriesList);
+document.getElementById('entriesSortSelect').addEventListener('change', renderEntriesList);
 document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   document.getElementById('filterMill').value = '';
   document.getElementById('filterShift').value = '';
+  document.getElementById('entriesSearchInput').value = '';
   renderEntriesList();
 });
 
@@ -729,9 +782,17 @@ function renderEntriesList() {
 
 function renderBinList() {
   const container = document.getElementById('binListContainer');
-  const rows = archivedLogs().sort((a, b) => (b.recordedDate || '').localeCompare(a.recordedDate || ''));
+  const search = document.getElementById('binSearchInput').value.trim().toLowerCase();
+  const sortMode = document.getElementById('binSortSelect').value;
+  let rows = archivedLogs();
+  if (search) {
+    rows = rows.filter((l) => `${l.technicianName || ''} ${l.supervisorName || ''}`.toLowerCase().includes(search));
+  }
+  rows = sortLogRows(rows, sortMode);
   if (!rows.length) {
-    container.innerHTML = '<p class="empty-state">Recycle bin is empty.</p>';
+    container.innerHTML = search
+      ? '<p class="empty-state">No archived entries match your search.</p>'
+      : '<p class="empty-state">Recycle bin is empty.</p>';
     return;
   }
   container.innerHTML = rows.map((r) => logCardHtml(r, `
@@ -798,11 +859,38 @@ function renderPackingStats() {
   `;
 }
 
+function packingSearchAndSort(rows, search, sortMode) {
+  let result = rows;
+  if (search) {
+    result = result.filter((l) => {
+      const equipNames = (l.rows || []).map((r) => r.equipmentName || '').join(' ');
+      const repNames = (l.rows || []).map((r) => `${r.maintenanceRepName || ''} ${r.productionRepName || ''}`).join(' ');
+      const haystack = `${l.shift || ''} ${l.verifiedBy || ''} ${equipNames} ${repNames}`.toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+  const [field, dir] = sortMode.split('-');
+  result = result.slice().sort((a, b) => {
+    let cmp;
+    if (field === 'rows') {
+      cmp = (a.rows || []).length - (b.rows || []).length;
+    } else {
+      cmp = (a.recordedDate || '').localeCompare(b.recordedDate || '');
+    }
+    return dir === 'desc' ? -cmp : cmp;
+  });
+  return result;
+}
+
 function renderPackingEntriesList() {
   const container = document.getElementById('packingEntriesListContainer');
-  const rows = allPackingLogs.filter((l) => !l.archived);
+  const search = document.getElementById('packingEntriesSearchInput').value.trim().toLowerCase();
+  const sortMode = document.getElementById('packingEntriesSortSelect').value;
+  const rows = packingSearchAndSort(allPackingLogs.filter((l) => !l.archived), search, sortMode);
   if (!rows.length) {
-    container.innerHTML = '<p class="empty-state">No packing handover notes yet.</p>';
+    container.innerHTML = search
+      ? '<p class="empty-state">No packing handover notes match your search.</p>'
+      : '<p class="empty-state">No packing handover notes yet.</p>';
     return;
   }
   container.innerHTML = rows.map((r) => packingLogCardHtml(r,
@@ -826,12 +914,18 @@ function renderPackingEntriesList() {
     });
   });
 }
+document.getElementById('packingEntriesSearchInput').addEventListener('input', renderPackingEntriesList);
+document.getElementById('packingEntriesSortSelect').addEventListener('change', renderPackingEntriesList);
 
 function renderPackingBinList() {
   const container = document.getElementById('packingBinListContainer');
-  const rows = allPackingLogs.filter((l) => !!l.archived);
+  const search = document.getElementById('packingBinSearchInput').value.trim().toLowerCase();
+  const sortMode = document.getElementById('packingBinSortSelect').value;
+  const rows = packingSearchAndSort(allPackingLogs.filter((l) => !!l.archived), search, sortMode);
   if (!rows.length) {
-    container.innerHTML = '<p class="empty-state">Recycle bin is empty.</p>';
+    container.innerHTML = search
+      ? '<p class="empty-state">No archived notes match your search.</p>'
+      : '<p class="empty-state">Recycle bin is empty.</p>';
     return;
   }
   container.innerHTML = rows.map((r) => packingLogCardHtml(r, `
@@ -867,6 +961,12 @@ function renderPackingBinList() {
     });
   });
 }
+
+document.getElementById('packingBinSearchInput').addEventListener('input', renderPackingBinList);
+document.getElementById('packingBinSortSelect').addEventListener('change', renderPackingBinList);
+
+document.getElementById('binSearchInput').addEventListener('input', renderBinList);
+document.getElementById('binSortSelect').addEventListener('change', renderBinList);
 
 function packingRowsSummaryHtml(rows) {
   if (!(rows || []).length) return '<p class="empty-state" style="padding:14px">No equipment rows.</p>';
