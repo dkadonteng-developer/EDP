@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="tab-pill-slider.js" defer></script>
 
 <style>
   #pageLoadingOverlay{
@@ -233,11 +234,10 @@
   .page-tab-btn{
     background:#fff;border:1.5px solid var(--border);color:#555;padding:10px 18px;border-radius:20px;
     font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
+    position:relative;z-index:1;transition:color .2s ease,border-color .2s ease;
   }
   .page-tab-btn.active{
-    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand) 55%,#004d28 100%);
     border-color:transparent;color:#fff;
-    box-shadow:inset 0 1px 1.5px rgba(255,255,255,.4),inset 0 -2px 4px rgba(0,0,0,.2);
   }
   .page-tab-panel{display:none}
   .page-tab-panel.active{display:block}
@@ -343,6 +343,21 @@
 
   @media(max-width:640px){
     .container{padding:18px 14px 80px}
+  }
+
+  /* ---------- Shared draggable/animated tab-pill indicator ----------
+     Duplicated here (rather than pulled from shared-nav.css) since this
+     page doesn't load that file. Keep in sync with shared-nav.css if the
+     look changes there. */
+  .tab-pill-slider{
+    position:absolute;top:0;left:0;z-index:0;pointer-events:none;opacity:0;
+    transition:transform .25s cubic-bezier(.4,0,.2,1),width .25s cubic-bezier(.4,0,.2,1),height .25s cubic-bezier(.4,0,.2,1),opacity .15s ease;
+  }
+  .tab-pill-slider.is-dragging{transition:none}
+  .tab-pill-slider.pill-fill{
+    border-radius:20px;
+    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand,#006937) 55%,#004d28 100%);
+    box-shadow:inset 0 1px 1.5px rgba(255,255,255,.4),inset 0 -2px 4px rgba(0,0,0,.2);
   }
 </style>
 </head>
@@ -533,9 +548,11 @@ function escapeHtml(str) {
 }
 
 // ---------- Page tabs ----------
+let pageTabsPill = null;
 function activateTab(tabId) {
   document.querySelectorAll('.page-tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabId));
   document.querySelectorAll('.page-tab-panel').forEach((p) => p.classList.toggle('active', p.id === tabId));
+  if (pageTabsPill) pageTabsPill.refresh(true);
 }
 document.querySelectorAll('.page-tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => activateTab(btn.dataset.tab));
@@ -547,6 +564,11 @@ document.addEventListener('click', (e) => {
   if (!link) return;
   e.preventDefault();
   activateTab(link.dataset.switchTab);
+});
+window.addEventListener('load', () => {
+  if (typeof initTabPillSlider === 'function') {
+    pageTabsPill = initTabPillSlider(document.querySelector('.page-tabs'), { activeClass: 'active', pillClass: 'pill-fill' });
+  }
 });
 
 // ---------- Procurement authentication ----------

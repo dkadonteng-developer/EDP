@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="tab-pill-slider.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -86,23 +87,26 @@
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     padding:6px 10px;border:none;background:none;border-radius:100px;font-family:inherit;
     font-size:.62rem;font-weight:600;color:#8e8e93;cursor:pointer;
-    transition:background .15s ease,color .15s ease;
+    position:relative;z-index:1;transition:color .15s ease;
   }
-  .eq-tab-btn i{font-size:1rem;transition:all .2s ease}
+  .eq-tab-btn i{font-size:1rem;transition:color .2s ease}
   .eq-tab-btn:hover{color:var(--text)}
-  .eq-tab-btn.is-active{background:var(--brand-tint,#e5f0ea);color:var(--brand)}
-  .eq-tab-btn.is-active i{
-    width:26px;height:26px;border-radius:50%;color:#fff;font-size:.8rem;
-    display:flex;align-items:center;justify-content:center;
-    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand) 55%,#004d28 100%);
-    box-shadow:
-      inset 0 1px 1.5px rgba(255,255,255,.5),
-      inset 0 -2px 3px rgba(0,0,0,.2),
-      0 3px 6px rgba(0,105,55,.3);
-  }
+  .eq-tab-btn.is-active{color:var(--brand)}
+  .eq-tab-btn.is-active i{color:#fff}
   .eq-tab-panel{display:none}
   .eq-tab-panel.is-active{display:block}
-  .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+  .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px;position:relative}
+  .info-btn{
+    background:none;border:none;padding:2px;margin-left:-2px;cursor:pointer;color:var(--muted);
+    font-size:.85rem;display:inline-flex;align-items:center;line-height:1;
+  }
+  .info-btn:hover{color:var(--brand)}
+  .info-popover{
+    position:absolute;top:100%;left:0;margin-top:8px;z-index:20;
+    background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);
+    padding:12px 14px;font-size:.82rem;font-weight:400;color:var(--muted);line-height:1.5;
+    width:min(280px,80vw);white-space:normal;
+  }
   .section h2 i{color:var(--brand)}
 
   /* ---------- Exploded View ---------- */
@@ -1556,11 +1560,10 @@
 
   <div class="eq-tab-panel" id="eqPanelLog">
   <div class="section">
-    <h2><i class="fa-solid fa-comments"></i> Comments</h2>
-    <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
-      General suggestions, observations, or other notes about this equipment.
-      Entries are visible to everyone, and can only be edited by the device that submitted them.
-    </p>
+    <h2>
+      <i class="fa-solid fa-comments"></i> Comments
+      <button type="button" class="info-btn" data-info="General suggestions, observations, or other notes about this equipment. Entries are visible to everyone, and can only be edited by the device that submitted them." title="What's this?"><i class="fa-solid fa-circle-info"></i></button>
+    </h2>
 
     <button type="button" id="commentOpenFormBtn" class="log-open-form-btn btn-primary">
       <i class="fa-solid fa-plus"></i> Add Comment
@@ -1574,11 +1577,10 @@
   </div>
 
   <div class="section">
-    <h2><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance Log</h2>
-    <p style="color:var(--muted);font-size:.88rem;margin-top:-6px">
-      Log lubrication details, PM/CM issues rectified, or any other maintenance history for this equipment.
-      Entries are visible to everyone, and can only be edited by the device that submitted them.
-    </p>
+    <h2>
+      <i class="fa-solid fa-screwdriver-wrench"></i> Maintenance Log
+      <button type="button" class="info-btn" data-info="Log lubrication details, PM/CM issues rectified, or any other maintenance history for this equipment. Entries are visible to everyone, and can only be edited by the device that submitted them." title="What's this?"><i class="fa-solid fa-circle-info"></i></button>
+    </h2>
 
     <button type="button" id="logOpenFormBtn" class="log-open-form-btn btn-primary">
       <i class="fa-solid fa-plus"></i> Log New Entry
@@ -1859,6 +1861,23 @@ const authReady = new Promise((resolve) => {
   auth.signInAnonymously().catch((err) => {
     console.error('Anonymous sign-in failed', err);
   });
+});
+
+// ---------- (i) info popovers — click to reveal what a section/button
+// does, instead of showing that text permanently on the page. ----------
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.info-popover')) return;
+  const btn = e.target.closest('.info-btn');
+  const existing = document.querySelector('.info-popover');
+  if (existing) existing.remove();
+  if (btn && (!existing || existing.dataset.for !== btn.dataset.info)) {
+    const popover = document.createElement('div');
+    popover.className = 'info-popover';
+    popover.dataset.for = btn.dataset.info;
+    popover.textContent = btn.dataset.info;
+    btn.parentElement.appendChild(popover);
+    e.stopPropagation();
+  }
 });
 
 const icons = {
@@ -3354,13 +3373,23 @@ document.addEventListener('fullscreenchange', updateResourcePreviewFullscreenBtn
 document.addEventListener('webkitfullscreenchange', updateResourcePreviewFullscreenBtn);
 
 // ---------- Equipment page tabs ----------
+let eqTabsPill = null;
 function showEqTab(tab) {
   document.querySelectorAll('.eq-tab-btn').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tab));
   document.querySelectorAll('.eq-tab-panel').forEach((panel) => panel.classList.toggle('is-active', panel.id === `eqPanel${tab.charAt(0).toUpperCase()}${tab.slice(1)}`));
   document.getElementById('safetyChecklistSection').style.display = (tab === 'home' || tab === 'log') ? '' : 'none';
+  if (eqTabsPill) eqTabsPill.refresh(true);
 }
 el.eqTabs.querySelectorAll('.eq-tab-btn').forEach((btn) => {
   btn.addEventListener('click', () => showEqTab(btn.dataset.tab));
+});
+window.addEventListener('load', () => {
+  if (typeof initTabPillSlider === 'function') {
+    eqTabsPill = initTabPillSlider(el.eqTabs, {
+      activeClass: 'is-active', pillClass: 'pill-circle',
+      fixedSize: { width: 26, height: 26 }, iconTarget: true,
+    });
+  }
 });
 
 // ---------- Exploded View ----------
@@ -3415,10 +3444,12 @@ async function loadExplodedView(e) {
   if (!explodeViews.length) {
     el.explodedSection.style.display = 'none';
     el.eqTabBtnDiagrams.style.display = 'none';
+    if (eqTabsPill) eqTabsPill.refresh(false);
     return;
   }
   el.explodedSection.style.display = 'block';
   el.eqTabBtnDiagrams.style.display = 'flex';
+  if (eqTabsPill) eqTabsPill.refresh(false);
   renderExplodeTabs();
   selectExplodeView(explodeViews[0].id);
 }

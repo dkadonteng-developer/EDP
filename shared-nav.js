@@ -33,4 +33,13 @@
   document.body.appendChild(nav);
   document.body.classList.add('has-app-tabbar');
 
+  if (typeof initTabPillSlider === 'function') {
+    initTabPillSlider(nav, {
+      activeClass: 'is-active',
+      pillClass: 'pill-circle',
+      fixedSize: { width: 32, height: 32 },
+      iconTarget: true,
+    });
+  }
+
 })();
