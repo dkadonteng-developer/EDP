@@ -772,7 +772,13 @@ async function runSearch(partContext, freeTextQuery) {
   try {
     const params = new URLSearchParams({ q: query, gl });
     const res = await fetch(`${SOURCE_PARTS_API_URL}?${params.toString()}`);
-    const data = await res.json();
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      throw new Error(`Backend returned an unreadable response (HTTP ${res.status}). Check that SOURCE_PARTS_API_URL points at your actual deployed function.`);
+    }
 
     if (!res.ok) {
       if (data.error === 'config_missing') {
@@ -781,7 +787,7 @@ async function runSearch(partContext, freeTextQuery) {
         area.innerHTML = '';
         return;
       }
-      throw new Error(data.message || 'Search failed.');
+      throw new Error(data.message || `Search failed (HTTP ${res.status}).`);
     }
 
     lastResults = data.results || [];
@@ -791,7 +797,7 @@ async function runSearch(partContext, freeTextQuery) {
     area.innerHTML = `
       <div class="state-block is-error">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <p>Could not search suppliers right now. Please check your connection and try again.</p>
+        <p>${escapeHtml(err.message || 'Could not search suppliers right now. Please check your connection and try again.')}</p>
       </div>`;
   }
 }
