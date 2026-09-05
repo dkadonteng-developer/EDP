@@ -12,7 +12,7 @@
 //
 // GET /api/source-parts?partName=...&modelNumber=...&category=...
 //   or /api/source-parts?q=free+text+query
-// Optional: &gl=us (country to search from — see SerpApi's `gl` param)
+// Optional: &gl=gh (country to search from — see SerpApi's `gl` param; defaults to Ghana)
 
 // Allows source-parts.html to call this from a different origin than
 // wherever this function itself is deployed — you're not only on
@@ -69,7 +69,7 @@ module.exports = async function handler(req, res) {
     engine: 'google_shopping',
     q: query,
     api_key: apiKey,
-    gl: (typeof gl === 'string' && gl) || 'us',
+    gl: (typeof gl === 'string' && gl) || 'gh',
     hl: 'en',
   });
 
