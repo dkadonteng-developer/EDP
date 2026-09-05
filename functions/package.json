@@ -1,0 +1,15 @@
+{
+  "name": "edp-functions",
+  "description": "Cloud Functions for InfoPort — currently just the spare-parts sourcing search proxy.",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^5.1.1"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions"
+  }
+}
