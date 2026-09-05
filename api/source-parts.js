@@ -14,7 +14,26 @@
 //   or /api/source-parts?q=free+text+query
 // Optional: &gl=us (country to search from — see SerpApi's `gl` param)
 
+// Allows source-parts.html to call this from a different origin than
+// wherever this function itself is deployed — you're not only on
+// Vercel, so the page and this API may not share a domain. Tighten this
+// to your real site's origin instead of '*' once you know it, the same
+// way you would for any other public endpoint.
+const ALLOWED_ORIGIN = '*';
+
+function withCors(res) {
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  return res;
+}
+
 module.exports = async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    withCors(res);
+    return res.status(204).end();
+  }
+  withCors(res);
+
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed. Use GET.' });
