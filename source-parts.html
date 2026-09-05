@@ -377,11 +377,12 @@
           <datalist id="inventoryPartsList"></datalist>
         </div>
         <select id="countrySelect" title="Search suppliers as if browsing from this country">
-          <option value="gh" selected>🇬🇭 Ghana</option>
-          <option value="us">🇺🇸 United States</option>
+          <option value="us" selected>🇺🇸 United States</option>
           <option value="gb">🇬🇧 United Kingdom</option>
-          <option value="ng">🇳🇬 Nigeria</option>
-          <option value="cn">🇨🇳 China</option>
+          <option value="de">🇩🇪 Germany</option>
+          <option value="ae">🇦🇪 United Arab Emirates</option>
+          <option value="in">🇮🇳 India</option>
+          <option value="za">🇿🇦 South Africa</option>
         </select>
         <button type="button" class="btn-primary" id="searchBtn">
           <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
@@ -389,10 +390,11 @@
       </div>
       <p class="shipping-caveat">
         <i class="fa-solid fa-circle-info"></i>
-        Searching as Ghana surfaces more locally-relevant listings, but no search API can guarantee
-        a specific seller ships to Ghana — always confirm shipping destination and cost with the
-        supplier before ordering. If Ghana results look thin for a part, try United States, United
-        Kingdom, Nigeria, or China from the dropdown for a wider pool.
+        Google Shopping has no Ghana-specific catalog, so results are always drawn from another
+        country's listings — UAE and India are worth trying since they're common import routes
+        for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. No search API can
+        guarantee a specific seller ships to Ghana — always confirm shipping destination and cost
+        with the supplier directly before ordering.
       </p>
 
       <div class="quick-access">
