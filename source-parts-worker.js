@@ -69,7 +69,7 @@ export default {
       engine: 'google_shopping',
       q: query,
       api_key: apiKey,
-      gl: params.get('gl') || 'us',
+      gl: params.get('gl') || 'gh',
       hl: 'en',
     });
 
