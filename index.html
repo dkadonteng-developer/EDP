@@ -545,8 +545,12 @@ padding:14px 18px;border-bottom:1px solid #f0f2f4;
 .home-activity-item:last-child{border-bottom:none}
 
 .home-activity-item i{
-width:34px;height:34px;flex:0 0 auto;border-radius:50%;
-background:#e8f5ee;color:#006937;
+width:34px;height:34px;flex:0 0 auto;border-radius:50%;color:#fff;
+background:linear-gradient(155deg,#00a651 0%,#006937 55%,#004d28 100%);
+box-shadow:
+  inset 0 1px 1.5px rgba(255,255,255,.5),
+  inset 0 -2px 3px rgba(0,0,0,.2),
+  0 3px 8px rgba(0,105,55,.3);
 display:flex;align-items:center;justify-content:center;font-size:.85rem;
 margin-top:2px;
 }
@@ -700,9 +704,53 @@ justify-content:center;
 font-size:1rem;
 box-shadow:0 0 0 4px #f5f7fa;
 z-index:1;
+transition:background .3s ease,border-color .3s ease,color .3s ease,box-shadow .3s ease;
 }
 
 .process-step-node.is-reject{border-color:#c0392b;color:#c0392b}
+
+/* Settled state once the scroll-driven arrow has passed this step —
+   matches the depth-badge treatment used for icons across the app. */
+.process-step-node.is-passed{
+border-color:transparent;color:#fff;
+background:linear-gradient(155deg,#00a651 0%,#006937 55%,#004d28 100%);
+box-shadow:
+  0 0 0 4px #f5f7fa,
+  inset 0 1.5px 2px rgba(255,255,255,.55),
+  inset 0 -3px 5px rgba(0,0,0,.25),
+  0 4px 10px rgba(0,105,55,.35);
+}
+.process-step-node.is-reject.is-passed{
+background:linear-gradient(155deg,#e8493f 0%,#d92d20 55%,#a3221a 100%);
+box-shadow:
+  0 0 0 4px #f5f7fa,
+  inset 0 1.5px 2px rgba(255,255,255,.4),
+  inset 0 -3px 5px rgba(0,0,0,.25),
+  0 4px 10px rgba(217,45,32,.35);
+}
+
+/* The one step the arrow is at right now — same fill as .is-passed, plus
+   a soft pulsing ring so the flow visibly hands off from step to step as
+   you scroll, instead of every icon looking identical the whole time. */
+.process-step-node.is-active{
+animation:processNodePulse 1.6s ease-in-out infinite;
+}
+.process-step-node.is-reject.is-active{
+animation:processNodePulseReject 1.6s ease-in-out infinite;
+}
+
+@keyframes processNodePulse{
+0%,100%{box-shadow:0 0 0 4px #f5f7fa,0 0 0 0 rgba(0,166,81,0),inset 0 1.5px 2px rgba(255,255,255,.55),inset 0 -3px 5px rgba(0,0,0,.25),0 4px 10px rgba(0,105,55,.35);}
+50%{box-shadow:0 0 0 4px #f5f7fa,0 0 0 8px rgba(0,166,81,.28),inset 0 1.5px 2px rgba(255,255,255,.55),inset 0 -3px 5px rgba(0,0,0,.25),0 4px 10px rgba(0,105,55,.45);}
+}
+@keyframes processNodePulseReject{
+0%,100%{box-shadow:0 0 0 4px #f5f7fa,0 0 0 0 rgba(217,45,32,0),inset 0 1.5px 2px rgba(255,255,255,.4),inset 0 -3px 5px rgba(0,0,0,.25),0 4px 10px rgba(217,45,32,.35);}
+50%{box-shadow:0 0 0 4px #f5f7fa,0 0 0 8px rgba(217,45,32,.28),inset 0 1.5px 2px rgba(255,255,255,.4),inset 0 -3px 5px rgba(0,0,0,.25),0 4px 10px rgba(217,45,32,.45);}
+}
+
+@media (prefers-reduced-motion: reduce){
+.process-step-node.is-active,.process-step-node.is-reject.is-active{animation:none}
+}
 
 .process-step-card{
 background:#f8faf9;
@@ -1320,6 +1368,7 @@ Engineering Documentation Portal
   const fill = document.getElementById('processProgressFill');
   const arrow = document.getElementById('processProgressArrow');
   if (!timeline || !fill || !arrow) return;
+  const nodes = Array.from(timeline.querySelectorAll('.process-step-node'));
 
   let ticking = false;
 
@@ -1338,6 +1387,26 @@ Engineering Documentation Portal
     fill.style.height = (progress * 100) + '%';
     arrow.style.top = (progress * 100) + '%';
     arrow.style.opacity = progress > 0.005 ? '1' : '0';
+
+    // Hand the "active" highlight from one process icon to the next as
+    // the arrow reaches each one, instead of every icon looking identical
+    // regardless of scroll position. A node is "passed" once the arrow's
+    // pixel position has reached its center; the most recently passed
+    // node is the one currently "active" (pulsing) rather than settled.
+    const arrowY = progress * rect.height;
+    let activeNode = null;
+    nodes.forEach((node) => {
+      const nodeRect = node.getBoundingClientRect();
+      const nodeCenterY = (nodeRect.top - rect.top) + nodeRect.height / 2;
+      node.classList.remove('is-active');
+      if (nodeCenterY <= arrowY) {
+        node.classList.add('is-passed');
+        activeNode = node;
+      } else {
+        node.classList.remove('is-passed');
+      }
+    });
+    if (activeNode) activeNode.classList.add('is-active');
   }
 
   function onScroll() {

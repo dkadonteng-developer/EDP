@@ -87,8 +87,13 @@
     box-shadow:0 10px 30px rgba(0,0,0,.08);padding:36px 30px;text-align:center;
   }
   #signInScreen .icon{
-    width:60px;height:60px;border-radius:50%;background:var(--brand);color:#fff;
+    width:60px;height:60px;border-radius:50%;color:#fff;
     display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 18px;
+    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand) 55%,#004d28 100%);
+    box-shadow:
+      inset 0 1.5px 2px rgba(255,255,255,.55),
+      inset 0 -3px 5px rgba(0,0,0,.25),
+      0 6px 14px rgba(0,105,55,.35);
   }
   #signInScreen h2{margin:0 0 6px;font-size:1.2rem;color:var(--brand);}
   #signInScreen p{color:var(--muted);font-size:.88rem;margin:0 0 22px;}
