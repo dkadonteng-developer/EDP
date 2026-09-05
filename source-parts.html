@@ -860,6 +860,8 @@ document.getElementById('countrySelect').addEventListener('change', () => {
   if (lastQuery) runSearch(lastPartContext, lastQuery);
 });
 
+let searchInProgress = false;
+
 async function runSearch(partContext, freeTextQuery) {
   const area = document.getElementById('resultsArea');
   const configNote = document.getElementById('configNote');
@@ -871,6 +873,7 @@ async function runSearch(partContext, freeTextQuery) {
   lastQuery = query;
   const gl = document.getElementById('countrySelect').value;
   lastGl = gl;
+  searchInProgress = true;
 
   area.innerHTML = `
     <div class="state-block">
@@ -901,6 +904,7 @@ async function runSearch(partContext, freeTextQuery) {
 
     lastResults = data.results || [];
     renderResults(lastResults, query);
+    lastRenderedFlagSignature = flagSignature(flaggedLinks);
   } catch (err) {
     console.error('Sourcing search failed', err);
     area.innerHTML = `
@@ -908,6 +912,8 @@ async function runSearch(partContext, freeTextQuery) {
         <i class="fa-solid fa-triangle-exclamation"></i>
         <p>${escapeHtml(err.message || 'Could not search suppliers right now. Please check your connection and try again.')}</p>
       </div>`;
+  } finally {
+    searchInProgress = false;
   }
 }
 
@@ -1069,6 +1075,10 @@ async function flagResult(idx) {
 // button on a listing that's already been shortlisted, so the same
 // supplier link doesn't get added to sourcingLeads twice.
 let flaggedLinks = new Set();
+let lastRenderedFlagSignature = '';
+function flagSignature(set) {
+  return Array.from(set).sort().join('|');
+}
 
 function startLeadsListener() {
   db.collection('sourcingLeads').orderBy('flaggedAt', 'desc').limit(50)
@@ -1079,13 +1089,24 @@ function startLeadsListener() {
       document.getElementById('flaggedCount').textContent =
         leads.filter((l) => l.status === 'pending').length || '';
       renderLeads(leads);
+
       // Keep any currently-displayed search results' Flag buttons in sync
-      // (e.g. a listing just flagged from another tab/session) without a
-      // fresh network search — lastResults is already cached client-side.
-      if (lastResults.length) {
-        const currentSort = document.getElementById('sortSelect')?.value;
-        renderResults(lastResults, lastQuery, currentSort);
-      }
+      // (e.g. a listing flagged from another session) without a fresh
+      // network search — lastResults is already cached client-side. Guard
+      // against two things that used to cause the whole results area to
+      // flicker/jump while someone was mid-search: Firestore firing this
+      // listener twice per write (once optimistic, once confirmed) with
+      // nothing actually different to show, and this listener racing an
+      // in-flight search and clobbering its loading spinner with stale
+      // results.
+      if (searchInProgress || !lastResults.length) return;
+      const sig = flagSignature(flaggedLinks);
+      if (sig === lastRenderedFlagSignature) return;
+      lastRenderedFlagSignature = sig;
+      const currentSort = document.getElementById('sortSelect')?.value;
+      const scrollY = window.scrollY;
+      renderResults(lastResults, lastQuery, currentSort);
+      window.scrollTo(0, scrollY);
     }, (err) => {
       console.error('Failed to load flagged leads', err);
       const el = document.getElementById('leadsList');
