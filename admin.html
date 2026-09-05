@@ -128,7 +128,11 @@
     background:#fff;border:1.5px solid var(--border);color:#555;padding:10px 18px;border-radius:20px;
     font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;
   }
-  .admin-tab-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .admin-tab-btn.active{
+    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand) 55%,#004d28 100%);
+    border-color:transparent;color:#fff;
+    box-shadow:inset 0 1px 1.5px rgba(255,255,255,.4),inset 0 -2px 4px rgba(0,0,0,.2);
+  }
   .admin-panel{display:none;}
   .admin-panel.active{display:block;}
 
@@ -752,12 +756,6 @@
         </div>
 
         <div id="safetyChecklistEmptyHint" class="empty-state">Select equipment above to manage its safety checklist.</div>
-      </div>
-
-      <div class="ef-subsection">
-        <h3 style="font-size:.95rem;margin:0 0 4px">Email Subscribers</h3>
-        <p class="panel-hint" style="margin-bottom:14px">People notified by email whenever a new log entry is filed for this equipment.</p>
-        <div id="safetySubscribersList"><p class="empty-state">Select equipment above to view its subscribers.</p></div>
       </div>
     </div>
 
@@ -2583,7 +2581,6 @@ const safetyChecklistEl = {
   loadStarterBtn: document.getElementById('safetyChecklistLoadStarterBtn'),
   saveBtn: document.getElementById('safetyChecklistSaveBtn'),
   error: document.getElementById('safetyChecklistError'),
-  subscribersList: document.getElementById('safetySubscribersList'),
 };
 
 function populateSafetyChecklistEquipSelect() {
@@ -2619,7 +2616,6 @@ async function onSafetyChecklistEquipChange() {
   if (!equipId) {
     safetyChecklistEl.formWrap.style.display = 'none';
     safetyChecklistEl.emptyHint.style.display = 'block';
-    safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">Select equipment above to view its subscribers.</p>';
     return;
   }
   safetyChecklistEl.emptyHint.style.display = 'none';
@@ -2636,8 +2632,6 @@ async function onSafetyChecklistEquipChange() {
     safetyChecklistEl.itemsWrap.innerHTML = '';
     safetyChecklistEl.error.textContent = 'Could not load this checklist. Please try again.';
   }
-
-  loadSafetySubscribers(equipId);
 }
 safetyChecklistEl.equipment.addEventListener('change', onSafetyChecklistEquipChange);
 
@@ -2690,43 +2684,6 @@ safetyChecklistEl.saveBtn.addEventListener('click', async () => {
     safetyChecklistEl.saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Checklist';
   }
 });
-
-// ---------- Email subscribers (view/remove only — subscribing itself
-// still happens from equipment.html, which is the public-facing flow) ----------
-async function loadSafetySubscribers(equipmentId) {
-  safetyChecklistEl.subscribersList.innerHTML = '<p class="loading-text">Loading…</p>';
-  try {
-    const snap = await db.collection('emailSubscribers').where('equipmentId', '==', equipmentId).get();
-    const subs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    if (!subs.length) {
-      safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">No one has subscribed to this equipment yet.</p>';
-      return;
-    }
-    safetyChecklistEl.subscribersList.innerHTML = subs.map((s) => `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">
-        <span style="font-size:.86rem;color:#333"><i class="fa-solid fa-envelope" style="color:var(--muted);margin-right:6px"></i>${escapeHtml(s.email || '')}</span>
-        <button type="button" class="row-icon-btn danger" title="Remove subscriber" data-remove-subscriber="${s.id}"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    `).join('');
-    safetyChecklistEl.subscribersList.querySelectorAll('[data-remove-subscriber]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Remove this subscriber from the equipment\'s notification list?')) return;
-        btn.disabled = true;
-        try {
-          await db.collection('emailSubscribers').doc(btn.dataset.removeSubscriber).delete();
-          loadSafetySubscribers(equipmentId);
-        } catch (err) {
-          console.error('Failed to remove subscriber', err);
-          alert('Could not remove this subscriber right now. Please try again.');
-          btn.disabled = false;
-        }
-      });
-    });
-  } catch (err) {
-    console.error('Failed to load subscribers', err);
-    safetyChecklistEl.subscribersList.innerHTML = '<p class="empty-state">Could not load subscribers right now.</p>';
-  }
-}
 
 // ================= AI Assistant (provider keys) =================
 //
