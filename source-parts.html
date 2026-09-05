@@ -203,8 +203,10 @@
   }
   .result-shipping.is-unknown{color:var(--amber);font-weight:500}
   .result-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:auto}
+  .result-price-block{display:flex;flex-direction:column;gap:1px}
   .result-price{font-size:1.3rem;font-weight:700;color:var(--brand)}
   .result-price.no-price{font-size:.85rem;color:var(--muted);font-weight:600}
+  .result-price-ghs{font-size:.78rem;color:var(--muted);font-weight:600}
   .result-rating{font-size:.76rem;color:#b45309;display:flex;align-items:center;gap:4px}
   .result-actions{display:flex;gap:8px;margin-top:4px}
   .result-actions a, .result-actions button{flex:1;text-decoration:none;font-size:.8rem;padding:9px 10px}
@@ -222,6 +224,7 @@
   .lead-row .lead-part{font-size:.78rem;color:var(--muted)}
   .lead-row .lead-title{font-weight:600;font-size:.9rem;margin:2px 0}
   .lead-row .lead-price{font-weight:700;color:var(--brand);font-size:.95rem}
+  .lead-price-ghs{font-size:.76rem;color:var(--muted);margin-top:1px}
   .lead-row .lead-shipping{font-size:.76rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px}
   .lead-notes-row{
     flex:1 0 100%;display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;
@@ -392,9 +395,11 @@
         <i class="fa-solid fa-circle-info"></i>
         Google Shopping has no Ghana-specific catalog, so results are always drawn from another
         country's listings — UAE and India are worth trying since they're common import routes
-        for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. No search API can
-        guarantee a specific seller ships to Ghana — always confirm shipping destination and cost
-        with the supplier directly before ordering.
+        for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. Prices are shown
+        with an approximate GHS conversion (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">rates by ExchangeRate-API</a>,
+        updated daily) — treat it as a guide, not the exact amount you'll be charged. No search
+        API can guarantee a specific seller ships to Ghana — always confirm shipping destination
+        and cost with the supplier directly before ordering.
       </p>
 
       <div class="quick-access">
@@ -741,6 +746,41 @@ function matchInventoryPart(queryText) {
 let lastResults = [];
 let lastPartContext = null;
 let lastQuery = '';
+let lastGl = 'us';
+
+// ---------- GHS currency conversion ----------
+// Each search country has a home currency; convert alongside it so
+// procurement doesn't have to do the math themselves. Rates come from
+// ExchangeRate-API's free, no-key Open Access endpoint (updates once a
+// day) — https://www.exchangerate-api.com/docs/free — attribution is
+// required by their terms and is shown near the country selector.
+const COUNTRY_CURRENCY = { us: 'USD', gb: 'GBP', de: 'EUR', ae: 'AED', in: 'INR', za: 'ZAR' };
+let exchangeRates = null; // { rates: {...}, fetchedAt: Date }
+
+async function loadExchangeRates() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    if (data.result === 'success' && data.rates && data.rates.GHS) {
+      exchangeRates = { rates: data.rates, fetchedAt: new Date() };
+    }
+  } catch (err) {
+    console.error('Failed to load exchange rates — GHS conversion will be unavailable', err);
+  }
+}
+loadExchangeRates();
+
+// amount is in `currencyCode`; converts via USD as the common base.
+function toGhs(amount, currencyCode) {
+  if (!exchangeRates || amount == null) return null;
+  const perUsd = exchangeRates.rates[currencyCode];
+  const ghsPerUsd = exchangeRates.rates.GHS;
+  if (!perUsd || !ghsPerUsd) return null;
+  return (amount / perUsd) * ghsPerUsd;
+}
+function formatGhs(amount) {
+  return new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS', maximumFractionDigits: 0 }).format(amount);
+}
 
 document.getElementById('searchBtn').addEventListener('click', () => {
   const text = document.getElementById('queryInput').value.trim();
@@ -764,6 +804,7 @@ async function runSearch(partContext, freeTextQuery) {
   if (!query) return;
   lastQuery = query;
   const gl = document.getElementById('countrySelect').value;
+  lastGl = gl;
 
   area.innerHTML = `
     <div class="state-block">
@@ -871,8 +912,13 @@ function renderResults(results, query, sortMode) {
 }
 
 function resultCardHtml(r, idx, isCheapest) {
+  const currency = COUNTRY_CURRENCY[lastGl] || 'USD';
+  const ghsAmount = r.extractedPrice != null ? toGhs(r.extractedPrice, currency) : null;
   const priceHtml = r.price
-    ? `<span class="result-price">${escapeHtml(r.price)}</span>`
+    ? `<div class="result-price-block">
+         <span class="result-price">${escapeHtml(r.price)}</span>
+         ${ghsAmount != null ? `<span class="result-price-ghs">≈ ${formatGhs(ghsAmount)}</span>` : ''}
+       </div>`
     : `<span class="result-price no-price">Quote on request</span>`;
   const ratingHtml = r.rating
     ? `<span class="result-rating"><i class="fa-solid fa-star"></i> ${r.rating}${r.reviews ? ` (${r.reviews})` : ''}</span>`
@@ -907,16 +953,21 @@ function resultCardHtml(r, idx, isCheapest) {
 async function flagResult(idx) {
   const r = lastResults[idx];
   if (!r) return;
+  const currency = COUNTRY_CURRENCY[lastGl] || 'USD';
+  const ghsAmount = r.extractedPrice != null ? toGhs(r.extractedPrice, currency) : null;
   try {
     await db.collection('sourcingLeads').add({
       partId: lastPartContext ? lastPartContext.id : null,
       partName: lastPartContext ? lastPartContext.partName : null,
       modelNumber: lastPartContext ? lastPartContext.modelNumber : null,
       searchQuery: lastQuery,
-      searchCountry: document.getElementById('countrySelect').value,
+      searchCountry: lastGl,
+      currency,
       listingTitle: r.title,
       price: r.price,
       extractedPrice: r.extractedPrice,
+      priceGhs: ghsAmount != null ? Math.round(ghsAmount * 100) / 100 : null,
+      exchangeRateAsOf: exchangeRates ? exchangeRates.fetchedAt.toISOString() : null,
       source: r.source,
       delivery: r.delivery,
       link: r.link,
@@ -927,7 +978,10 @@ async function flagResult(idx) {
     });
   } catch (err) {
     console.error('Failed to flag listing', err);
-    alert('Could not save this to Flagged for Procurement — please try again.');
+    const hint = err.code === 'permission-denied'
+      ? 'Permission denied — check that firestore.rules (with the sourcingLeads rule) has actually been deployed, and that your account has procurement: true.'
+      : (err.message || 'Please try again.');
+    alert(`Could not save this to Flagged for Procurement.\n\n${hint}`);
   }
 }
 
@@ -938,7 +992,14 @@ function startLeadsListener() {
       const leads = [];
       snap.forEach((doc) => leads.push({ id: doc.id, ...doc.data() }));
       renderLeads(leads);
-    }, (err) => console.error('Failed to load flagged leads', err));
+    }, (err) => {
+      console.error('Failed to load flagged leads', err);
+      const el = document.getElementById('leadsList');
+      const hint = err.code === 'permission-denied'
+        ? 'Permission denied — check that firestore.rules (with the sourcingLeads rule) has actually been deployed, and that your account has procurement: true.'
+        : 'Could not load flagged listings right now.';
+      el.innerHTML = `<div class="state-block is-error"><i class="fa-solid fa-triangle-exclamation"></i><p>${escapeHtml(hint)}</p></div>`;
+    });
 }
 
 function renderLeads(leads) {
@@ -953,6 +1014,7 @@ function renderLeads(leads) {
         <div class="lead-part">${escapeHtml(l.partName || l.searchQuery || 'Custom search')}${l.modelNumber ? ` · ${escapeHtml(l.modelNumber)}` : ''}</div>
         <div class="lead-title">${escapeHtml(l.listingTitle)}</div>
         <div class="lead-price">${l.price ? escapeHtml(l.price) : 'Quote on request'} <span style="color:var(--muted);font-weight:400">· ${escapeHtml(l.source || '')}</span></div>
+        ${l.priceGhs != null ? `<div class="lead-price-ghs">≈ ${formatGhs(l.priceGhs)} <span style="font-weight:400">(rate at time flagged)</span></div>` : ''}
         <div class="lead-shipping"><i class="fa-solid fa-truck-fast"></i> ${l.delivery ? escapeHtml(l.delivery) : 'Shipping cost not listed — confirm with seller'}</div>
       </div>
       <a href="${escapeHtml(l.link)}" target="_blank" rel="noopener noreferrer" class="btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> View</a>
