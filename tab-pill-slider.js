@@ -169,6 +169,16 @@ function initTabPillSlider(container, options) {
   container.addEventListener('click', onClickCapture, true);
   window.addEventListener('resize', function () { refresh(false); });
 
+  // Re-measure whenever the container's own size changes — critically,
+  // this also fires the moment it goes from not-rendered (display:none,
+  // e.g. behind a sign-in gate awaiting an async auth check) to rendered,
+  // which a one-time init on page load would otherwise miss entirely if
+  // auth resolves after `load` has already fired.
+  if (typeof ResizeObserver === 'function') {
+    var ro = new ResizeObserver(function () { refresh(false); });
+    ro.observe(container);
+  }
+
   requestAnimationFrame(function () { refresh(false); });
 
   return { refresh: refresh };
