@@ -134,6 +134,16 @@
   }
   .search-box input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,105,55,.12)}
 
+  #countrySelect{
+    padding:0 16px;border:1px solid var(--border);border-radius:10px;font-family:inherit;
+    font-size:.9rem;background:#fff;color:#333;outline:none;cursor:pointer;flex:0 0 auto;
+  }
+  .shipping-caveat{
+    display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:.78rem;
+    line-height:1.5;margin:12px 0 0;
+  }
+  .shipping-caveat i{margin-top:2px;color:var(--blue)}
+
   .quick-access{margin-top:16px}
   .quick-access-label{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:8px}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px}
@@ -147,6 +157,13 @@
 
   /* ---------- Results ---------- */
   .results-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 14px}
+  .results-bar-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .view-inventory-link{
+    display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-size:.82rem;
+    font-weight:600;text-decoration:none;white-space:nowrap;
+  }
+  .view-inventory-link:hover{text-decoration:underline}
+  .state-block .view-inventory-link{display:inline-flex;margin-top:16px}
   .results-count{color:var(--muted);font-size:.88rem}
   .results-count b{color:var(--text)}
   .sort-select{
@@ -181,6 +198,10 @@
   .result-title{font-size:.9rem;font-weight:600;line-height:1.35;margin:0;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .result-source{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .result-shipping{
+    font-size:.78rem;color:var(--brand);display:flex;align-items:center;gap:6px;font-weight:600;
+  }
+  .result-shipping.is-unknown{color:var(--amber);font-weight:500}
   .result-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:auto}
   .result-price{font-size:1.3rem;font-weight:700;color:var(--brand)}
   .result-price.no-price{font-size:.85rem;color:var(--muted);font-weight:600}
@@ -201,6 +222,21 @@
   .lead-row .lead-part{font-size:.78rem;color:var(--muted)}
   .lead-row .lead-title{font-weight:600;font-size:.9rem;margin:2px 0}
   .lead-row .lead-price{font-weight:700;color:var(--brand);font-size:.95rem}
+  .lead-row .lead-shipping{font-size:.76rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px}
+  .lead-notes-row{
+    flex:1 0 100%;display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;
+    border-top:1px dashed var(--border);
+  }
+  .lead-notes-row i{color:var(--muted);font-size:.8rem}
+  .shipping-notes-input{
+    flex:1;border:none;border-bottom:1px solid transparent;background:transparent;font-family:inherit;
+    font-size:.82rem;padding:4px 2px;outline:none;color:var(--text);min-width:160px;
+  }
+  .shipping-notes-input:hover, .shipping-notes-input:focus{border-bottom-color:var(--border)}
+  .shipping-notes-input:focus{border-bottom-color:var(--brand)}
+  .notes-saved-indicator{font-size:.74rem;color:var(--brand);font-weight:600;white-space:nowrap}
+  .notes-saved-indicator .notes-error{color:var(--danger)}
+  .lead-notes-meta{flex:1 0 100%;font-size:.72rem;color:var(--muted);margin-top:2px}
   .lead-status{
     padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;
     font-size:.8rem;background:#fff;cursor:pointer;
@@ -216,7 +252,7 @@
   /* ---------- Current Inventory panel ---------- */
   .inventory-panel{
     background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;
-    margin-top:36px;
+    margin-top:36px;scroll-margin-top:90px;
   }
   .panel-header{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
   .panel-header h2{font-size:1.05rem;margin:0}
@@ -340,10 +376,24 @@
                  placeholder="Search by part name, model number, or spec…">
           <datalist id="inventoryPartsList"></datalist>
         </div>
+        <select id="countrySelect" title="Search suppliers as if browsing from this country">
+          <option value="gh" selected>🇬🇭 Ghana</option>
+          <option value="us">🇺🇸 United States</option>
+          <option value="gb">🇬🇧 United Kingdom</option>
+          <option value="ng">🇳🇬 Nigeria</option>
+          <option value="cn">🇨🇳 China</option>
+        </select>
         <button type="button" class="btn-primary" id="searchBtn">
           <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
         </button>
       </div>
+      <p class="shipping-caveat">
+        <i class="fa-solid fa-circle-info"></i>
+        Searching as Ghana surfaces more locally-relevant listings, but no search API can guarantee
+        a specific seller ships to Ghana — always confirm shipping destination and cost with the
+        supplier before ordering. If Ghana results look thin for a part, try United States, United
+        Kingdom, Nigeria, or China from the dropdown for a wider pool.
+      </p>
 
       <div class="quick-access">
         <div class="quick-access-label">Needs restocking — quick search:</div>
@@ -355,7 +405,7 @@
 
     <div id="resultsArea"></div>
 
-    <div class="inventory-panel">
+    <div class="inventory-panel" id="inventoryPanel">
       <div class="panel-header">
         <h2><i class="fa-solid fa-boxes-stacked"></i> Current Inventory</h2>
         <span class="panel-header-sub">Stock levels across all spare parts — read-only here; edited in Stores Admin.</span>
@@ -698,6 +748,9 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 document.getElementById('queryInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('searchBtn').click();
 });
+document.getElementById('countrySelect').addEventListener('change', () => {
+  if (lastQuery) runSearch(lastPartContext, lastQuery);
+});
 
 async function runSearch(partContext, freeTextQuery) {
   const area = document.getElementById('resultsArea');
@@ -708,6 +761,7 @@ async function runSearch(partContext, freeTextQuery) {
   const query = freeTextQuery || (partContext ? partLabel(partContext) : document.getElementById('queryInput').value.trim());
   if (!query) return;
   lastQuery = query;
+  const gl = document.getElementById('countrySelect').value;
 
   area.innerHTML = `
     <div class="state-block">
@@ -716,7 +770,7 @@ async function runSearch(partContext, freeTextQuery) {
     </div>`;
 
   try {
-    const params = new URLSearchParams({ q: query });
+    const params = new URLSearchParams({ q: query, gl });
     const res = await fetch(`${SOURCE_PARTS_API_URL}?${params.toString()}`);
     const data = await res.json();
 
@@ -767,13 +821,19 @@ function sortResults(results, mode) {
 
 function renderResults(results, query, sortMode) {
   const area = document.getElementById('resultsArea');
+  const viewInventoryLink = `
+    <a href="#inventoryPanel" class="view-inventory-link">
+      <i class="fa-solid fa-boxes-stacked"></i> View current inventory levels
+    </a>`;
 
   if (!results.length) {
     area.innerHTML = `
       <div class="state-block">
         <i class="fa-solid fa-box-open"></i>
         <p>No supplier listings found for "${escapeHtml(query)}". Try a shorter or more generic
-        search (e.g. drop a serial number and keep the model number).</p>
+        search (e.g. drop a serial number and keep the model number), or try a different country
+        from the dropdown above.</p>
+        ${viewInventoryLink}
       </div>`;
     return;
   }
@@ -783,11 +843,14 @@ function renderResults(results, query, sortMode) {
   area.innerHTML = `
     <div class="results-bar">
       <div class="results-count"><b>${results.length}</b> supplier listing${results.length === 1 ? '' : 's'} for "${escapeHtml(query)}"</div>
-      <select class="sort-select" id="sortSelect">
-        <option value="price-asc" ${sortMode === 'price-asc' || !sortMode ? 'selected' : ''}>Price: Low to High</option>
-        <option value="price-desc" ${sortMode === 'price-desc' ? 'selected' : ''}>Price: High to Low</option>
-        <option value="rating" ${sortMode === 'rating' ? 'selected' : ''}>Best Rated</option>
-      </select>
+      <div class="results-bar-actions">
+        <select class="sort-select" id="sortSelect">
+          <option value="price-asc" ${sortMode === 'price-asc' || !sortMode ? 'selected' : ''}>Price: Low to High</option>
+          <option value="price-desc" ${sortMode === 'price-desc' ? 'selected' : ''}>Price: High to Low</option>
+          <option value="rating" ${sortMode === 'rating' ? 'selected' : ''}>Best Rated</option>
+        </select>
+        ${viewInventoryLink}
+      </div>
     </div>
     <div class="results-grid">
       ${results.map((r, i) => resultCardHtml(r, i, r.extractedPrice != null && r.extractedPrice === cheapestPrice)).join('')}
@@ -813,7 +876,10 @@ function resultCardHtml(r, idx, isCheapest) {
         ${r.thumbnail ? `<img src="${escapeHtml(r.thumbnail)}" alt="" loading="lazy">` : '<i class="fa-solid fa-gear"></i>'}
       </div>
       <p class="result-title" title="${escapeHtml(r.title)}">${escapeHtml(r.title)}</p>
-      <div class="result-source"><i class="fa-solid fa-store"></i> ${escapeHtml(r.source)} ${r.delivery ? `· ${escapeHtml(r.delivery)}` : ''}</div>
+      <div class="result-source"><i class="fa-solid fa-store"></i> ${escapeHtml(r.source)}</div>
+      <div class="result-shipping ${r.delivery ? '' : 'is-unknown'}">
+        <i class="fa-solid fa-truck-fast"></i> ${r.delivery ? escapeHtml(r.delivery) : 'Shipping cost not listed — confirm with seller'}
+      </div>
       <div class="result-price-row">
         ${priceHtml}
         ${ratingHtml}
@@ -839,10 +905,12 @@ async function flagResult(idx) {
       partName: lastPartContext ? lastPartContext.partName : null,
       modelNumber: lastPartContext ? lastPartContext.modelNumber : null,
       searchQuery: lastQuery,
+      searchCountry: document.getElementById('countrySelect').value,
       listingTitle: r.title,
       price: r.price,
       extractedPrice: r.extractedPrice,
       source: r.source,
+      delivery: r.delivery,
       link: r.link,
       thumbnail: r.thumbnail,
       status: 'pending',
@@ -877,6 +945,7 @@ function renderLeads(leads) {
         <div class="lead-part">${escapeHtml(l.partName || l.searchQuery || 'Custom search')}${l.modelNumber ? ` · ${escapeHtml(l.modelNumber)}` : ''}</div>
         <div class="lead-title">${escapeHtml(l.listingTitle)}</div>
         <div class="lead-price">${l.price ? escapeHtml(l.price) : 'Quote on request'} <span style="color:var(--muted);font-weight:400">· ${escapeHtml(l.source || '')}</span></div>
+        <div class="lead-shipping"><i class="fa-solid fa-truck-fast"></i> ${l.delivery ? escapeHtml(l.delivery) : 'Shipping cost not listed — confirm with seller'}</div>
       </div>
       <a href="${escapeHtml(l.link)}" target="_blank" rel="noopener noreferrer" class="btn-secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> View</a>
       <select class="lead-status" data-id="${l.id}">
@@ -886,6 +955,14 @@ function renderLeads(leads) {
         <option value="rejected" ${l.status === 'rejected' ? 'selected' : ''}>Rejected</option>
       </select>
       <button type="button" class="lead-remove" data-id="${l.id}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+      <div class="lead-notes-row">
+        <i class="fa-solid fa-pen"></i>
+        <input type="text" class="shipping-notes-input" data-id="${l.id}"
+               placeholder="Add confirmed shipping info after contacting the supplier (carrier, cost, ETA)…"
+               value="${escapeHtml(l.shippingNotes || '')}">
+        <span class="notes-saved-indicator" data-indicator-for="${l.id}"></span>
+      </div>
+      ${l.shippingNotesUpdatedBy ? `<div class="lead-notes-meta">Confirmed by ${escapeHtml(l.shippingNotesUpdatedBy)}</div>` : ''}
     </div>
   `).join('');
 
@@ -901,6 +978,34 @@ function renderLeads(leads) {
       db.collection('sourcingLeads').doc(btn.dataset.id).delete()
         .catch((err) => console.error('Failed to remove lead', err));
     });
+  });
+  el.querySelectorAll('.shipping-notes-input').forEach((input) => {
+    input.dataset.savedValue = input.value;
+    input.addEventListener('blur', () => saveShippingNotes(input));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+    });
+  });
+}
+
+function saveShippingNotes(input) {
+  const id = input.dataset.id;
+  const value = input.value.trim();
+  if (value === input.dataset.savedValue) return; // no change, skip the write
+  const indicator = document.querySelector(`[data-indicator-for="${id}"]`);
+  db.collection('sourcingLeads').doc(id).update({
+    shippingNotes: value,
+    shippingNotesUpdatedBy: auth.currentUser ? auth.currentUser.email : 'unknown',
+    shippingNotesUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }).then(() => {
+    input.dataset.savedValue = value;
+    if (indicator) {
+      indicator.innerHTML = '<i class="fa-solid fa-check"></i> Saved';
+      setTimeout(() => { indicator.innerHTML = ''; }, 2000);
+    }
+  }).catch((err) => {
+    console.error('Failed to save shipping notes', err);
+    if (indicator) indicator.innerHTML = '<span class="notes-error">Not saved — try again</span>';
   });
 }
 </script>
