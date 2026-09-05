@@ -64,7 +64,7 @@ exports.sourceParts = onRequest(
       engine: 'google_shopping',
       q: query,
       api_key: apiKey,
-      gl: (typeof gl === 'string' && gl) || 'gh',
+      gl: (typeof gl === 'string' && gl) || 'us',
       hl: 'en',
     });
 
