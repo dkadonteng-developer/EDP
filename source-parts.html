@@ -139,10 +139,18 @@
     font-size:.9rem;background:#fff;color:#333;outline:none;cursor:pointer;flex:0 0 auto;
   }
   .shipping-caveat{
-    display:flex;gap:8px;align-items:flex-start;color:var(--muted);font-size:.78rem;
-    line-height:1.5;margin:12px 0 0;
+    margin:12px 0 0;font-size:.78rem;color:var(--muted);
   }
-  .shipping-caveat i{margin-top:2px;color:var(--blue)}
+  .shipping-caveat summary{
+    cursor:pointer;display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:var(--muted);
+    list-style:revert;
+  }
+  .shipping-caveat summary i{color:var(--blue)}
+  .shipping-caveat summary::marker{font-size:.8em}
+  .shipping-caveat[open] summary{margin-bottom:6px;font-weight:600}
+  .caveat-attribution{font-weight:400;color:var(--muted)}
+  .caveat-attribution a{color:var(--blue)}
+  .shipping-caveat p{margin:0;line-height:1.5;padding-left:2px}
 
   .quick-access{margin-top:16px}
   .quick-access-label{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:8px}
@@ -422,16 +430,20 @@
             <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
           </button>
         </div>
-        <p class="shipping-caveat">
-          <i class="fa-solid fa-circle-info"></i>
-          Google Shopping has no Ghana-specific catalog, so results are always drawn from another
-          country's listings — UAE and India are worth trying since they're common import routes
-          for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. Prices are shown
-          with an approximate GHS conversion (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">rates by ExchangeRate-API</a>,
-          updated daily) — treat it as a guide, not the exact amount you'll be charged. No search
-          API can guarantee a specific seller ships to Ghana — always confirm shipping destination
-          and cost with the supplier directly before ordering.
-        </p>
+        <details class="shipping-caveat">
+          <summary>
+            <i class="fa-solid fa-circle-info"></i> About these results &amp; prices
+            <span class="caveat-attribution">(GHS rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a>)</span>
+          </summary>
+          <p>
+            Google Shopping has no Ghana-specific catalog, so results are always drawn from another
+            country's listings — UAE and India are worth trying since they're common import routes
+            for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. GHS conversions
+            update daily and are a guide, not the exact amount you'll be charged. No search API can
+            guarantee a specific seller ships to Ghana — always confirm shipping destination and cost
+            with the supplier directly before ordering.
+          </p>
+        </details>
 
         <div class="quick-access">
           <div class="quick-access-label">Needs restocking — quick search:</div>
@@ -724,8 +736,8 @@ function renderInventoryTable() {
       const part = PART_BY_ID[btn.dataset.id];
       if (!part) return;
       document.getElementById('queryInput').value = partLabel(part);
+      activateTab('searchTab');
       runSearch(part);
-      document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 }
@@ -773,6 +785,7 @@ function maybeAutoSearchFromUrl() {
     const part = PART_BY_ID[partId];
     if (part) {
       document.getElementById('queryInput').value = partLabel(part);
+      activateTab('searchTab');
       runSearch(part);
       return true;
     }
