@@ -213,7 +213,26 @@
   .flag-btn.is-flagged{background:var(--blue-bg);color:var(--blue);border-color:transparent;cursor:default}
 
   /* ---------- Flagged for procurement ---------- */
-  .leads-section{margin-top:44px}
+  .leads-section{margin-top:0}
+
+  /* ---------- Page tabs ---------- */
+  .page-tabs{
+    display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--border);margin:20px 0 24px;
+  }
+  .page-tab-btn{
+    background:none;border:none;padding:12px 18px;font-family:inherit;font-size:.9rem;font-weight:600;
+    color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:8px;
+    border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .15s;
+  }
+  .page-tab-btn:hover{color:var(--text)}
+  .page-tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .page-tab-panel{display:none}
+  .page-tab-panel.active{display:block}
+  .tab-count{
+    background:var(--danger);color:#fff;font-size:.68rem;font-weight:700;padding:1px 7px;
+    border-radius:10px;min-width:16px;text-align:center;
+  }
+  .tab-count:empty{display:none}
   .leads-section h2{font-size:1.05rem;margin:0 0 4px}
   .leads-section .sub{color:var(--muted);font-size:.85rem;margin:0 0 16px}
   .lead-row{
@@ -255,7 +274,6 @@
   /* ---------- Current Inventory panel ---------- */
   .inventory-panel{
     background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;
-    margin-top:36px;scroll-margin-top:90px;
   }
   .panel-header{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
   .panel-header h2{font-size:1.05rem;margin:0}
@@ -362,7 +380,7 @@
       Search live supplier listings for any spare part by name, model number, or spec —
       results are ranked cheapest-first, like a flight search, so procurement can compare
       OEM and aftermarket sources at a glance before raising a purchase order. Current stock
-      levels for every part are also visible below, so you can check what's already on hand
+      levels for every part are also visible here, so you can check what's already on hand
       before sourcing more.
     </p>
 
@@ -371,73 +389,91 @@
       <span id="configNoteText"></span>
     </div>
 
-    <div class="search-panel">
-      <div class="search-row">
-        <div class="search-box">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="queryInput" list="inventoryPartsList"
-                 placeholder="Search by part name, model number, or spec…">
-          <datalist id="inventoryPartsList"></datalist>
-        </div>
-        <select id="countrySelect" title="Search suppliers as if browsing from this country">
-          <option value="us" selected>🇺🇸 United States</option>
-          <option value="gb">🇬🇧 United Kingdom</option>
-          <option value="de">🇩🇪 Germany</option>
-          <option value="ae">🇦🇪 United Arab Emirates</option>
-          <option value="in">🇮🇳 India</option>
-          <option value="za">🇿🇦 South Africa</option>
-        </select>
-        <button type="button" class="btn-primary" id="searchBtn">
-          <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
-        </button>
-      </div>
-      <p class="shipping-caveat">
-        <i class="fa-solid fa-circle-info"></i>
-        Google Shopping has no Ghana-specific catalog, so results are always drawn from another
-        country's listings — UAE and India are worth trying since they're common import routes
-        for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. Prices are shown
-        with an approximate GHS conversion (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">rates by ExchangeRate-API</a>,
-        updated daily) — treat it as a guide, not the exact amount you'll be charged. No search
-        API can guarantee a specific seller ships to Ghana — always confirm shipping destination
-        and cost with the supplier directly before ordering.
-      </p>
+    <div class="page-tabs">
+      <button type="button" class="page-tab-btn active" data-tab="searchTab">
+        <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
+      </button>
+      <button type="button" class="page-tab-btn" data-tab="flaggedTab">
+        <i class="fa-solid fa-flag"></i> Flagged for Procurement <span class="tab-count" id="flaggedCount"></span>
+      </button>
+      <button type="button" class="page-tab-btn" data-tab="inventoryTab">
+        <i class="fa-solid fa-boxes-stacked"></i> Current Inventory
+      </button>
+    </div>
 
-      <div class="quick-access">
-        <div class="quick-access-label">Needs restocking — quick search:</div>
-        <div class="chip-row" id="lowStockChips">
-          <span class="chip-empty">Loading inventory…</span>
+    <div id="searchTab" class="page-tab-panel active">
+      <div class="search-panel">
+        <div class="search-row">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="queryInput" list="inventoryPartsList"
+                   placeholder="Search by part name, model number, or spec…">
+            <datalist id="inventoryPartsList"></datalist>
+          </div>
+          <select id="countrySelect" title="Search suppliers as if browsing from this country">
+            <option value="us" selected>🇺🇸 United States</option>
+            <option value="gb">🇬🇧 United Kingdom</option>
+            <option value="de">🇩🇪 Germany</option>
+            <option value="ae">🇦🇪 United Arab Emirates</option>
+            <option value="in">🇮🇳 India</option>
+            <option value="za">🇿🇦 South Africa</option>
+          </select>
+          <button type="button" class="btn-primary" id="searchBtn">
+            <i class="fa-solid fa-magnifying-glass-dollar"></i> Search Suppliers
+          </button>
         </div>
+        <p class="shipping-caveat">
+          <i class="fa-solid fa-circle-info"></i>
+          Google Shopping has no Ghana-specific catalog, so results are always drawn from another
+          country's listings — UAE and India are worth trying since they're common import routes
+          for parts into Ghana; US/UK/Germany tend to have deeper OEM catalogs. Prices are shown
+          with an approximate GHS conversion (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer">rates by ExchangeRate-API</a>,
+          updated daily) — treat it as a guide, not the exact amount you'll be charged. No search
+          API can guarantee a specific seller ships to Ghana — always confirm shipping destination
+          and cost with the supplier directly before ordering.
+        </p>
+
+        <div class="quick-access">
+          <div class="quick-access-label">Needs restocking — quick search:</div>
+          <div class="chip-row" id="lowStockChips">
+            <span class="chip-empty">Loading inventory…</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultsArea"></div>
+    </div>
+
+    <div id="flaggedTab" class="page-tab-panel">
+      <div class="leads-section">
+        <h2><i class="fa-solid fa-flag"></i> Flagged for Procurement</h2>
+        <p class="sub">Listings your team has shortlisted from search results, for follow-up and PO creation.</p>
+        <div id="leadsList"></div>
       </div>
     </div>
 
-    <div id="resultsArea"></div>
-
-    <div class="inventory-panel" id="inventoryPanel">
-      <div class="panel-header">
-        <h2><i class="fa-solid fa-boxes-stacked"></i> Current Inventory</h2>
-        <span class="panel-header-sub">Stock levels across all spare parts — read-only here; edited in Stores Admin.</span>
-      </div>
-      <div class="inv-toolbar">
-        <div class="search-box small">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" id="invSearch" placeholder="Search inventory by name, model, category, bin…">
+    <div id="inventoryTab" class="page-tab-panel">
+      <div class="inventory-panel">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-boxes-stacked"></i> Current Inventory</h2>
+          <span class="panel-header-sub">Stock levels across all spare parts — read-only here; edited in Stores Admin.</span>
         </div>
-        <select id="invStatusFilter">
-          <option value="all">All statuses</option>
-          <option value="out">Out of stock</option>
-          <option value="low">Low stock</option>
-          <option value="ok">In stock</option>
-          <option value="full">Well stocked</option>
-        </select>
+        <div class="inv-toolbar">
+          <div class="search-box small">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="invSearch" placeholder="Search inventory by name, model, category, bin…">
+          </div>
+          <select id="invStatusFilter">
+            <option value="all">All statuses</option>
+            <option value="out">Out of stock</option>
+            <option value="low">Low stock</option>
+            <option value="ok">In stock</option>
+            <option value="full">Well stocked</option>
+          </select>
+        </div>
+        <div id="invCount" class="results-count"></div>
+        <div id="invTableWrap"></div>
       </div>
-      <div id="invCount" class="results-count"></div>
-      <div id="invTableWrap"></div>
-    </div>
-
-    <div class="leads-section">
-      <h2><i class="fa-solid fa-flag"></i> Flagged for Procurement</h2>
-      <p class="sub">Listings your team has shortlisted from search results, for follow-up and PO creation.</p>
-      <div id="leadsList"></div>
     </div>
 
   </div>
@@ -477,6 +513,23 @@ function escapeHtml(str) {
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
 }
+
+// ---------- Page tabs ----------
+function activateTab(tabId) {
+  document.querySelectorAll('.page-tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.page-tab-panel').forEach((p) => p.classList.toggle('active', p.id === tabId));
+}
+document.querySelectorAll('.page-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+// Delegated so it keeps working after resultsArea's innerHTML is replaced
+// on every search — no need to re-attach a listener each render.
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('[data-switch-tab]');
+  if (!link) return;
+  e.preventDefault();
+  activateTab(link.dataset.switchTab);
+});
 
 // ---------- Procurement authentication ----------
 // Uses the same admins/{uid} accounts as the rest of InfoPort, but this page
@@ -871,7 +924,7 @@ function sortResults(results, mode) {
 function renderResults(results, query, sortMode) {
   const area = document.getElementById('resultsArea');
   const viewInventoryLink = `
-    <a href="#inventoryPanel" class="view-inventory-link">
+    <a href="#" class="view-inventory-link" data-switch-tab="inventoryTab">
       <i class="fa-solid fa-boxes-stacked"></i> View current inventory levels
     </a>`;
 
@@ -906,14 +959,20 @@ function renderResults(results, query, sortMode) {
     </div>
   `;
 
-  area.querySelectorAll('.flag-btn').forEach((btn) => {
-    btn.addEventListener('click', () => flagResult(Number(btn.dataset.idx)));
+  area.querySelectorAll('.flag-btn:not(.is-flagged)').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      btn.classList.add('is-flagged');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Flagged';
+      flagResult(Number(btn.dataset.idx));
+    });
   });
 }
 
 function resultCardHtml(r, idx, isCheapest) {
   const currency = COUNTRY_CURRENCY[lastGl] || 'USD';
   const ghsAmount = r.extractedPrice != null ? toGhs(r.extractedPrice, currency) : null;
+  const isFlagged = flaggedLinks.has(r.link);
   const priceHtml = r.price
     ? `<div class="result-price-block">
          <span class="result-price">${escapeHtml(r.price)}</span>
@@ -942,8 +1001,8 @@ function resultCardHtml(r, idx, isCheapest) {
         <a href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer" class="btn-secondary">
           <i class="fa-solid fa-arrow-up-right-from-square"></i> View
         </a>
-        <button type="button" class="btn-secondary flag-btn" data-idx="${idx}">
-          <i class="fa-solid fa-flag"></i> Flag
+        <button type="button" class="btn-secondary flag-btn ${isFlagged ? 'is-flagged' : ''}" data-idx="${idx}" ${isFlagged ? 'disabled title="Already flagged — see the Flagged for Procurement tab"' : ''}>
+          <i class="fa-solid ${isFlagged ? 'fa-check' : 'fa-flag'}"></i> ${isFlagged ? 'Flagged' : 'Flag'}
         </button>
       </div>
     </div>
@@ -982,16 +1041,38 @@ async function flagResult(idx) {
       ? 'Permission denied — check that firestore.rules (with the sourcingLeads rule) has actually been deployed, and that your account has procurement: true.'
       : (err.message || 'Please try again.');
     alert(`Could not save this to Flagged for Procurement.\n\n${hint}`);
+    // Undo the optimistic UI update — it never actually saved.
+    const btn = document.querySelector(`.flag-btn[data-idx="${idx}"]`);
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('is-flagged');
+      btn.innerHTML = '<i class="fa-solid fa-flag"></i> Flag';
+    }
   }
 }
 
 // ---------- Flagged for Procurement ----------
+// Links already flagged, across all statuses — used to grey out the Flag
+// button on a listing that's already been shortlisted, so the same
+// supplier link doesn't get added to sourcingLeads twice.
+let flaggedLinks = new Set();
+
 function startLeadsListener() {
   db.collection('sourcingLeads').orderBy('flaggedAt', 'desc').limit(50)
     .onSnapshot((snap) => {
       const leads = [];
       snap.forEach((doc) => leads.push({ id: doc.id, ...doc.data() }));
+      flaggedLinks = new Set(leads.map((l) => l.link).filter(Boolean));
+      document.getElementById('flaggedCount').textContent =
+        leads.filter((l) => l.status === 'pending').length || '';
       renderLeads(leads);
+      // Keep any currently-displayed search results' Flag buttons in sync
+      // (e.g. a listing just flagged from another tab/session) without a
+      // fresh network search — lastResults is already cached client-side.
+      if (lastResults.length) {
+        const currentSort = document.getElementById('sortSelect')?.value;
+        renderResults(lastResults, lastQuery, currentSort);
+      }
     }, (err) => {
       console.error('Failed to load flagged leads', err);
       const el = document.getElementById('leadsList');
