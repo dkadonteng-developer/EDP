@@ -92,7 +92,15 @@
   .eq-tab-btn i{font-size:1rem;transition:color .2s ease}
   .eq-tab-btn:hover{color:var(--text)}
   .eq-tab-btn.is-active{color:var(--brand)}
-  .eq-tab-btn.is-active i{color:#fff}
+  .eq-tab-btn.is-active i{
+    width:26px;height:26px;border-radius:50%;color:#fff;font-size:.8rem;
+    display:flex;align-items:center;justify-content:center;margin:0 auto;
+    background:linear-gradient(155deg,var(--brand-light,#00a651) 0%,var(--brand) 55%,#004d28 100%);
+    box-shadow:
+      inset 0 1px 1.5px rgba(255,255,255,.5),
+      inset 0 -2px 3px rgba(0,0,0,.2),
+      0 3px 6px rgba(0,105,55,.3);
+  }
   .eq-tab-panel{display:none}
   .eq-tab-panel.is-active{display:block}
   .section h2{margin-top:0;font-size:1.1rem;display:flex;align-items:center;gap:8px;position:relative}
@@ -3385,10 +3393,7 @@ el.eqTabs.querySelectorAll('.eq-tab-btn').forEach((btn) => {
 });
 window.addEventListener('load', () => {
   if (typeof initTabPillSlider === 'function') {
-    eqTabsPill = initTabPillSlider(el.eqTabs, {
-      activeClass: 'is-active', pillClass: 'pill-circle',
-      fixedSize: { width: 26, height: 26 }, iconTarget: true,
-    });
+    eqTabsPill = initTabPillSlider(el.eqTabs, { activeClass: 'is-active', pillClass: 'pill-tint' });
   }
 });
 
