@@ -268,26 +268,39 @@
   /* ---------- Printable Work Order (matches the paper form) ---------- */
   #printRoot{display:none}
   .wo-print-page{
-    width:210mm;min-height:297mm;margin:0 auto 16px;background:#fff;padding:10mm;
-    font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10.5px;box-sizing:border-box;
+    width:210mm;min-height:297mm;margin:0 auto 16px;background:#fff;padding:12mm;
+    font-family:Arial,Helvetica,sans-serif;color:#000;font-size:11px;box-sizing:border-box;
     border:1px solid #999;
   }
-  .wpp-outer-border{border:2px solid #000;padding:6px}
-  .wpp-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}
-  .wpp-head img{width:52px;height:52px;border-radius:50%;object-fit:cover}
-  .wpp-head-text{font-size:8px;line-height:1.3}
-  .wpp-head-fields{flex:1;font-size:11px}
-  .wpp-bar{background:#333;color:#fff;font-weight:700;padding:4px 8px;display:flex;justify-content:space-between;margin:4px 0}
-  .wpp-box{border:1px solid #000;margin-bottom:4px}
-  .wpp-box-title{background:#e5e5e5;font-weight:700;padding:3px 6px;border-bottom:1px solid #000;font-size:10px}
-  .wpp-box-body{padding:5px 8px}
-  .wpp-checks{display:flex;flex-wrap:wrap;gap:14px;font-size:10px}
-  .wpp-checks span{display:inline-flex;align-items:center;gap:4px}
-  table.wpp-table{width:100%;border-collapse:collapse;font-size:9.5px}
-  table.wpp-table th, table.wpp-table td{border:1px solid #000;padding:3px 5px;text-align:left}
+  .wpp-outer-border{border:2px solid #000;padding:10px}
+  .wpp-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:10px}
+  .wpp-head img{width:56px;height:56px;border-radius:50%;object-fit:cover}
+  .wpp-head-text{font-size:8.5px;line-height:1.4}
+  .wpp-head-fields{flex:1;font-size:11.5px}
+  .wpp-bar{background:#333;color:#fff;font-weight:700;padding:7px 10px;display:flex;justify-content:space-between;margin:8px 0}
+  .wpp-box{border:1px solid #000;margin-bottom:8px}
+  .wpp-box-title{background:#e5e5e5;font-weight:700;padding:5px 8px;border-bottom:1px solid #000;font-size:10.5px}
+  .wpp-box-body{padding:9px 10px}
+  .wpp-checks{display:flex;flex-wrap:wrap;gap:16px;font-size:10.5px}
+  .wpp-checks span{display:inline-flex;align-items:center;gap:5px}
+  .wpp-checks i{width:14px;text-align:center;color:#444}
+  .wpp-equip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+  .wpp-equip-item{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;font-size:9.5px;padding:6px 2px}
+  .wpp-equip-item i{font-size:18px;color:#444}
+  .wpp-emergency-row{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-around}
+  .wpp-emergency-item{flex:1;min-width:200px;text-align:center;padding:8px}
+  .wpp-emergency-item i{font-size:24px;color:#444;margin-bottom:6px;display:block}
+  .wpp-emergency-item .wpp-eq-text{font-size:10px;display:block;margin-bottom:6px}
+  .wpp-emergency-item .wpp-eq-ans{font-size:10.5px;font-weight:600}
+  .wpp-stop-banner{background:#fdecea;border:1px solid #c0392b;color:#c0392b;text-align:center;font-weight:700;padding:9px;margin-bottom:8px;font-size:10.5px}
+  .wpp-alert-row{display:flex;align-items:center;gap:20px}
+  .wpp-alert-item{text-align:center;font-size:10px}
+  .wpp-alert-item i{font-size:20px;display:block;margin-bottom:4px;color:#444}
+  table.wpp-table{width:100%;border-collapse:collapse;font-size:10px}
+  table.wpp-table th, table.wpp-table td{border:1px solid #000;padding:5px 7px;text-align:left}
   table.wpp-table th{background:#e5e5e5}
   .wpp-two-col{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .wpp-remarks{font-size:9.5px;line-height:1.5;columns:2;column-gap:16px}
+  .wpp-remarks{font-size:10px;line-height:1.7;columns:2;column-gap:20px}
   .wpp-remarks u{font-weight:700}
   .wpp-footer-bar{background:#333;color:#fff;text-align:center;font-weight:700;padding:8px;margin-top:6px}
   #printToolbar{
@@ -296,6 +309,7 @@
   @media print{
     body *{visibility:hidden}
     #printRoot, #printRoot *{visibility:visible}
+    #printRoot *::before, #printRoot *::after{visibility:visible}
     #printRoot{display:block;position:absolute;top:0;left:0;width:100%}
     #printToolbar{display:none}
     .wo-print-page{border:none;margin:0;box-shadow:none;page-break-after:always}
@@ -825,9 +839,50 @@ const SPECIFIC_EQUIPMENT = [
   'Scaffolding', 'Stepladder', 'Ladder', 'Ventilator/Extractor', 'Forklift Truck',
   'Sweeper', 'Stacker', 'Aerial Lift',
 ];
+// The paper form has a small illustrated icon next to each of these — this
+// maps each label to the closest Font Awesome equivalent (not the exact
+// hand-drawn icons, which aren't available as assets here) so the same
+// visual "icon + checkbox + label" pattern carries over, both on-screen
+// and in the printed PDF.
+const SPECIFIC_EQUIPMENT_ICONS = {
+  'Headband Lamp': 'fa-hard-hat',
+  'Lighting': 'fa-lightbulb',
+  'Isolation Transformer': 'fa-bolt',
+  'Marking': 'fa-location-dot',
+  'Tarpaulin': 'fa-square-full',
+  'Scaffolding': 'fa-building',
+  'Stepladder': 'fa-stairs',
+  'Ladder': 'fa-arrow-up-long',
+  'Ventilator/Extractor': 'fa-fan',
+  'Forklift Truck': 'fa-forklift',
+  'Sweeper': 'fa-broom',
+  'Stacker': 'fa-boxes-stacked',
+  'Aerial Lift': 'fa-truck-ramp-box',
+};
+// A print/PDF export can't reliably depend on an external icon web font
+// finishing loading in time (unlike the live page, where Font Awesome has
+// already loaded by the time someone's looking at it) — plain Unicode
+// symbols are part of the system font and always render, so the printed
+// PDF uses these instead of the fa-* classes above.
+const SPECIFIC_EQUIPMENT_EMOJI = {
+  'Headband Lamp': '🔦',
+  'Lighting': '💡',
+  'Isolation Transformer': '⚡',
+  'Marking': '📍',
+  'Tarpaulin': '⬛',
+  'Scaffolding': '🏗️',
+  'Stepladder': '🪜',
+  'Ladder': '🪜',
+  'Ventilator/Extractor': '🌀',
+  'Forklift Truck': '🚜',
+  'Sweeper': '🧹',
+  'Stacker': '📦',
+  'Aerial Lift': '🏗️',
+};
 (function renderSpecificEquipChecks() {
   document.getElementById('grpSpecificEquip').innerHTML = SPECIFIC_EQUIPMENT.map((opt) => `
-    <label><input type="checkbox" data-group="specificEquip" value="${escapeHtml(opt)}"> ${escapeHtml(opt)}</label>
+    <label><input type="checkbox" data-group="specificEquip" value="${escapeHtml(opt)}">
+      <i class="fa-solid ${SPECIFIC_EQUIPMENT_ICONS[opt] || 'fa-square'}"></i> ${escapeHtml(opt)}</label>
   `).join('');
 })();
 
@@ -1439,6 +1494,15 @@ function chkListHtml(options, selected) {
   const sel = new Set(selected || []);
   return options.map((o) => `<span>${chk(sel.has(o))} ${escapeHtml(o)}</span>`).join('');
 }
+function chkGridWithIcons(options, selected, emojiMap) {
+  const sel = new Set(selected || []);
+  return options.map((o) => `
+    <div class="wpp-equip-item">
+      <span style="font-size:20px">${emojiMap[o] || '▫️'}</span>
+      <span>${chk(sel.has(o))} ${escapeHtml(o)}</span>
+    </div>
+  `).join('');
+}
 
 function buildPrintHtml(w) {
   const ep = w.equipPrep || {};
@@ -1542,7 +1606,16 @@ function buildPrintHtml(w) {
           - Unlock the installation
         </div>
 
-        <div class="wpp-footer-bar">CCR Control Room: — &nbsp;&nbsp;&nbsp; CLINIQUE:</div>
+        <div class="wpp-box">
+          <div class="wpp-box-title">Alert Means</div>
+          <div class="wpp-box-body wpp-alert-row">
+            <div class="wpp-alert-item"><span style="font-size:18px">📻</span>${chk(false)} Radio</div>
+            <div class="wpp-alert-item"><span style="font-size:18px">📱</span>${chk(false)} Mobile/Tel</div>
+            <div style="flex:1;background:#333;color:#fff;text-align:center;font-weight:700;padding:9px;border-radius:2px">
+              CCR Control Room: — &nbsp;&nbsp;&nbsp; CLINIQUE:
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -1554,7 +1627,7 @@ function buildPrintHtml(w) {
 
         <div class="wpp-box">
           <div class="wpp-box-title">Specific Equipment Required</div>
-          <div class="wpp-box-body wpp-checks">${chkListHtml(SPECIFIC_EQUIPMENT, w.specificEquipment)}</div>
+          <div class="wpp-box-body wpp-equip-grid">${chkGridWithIcons(SPECIFIC_EQUIPMENT, w.specificEquipment, SPECIFIC_EQUIPMENT_EMOJI)}</div>
         </div>
 
         <div class="wpp-box">
@@ -1599,9 +1672,37 @@ function buildPrintHtml(w) {
     </div>
   `;
 
-  const lmraRows = CHECKLIST_ITEMS.map((item, i) => {
+  // The paper splits this into the main 10-question safety checklist plus a
+  // visually distinct "Emergency" block (its own icons, its own OUI/NON/NA
+  // framing) — CHECKLIST_ITEMS stays one flat list for the fill-in UI
+  // (simpler to build/answer), but the print layout separates them back
+  // out here to match the paper.
+  const mainItems = CHECKLIST_ITEMS.slice(0, 10);
+  const emergencyItems = CHECKLIST_ITEMS.slice(10); // q11 (exit), q12 (meeting point)
+  const emergencyIcons = { q11: '🚪', q12: '👥' };
+
+  const lmraRows = mainItems.map((item, i) => {
     const m = ansMark(item.id);
     return `<tr><td>${i + 1}) ${escapeHtml(item.text)}</td><td style="text-align:center">${m.ok}</td><td style="text-align:center">${m.nok}</td><td style="text-align:center">${m.na}</td></tr>`;
+  }).join('');
+
+  const ansMarkYesNo = (id) => {
+    const a = cl[id];
+    return {
+      yes: a === 'ok' ? '<b>[OUI]</b>' : 'OUI',
+      no: a === 'nok' ? '<b>[NON]</b>' : 'NON',
+      na: (a === 'na' || !a) ? '<b>[NA]</b>' : 'NA',
+    };
+  };
+  const emergencyHtml = emergencyItems.map((item) => {
+    const m = ansMarkYesNo(item.id);
+    return `
+      <div class="wpp-emergency-item">
+        <span style="font-size:24px">${emergencyIcons[item.id] || '⚠️'}</span>
+        <span class="wpp-eq-text">${escapeHtml(item.text)}</span>
+        <span class="wpp-eq-ans">${m.yes} &nbsp; ${m.no} &nbsp; ${m.na}</span>
+      </div>
+    `;
   }).join('');
 
   const page3 = `
@@ -1621,6 +1722,15 @@ function buildPrintHtml(w) {
             </table>
           </div>
         </div>
+
+        <div class="wpp-bar" style="justify-content:center">Emergency</div>
+        <div class="wpp-box">
+          <div class="wpp-box-body wpp-emergency-row">${emergencyHtml}</div>
+        </div>
+        <div class="wpp-stop-banner">
+          ✋ If NOK or NON to a question — STOP, correct the problem, and notify the person responsible for the work/site.
+        </div>
+
         <div class="wpp-box">
           <div class="wpp-box-title">Signatures</div>
           <div class="wpp-box-body">
