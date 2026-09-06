@@ -462,6 +462,11 @@
     display:flex;align-items:center;gap:6px;font-family:inherit;font-size:.85rem;color:inherit;text-decoration:none;
   }
   .generic-preview-toolbar a:hover,.generic-preview-toolbar button:hover{background:#eef1f3}
+  .embed-hint{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:.82rem;
+    background:#fff8e1;color:#8a6a00;border:1px solid #f0dfa0;border-top:none;
+  }
+  .embed-hint i{color:#c98f00;flex:0 0 auto}
   .generic-preview-body{
     max-height:700px;height:700px;overflow:auto;border:1px solid var(--border);border-top:none;
     border-radius:0 0 10px 10px;background:#525659;display:flex;align-items:center;justify-content:center;
@@ -1560,6 +1565,9 @@
             <a id="genericPreviewOpenTab" href="#" target="_blank" rel="noopener" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i> Open in new tab</a>
             <button type="button" id="genericFullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
+          <div class="embed-hint" id="genericPreviewHint" style="display:none;">
+            <i class="fa-solid fa-circle-info"></i> If this looks blank, the site may not allow embedded previews — use "Open in new tab" above instead.
+          </div>
           <div class="generic-preview-body" id="genericPreviewBody"></div>
         </div>
       </div>
@@ -1754,6 +1762,9 @@
         <button type="button" id="resourcePreviewFullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
         <button type="button" id="resourcePreviewCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
       </div>
+    </div>
+    <div class="embed-hint" id="resourcePreviewHint" style="display:none;">
+      <i class="fa-solid fa-circle-info"></i> If this looks blank, the site may not allow embedded previews — use "Open in new tab" above instead.
     </div>
     <div class="resource-preview-body" id="resourcePreviewBody"></div>
   </div>
@@ -1985,6 +1996,7 @@ const el = {
   genericPreviewBox: document.getElementById('genericPreviewBox'),
   genericPreviewBody: document.getElementById('genericPreviewBody'),
   genericPreviewOpenTab: document.getElementById('genericPreviewOpenTab'),
+  genericPreviewHint: document.getElementById('genericPreviewHint'),
   genericFullscreenBtn: document.getElementById('genericFullscreenBtn'),
   pageNumLabel: document.getElementById('pageNumLabel'),
   pageCountLabel: document.getElementById('pageCountLabel'),
@@ -2687,11 +2699,16 @@ async function openDocument(doc, docEl) {
 // openResourcePreview's type detection (image/video/YouTube/Vimeo/generic
 // iframe), but renders inline in the Documents tab's own preview panel
 // (sharing its fullscreen wrap) instead of a separate modal.
+// Bumped every time a new preview opens, so a hint timer from a preview
+// the user already navigated away from can't pop up on top of a newer one.
+let previewHintToken = 0;
+
 function openGenericDocumentPreview(doc) {
   pdfDoc = null;
   el.pdfLoading.style.display = 'none';
   el.pdfViewerBox.classList.remove('is-visible');
   el.searchBar.style.display = 'none';
+  el.genericPreviewHint.style.display = 'none';
 
   const kind = guessResourceKind(doc.file || '');
   const safeName = escapeHtml(doc.name || '');
@@ -2699,6 +2716,7 @@ function openGenericDocumentPreview(doc) {
   el.genericPreviewOpenTab.href = doc.file || '#';
 
   let html;
+  let usesPlainIframe = false;
   if (kind === 'image') {
     html = `<img src="${safeUrl}" alt="${safeName}">`;
   } else if (kind === 'video') {
@@ -2708,11 +2726,25 @@ function openGenericDocumentPreview(doc) {
   } else if (kind === 'vimeo') {
     html = `<iframe src="${escapeHtml(vimeoEmbedUrl(doc.file))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else {
+    // A website or a PDF link the browser embeds directly. Many sites
+    // set headers (X-Frame-Options / CSP frame-ancestors) that refuse to
+    // be embedded at all — that's the site's own security setting, not
+    // something any code here can override, and a blocked frame just
+    // renders blank with no error we can detect. Rather than leave that
+    // looking broken, surface a clear explanation after a moment.
     html = `<iframe src="${safeUrl}" title="${safeName}"></iframe>`;
+    usesPlainIframe = true;
   }
 
   el.genericPreviewBody.innerHTML = html;
   el.genericPreviewBox.classList.add('is-visible');
+
+  if (usesPlainIframe) {
+    const token = ++previewHintToken;
+    setTimeout(() => {
+      if (token === previewHintToken) el.genericPreviewHint.style.display = 'flex';
+    }, 2500);
+  }
 }
 
 async function buildPageEntries() {
@@ -2969,32 +3001,25 @@ function disableFakeFullscreen() {
 
 el.fullscreenBtn.addEventListener('click', () => {
   if (isFullscreenActive()) {
-    if (usingFakeFullscreen) {
-      disableFakeFullscreen();
-    } else {
-      const exit = document.exitFullscreen || document.webkitExitFullscreen;
-      if (exit) exit.call(document);
-    }
+    disableFakeFullscreen();
     return;
   }
-
-  preFullscreenScrollY = window.scrollY || document.documentElement.scrollTop;
-  const req = el.previewFsWrap.requestFullscreen || el.previewFsWrap.webkitRequestFullscreen;
-  if (req) {
-    const result = req.call(el.previewFsWrap);
-    // Some browsers advertise the method but reject the promise (or it's undefined on old WebKit) — fall back to CSS mode
-    if (result && typeof result.catch === 'function') {
-      result.catch(() => enableFakeFullscreen());
-    }
-  } else {
-    // iOS Safari (and other browsers without element Fullscreen API support) land here
-    enableFakeFullscreen();
-  }
+  // Deliberately never uses the real Fullscreen API here (even though
+  // Android Chrome supports it): entering true browser fullscreen
+  // disables native pinch-to-zoom for everything inside it, which broke
+  // zooming on both PDFs and embedded websites. This CSS-only overlay
+  // looks the same but leaves native pinch-zoom working, at the minor
+  // cost of not hiding the browser's own address/status bar.
+  enableFakeFullscreen();
 });
 el.genericFullscreenBtn.addEventListener('click', () => el.fullscreenBtn.click());
 
-document.addEventListener('fullscreenchange', () => applyFullscreenState(!!document.fullscreenElement));
-document.addEventListener('webkitfullscreenchange', () => applyFullscreenState(!!document.webkitFullscreenElement));
+// (No fullscreenchange listener needed here — this app no longer calls
+// the real Fullscreen API at all, see the fullscreenBtn click handler
+// above. Listening for it risked misfiring if some unrelated element on
+// the page, like a <video>'s own native fullscreen button, changed
+// document.fullscreenElement for reasons that had nothing to do with
+// this viewer.)
 
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && usingFakeFullscreen) disableFakeFullscreen();
@@ -3283,6 +3308,7 @@ const resourcePreviewEl = {
   wrap: document.getElementById('resourcePreviewWrap'),
   title: document.getElementById('resourcePreviewTitle'),
   body: document.getElementById('resourcePreviewBody'),
+  hint: document.getElementById('resourcePreviewHint'),
   openTab: document.getElementById('resourcePreviewOpenTab'),
   fullscreenBtn: document.getElementById('resourcePreviewFullscreenBtn'),
   closeX: document.getElementById('resourcePreviewCloseX'),
@@ -3335,11 +3361,13 @@ function vimeoEmbedUrl(url) {
 function openResourcePreview(resource) {
   resourcePreviewEl.title.textContent = resource.name || 'Resource';
   resourcePreviewEl.openTab.href = resource.url;
+  resourcePreviewEl.hint.style.display = 'none';
   const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
 
   let html;
+  let usesPlainIframe = false;
   if (kind === 'image') {
     html = `<img src="${safeUrl}" alt="${safeName}">`;
   } else if (kind === 'video') {
@@ -3350,14 +3378,24 @@ function openResourcePreview(resource) {
     html = `<iframe src="${escapeHtml(vimeoEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else {
     // PDFs and anything else the browser can render inline (most modern
-    // browsers show PDFs natively in an iframe). "Open in new tab" above
-    // is always available as a fallback if a given host blocks embedding.
+    // browsers show PDFs natively in an iframe). Many hosts refuse to be
+    // embedded at all (X-Frame-Options/CSP) — that's the site's own
+    // setting, not something fixable here — so surface a clear
+    // explanation after a moment instead of leaving a blank frame.
     html = `<iframe src="${safeUrl}" title="${safeName}"></iframe>`;
+    usesPlainIframe = true;
   }
 
   resourcePreviewEl.body.innerHTML = html;
   resourcePreviewEl.overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
+
+  if (usesPlainIframe) {
+    const token = ++previewHintToken;
+    setTimeout(() => {
+      if (token === previewHintToken) resourcePreviewEl.hint.style.display = 'flex';
+    }, 2500);
+  }
 }
 
 function closeResourcePreview() {
@@ -3365,6 +3403,8 @@ function closeResourcePreview() {
   resourcePreviewEl.overlay.classList.remove('is-open');
   document.body.style.overflow = '';
   resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
+  resourcePreviewEl.hint.style.display = 'none';
+  previewHintToken++; // invalidate any pending "still loading?" timer
 }
 
 resourcePreviewEl.closeX.addEventListener('click', closeResourcePreview);
@@ -3385,35 +3425,22 @@ function isResourcePreviewFullscreen() {
 }
 
 function exitResourcePreviewFullscreen() {
-  if (resourcePreviewUsingFakeFullscreen) {
-    resourcePreviewUsingFakeFullscreen = false;
-    resourcePreviewEl.wrap.classList.remove('fake-fullscreen');
-  } else if (document.exitFullscreen) {
-    document.exitFullscreen().catch(() => {});
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  }
+  resourcePreviewUsingFakeFullscreen = false;
+  resourcePreviewEl.wrap.classList.remove('fake-fullscreen');
   updateResourcePreviewFullscreenBtn();
 }
 
-async function toggleResourcePreviewFullscreen() {
+// Deliberately never uses the real Fullscreen API (see the matching
+// comment on the Documents-tab fullscreen button above) — it disables
+// native pinch-to-zoom, which broke zooming on both PDFs and embedded
+// websites shown here.
+function toggleResourcePreviewFullscreen() {
   if (isResourcePreviewFullscreen()) {
     exitResourcePreviewFullscreen();
     return;
   }
-  if (resourcePreviewEl.wrap.requestFullscreen) {
-    try {
-      await resourcePreviewEl.wrap.requestFullscreen();
-    } catch (err) {
-      resourcePreviewUsingFakeFullscreen = true;
-      resourcePreviewEl.wrap.classList.add('fake-fullscreen');
-    }
-  } else if (resourcePreviewEl.wrap.webkitRequestFullscreen) {
-    resourcePreviewEl.wrap.webkitRequestFullscreen();
-  } else {
-    resourcePreviewUsingFakeFullscreen = true;
-    resourcePreviewEl.wrap.classList.add('fake-fullscreen');
-  }
+  resourcePreviewUsingFakeFullscreen = true;
+  resourcePreviewEl.wrap.classList.add('fake-fullscreen');
   updateResourcePreviewFullscreenBtn();
 }
 
@@ -3424,8 +3451,8 @@ function updateResourcePreviewFullscreenBtn() {
 }
 
 resourcePreviewEl.fullscreenBtn.addEventListener('click', toggleResourcePreviewFullscreen);
-document.addEventListener('fullscreenchange', updateResourcePreviewFullscreenBtn);
-document.addEventListener('webkitfullscreenchange', updateResourcePreviewFullscreenBtn);
+// (No fullscreenchange listener needed — see the equivalent comment on
+// the Documents-tab viewer above.)
 
 // ---------- Equipment page tabs ----------
 let eqTabsPill = null;
