@@ -1551,8 +1551,8 @@
             <button type="button" id="prevPageBtn"><i class="fa-solid fa-chevron-left"></i> Prev</button>
             <span class="page-info"><span id="pageNumLabel">1</span> / <span id="pageCountLabel">1</span></span>
             <button type="button" id="nextPageBtn">Next <i class="fa-solid fa-chevron-right"></i></button>
-            <button type="button" id="zoomOutBtn"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-            <button type="button" id="zoomInBtn"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+            <button type="button" id="zoomOutBtn" title="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <button type="button" id="zoomInBtn" title="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
             <button type="button" id="fullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
           </div>
           <div class="pdf-canvas-scroll" id="pdfScroll">
@@ -2580,6 +2580,12 @@ let currentDoc = null;
 let currentEquipmentData = null;
 let pdfDoc = null;
 let pageNum = 1;             // page currently most visible in the scroll view
+// 0.5 used to be the zoom-out floor, but some equipment manuals/drawings
+// are authored at unusually large page sizes, so "fit to screen" for them
+// can be well under 0.5 — that made those PDFs open looking permanently
+// zoomed in with no way to zoom out far enough to see the whole page.
+const PDF_MIN_SCALE = 0.15;
+const PDF_MAX_SCALE = 3;
 let scale = 1.2;
 let searchTerm = '';
 let matchPages = [];          // list of page numbers containing a match, one entry per occurrence
@@ -2680,7 +2686,7 @@ async function openDocument(doc, docEl) {
   try {
     const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
     pdfDoc = await loadingTask.promise;
-    scale = 1.2;
+    scale = await fitScaleToContainer();
     el.pageCountLabel.textContent = pdfDoc.numPages;
     el.pdfLoading.style.display = 'none';
     el.pdfViewerBox.classList.add('is-visible');
@@ -2861,7 +2867,7 @@ el.nextPageBtn.addEventListener('click', () => goToPage(pageNum + 1));
 
 async function rescaleAndRerender(newScale) {
   if (!pdfDoc) return;
-  newScale = Math.max(0.5, Math.min(newScale, 3));
+  newScale = Math.max(PDF_MIN_SCALE, Math.min(newScale, PDF_MAX_SCALE));
   if (Math.abs(newScale - scale) < 0.01) return;
   scale = newScale;
 
@@ -2872,8 +2878,8 @@ async function rescaleAndRerender(newScale) {
   await Promise.all([...pagesInView].map(num => renderPageEntry(num)));
 }
 
-el.zoomInBtn.addEventListener('click', () => rescaleAndRerender(Math.min(scale + 0.2, 3)));
-el.zoomOutBtn.addEventListener('click', () => rescaleAndRerender(Math.max(scale - 0.2, 0.5)));
+el.zoomInBtn.addEventListener('click', () => rescaleAndRerender(Math.min(scale + 0.2, PDF_MAX_SCALE)));
+el.zoomOutBtn.addEventListener('click', () => rescaleAndRerender(Math.max(scale - 0.2, PDF_MIN_SCALE)));
 
 // ---------- Pinch to zoom (touch) ----------
 // Two-finger pinch gives live, cheap CSS-transform feedback while the
@@ -2907,7 +2913,7 @@ el.pdfScroll.addEventListener('touchmove', (ev) => {
   ev.preventDefault();
   const dist = touchDistance(ev.touches);
   const factor = dist / pinchState.startDist;
-  const liveScale = Math.max(0.5, Math.min(pinchState.startScale * factor, 3));
+  const liveScale = Math.max(PDF_MIN_SCALE, Math.min(pinchState.startScale * factor, PDF_MAX_SCALE));
   pinchState.liveScale = liveScale;
   el.pdfPagesContainer.style.transform = `scale(${liveScale / scale})`;
 }, { passive: false });
@@ -2941,7 +2947,7 @@ async function fitScaleToContainer() {
   const unscaledWidth = page.getViewport({ scale: 1 }).width;
   const available = el.pdfScroll.clientWidth - 32; // padding allowance
   if (available <= 0) return scale;
-  return Math.max(0.5, Math.min(available / unscaledWidth, 3));
+  return Math.max(PDF_MIN_SCALE, Math.min(available / unscaledWidth, PDF_MAX_SCALE));
 }
 
 async function applyFullscreenState(active) {
