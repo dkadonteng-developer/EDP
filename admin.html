@@ -899,7 +899,7 @@
           <div id="efDocumentsRows"></div>
           <button type="button" class="ef-add-row-btn btn-secondary" id="efAddDocumentBtn"><i class="fa-solid fa-plus"></i> Add Document</button>
         </div>
-        <div class="ef-hint">Each row can either be uploaded directly (recommended) or point to a file path already in the GitHub repo.</div>
+        <div class="ef-hint">Each row can either be uploaded directly (PDFs under 1 MB upload instantly, no GitHub token needed) or point to a file path already in the GitHub repo.</div>
 
         <div class="ef-subsection">
           <h4><i class="fa-solid fa-toolbox"></i> Tools Required (general toolkit)</h4>
@@ -1247,6 +1247,64 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str == null ? '' : String(str);
   return div.innerHTML;
+}
+
+// ================= PDF uploads (Firestore, not GitHub) =================
+//
+// Small manuals/certificates under 1 MB are stored as base64 straight in
+// Firestore, the same reasoning as compressImageToDataUrl above: no GitHub
+// personal access token needed, and it's visible instantly with no deploy
+// wait. Larger PDFs still go through uploadFileToGithub — Firestore's
+// ~1 MiB per-document limit rules it out for anything much bigger.
+//
+// Equipment documents live in the equipment doc's own `documents` array,
+// alongside its image and other fields, so a PDF's base64 data goes into
+// its own dedicated `pdfAttachments` doc instead of inline — otherwise a
+// couple of PDFs would blow past that doc's 1 MiB ceiling on their own.
+// The array just holds a `firestore-pdf:<id>` marker; equipment.html
+// resolves that back into the real file when the document is opened.
+// Internal Resources are already one Firestore doc per resource, so those
+// can hold the data URL directly with no marker needed.
+const MAX_PDF_BYTES = 1024 * 1024; // 1 MB raw file size, as shown to the admin
+
+function pdfFileToBase64(file) {
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+    return Promise.reject(new Error('Please choose a PDF file.'));
+  }
+  if (file.size > MAX_PDF_BYTES) {
+    return Promise.reject(new Error(`This PDF is ${(file.size / 1024 / 1024).toFixed(2)} MB — please upload one under 1 MB, or use a link instead.`));
+  }
+  return fileToBase64(file).then((base64) => {
+    // Base64 text runs ~33% larger than the raw file, so a file just under
+    // 1 MB can still land right at Firestore's ~1 MiB document ceiling.
+    // Catch that here with a clear message instead of a cryptic write error.
+    if (base64.length > 950 * 1024) {
+      throw new Error('This PDF is too large to store once encoded for Firestore — please upload a smaller file.');
+    }
+    return base64;
+  });
+}
+
+// For equipment documents: stores the PDF in its own `pdfAttachments` doc
+// and returns a `firestore-pdf:<id>` marker to put in the documents array.
+async function uploadPdfToFirestoreForEquipment(file, equipmentId) {
+  const base64 = await pdfFileToBase64(file);
+  const docRef = await db.collection('pdfAttachments').add({
+    equipmentId: equipmentId || null,
+    name: file.name,
+    data: base64,
+    contentType: 'application/pdf',
+    size: file.size,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  return `firestore-pdf:${docRef.id}`;
+}
+
+// For Internal Resources: already one Firestore doc per resource, so the
+// PDF can just be stored as a data URL directly — no marker needed.
+async function uploadPdfToFirestoreAsDataUrl(file) {
+  const base64 = await pdfFileToBase64(file);
+  return `data:application/pdf;base64,${base64}`;
 }
 
 // Checks whether a pasted external link (Google Drive, OneDrive, Dropbox,
@@ -2019,8 +2077,9 @@ const efEl = {
 let editingEquipmentId = null;
 
 // ---------- File uploads ----------
-// Images use compressImageToDataUrl + Firestore (see above). PDFs still go
-// to assets/equipment/{id}/... or docs/{id}/... in the GitHub repo via
+// Images use compressImageToDataUrl + Firestore (see above). PDFs under
+// 1 MB use uploadPdfToFirestoreForEquipment (also Firestore, no token
+// needed); larger PDFs still go to docs/{id} in the GitHub repo via
 // uploadFileToGithub. Either way the resulting value is written into the
 // same text field the admin could otherwise type a path/URL into directly.
 
@@ -2039,6 +2098,10 @@ function wireFileUpload(fileInput, targetTextInput, progressEl, kind) {
     try {
       if (kind === 'images') {
         targetTextInput.value = await compressImageToDataUrl(file);
+        progressEl.textContent = 'Uploaded ✓';
+        setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
+      } else if (file.size <= MAX_PDF_BYTES) {
+        targetTextInput.value = await uploadPdfToFirestoreForEquipment(file, id);
         progressEl.textContent = 'Uploaded ✓';
         setTimeout(() => { progressEl.style.display = 'none'; }, 1500);
       } else {
@@ -2180,11 +2243,18 @@ resEl.fileUpload.addEventListener('change', async () => {
   resEl.progress.style.display = 'block';
   resEl.progress.textContent = 'Uploading…';
   try {
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
     if (file.type.startsWith('image/')) {
       // Images are stored inline as compressed base64 data — same approach
       // used for equipment photos and part photos — instead of pushing a
       // file to the GitHub repo.
       resEl.file.value = await compressImageToDataUrl(file, { maxDim: 1800, maxBytes: 550 * 1024 });
+      resEl.progress.textContent = 'Uploaded ✓';
+      setTimeout(() => { resEl.progress.style.display = 'none'; }, 1500);
+    } else if (isPdf && file.size <= MAX_PDF_BYTES) {
+      // Small PDFs go straight into this resource's own Firestore doc as a
+      // base64 data URL — no GitHub token needed.
+      resEl.file.value = await uploadPdfToFirestoreAsDataUrl(file);
       resEl.progress.textContent = 'Uploaded ✓';
       setTimeout(() => { resEl.progress.style.display = 'none'; }, 1500);
     } else {

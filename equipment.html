@@ -2625,15 +2625,31 @@ async function openDocument(doc, docEl) {
 
   el.viewerEmpty.style.display = 'none';
 
+  let fileUrl;
+  try {
+    fileUrl = await resolveDocFile(doc);
+  } catch (err) {
+    console.error('Failed to resolve document', err);
+    el.genericPreviewBox.classList.remove('is-visible');
+    el.pdfViewerBox.classList.remove('is-visible');
+    el.pdfLoading.style.display = 'flex';
+    el.searchBar.style.display = 'none';
+    el.pdfLoading.innerHTML = `
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
+      <span>${escapeHtml(err.message || 'Could not load this document.')}</span>`;
+    return;
+  }
+  const resolvedDoc = { ...doc, file: fileUrl };
+
   // Only genuine PDFs get the full custom viewer (continuous scroll,
   // in-document search, page/zoom controls). Everything else — a URL to a
   // webpage, image, video, YouTube/Vimeo link, etc. — previously still got
   // forced through pdfjsLib and just failed to load. Route those through
   // the same universal preview (with the same fullscreen support) used for
   // Internal Resources instead.
-  const kind = guessResourceKind(doc.file || '');
+  const kind = guessResourceKind(fileUrl || '');
   if (kind !== 'pdf') {
-    openGenericDocumentPreview(doc);
+    openGenericDocumentPreview(resolvedDoc);
     return;
   }
 
@@ -2650,7 +2666,7 @@ async function openDocument(doc, docEl) {
   el.matchCounter.textContent = '';
 
   try {
-    const loadingTask = pdfjsLib.getDocument(encodeURI(doc.file));
+    const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
     pdfDoc = await loadingTask.promise;
     scale = 1.2;
     el.pageCountLabel.textContent = pdfDoc.numPages;
@@ -3274,6 +3290,7 @@ const resourcePreviewEl = {
 
 function guessResourceKind(url) {
   if (/^data:image\//i.test(url)) return 'image';
+  if (/^data:application\/pdf/i.test(url)) return 'pdf';
   const clean = url.split('?')[0].split('#')[0].toLowerCase();
   if (/\.(png|jpe?g|gif|webp|svg|bmp)$/.test(clean)) return 'image';
   if (/\.pdf$/.test(clean)) return 'pdf';
@@ -3281,6 +3298,27 @@ function guessResourceKind(url) {
   if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
   if (/vimeo\.com/i.test(url)) return 'vimeo';
   return 'other';
+}
+
+// Equipment documents uploaded as small PDFs (admin.html's
+// uploadPdfToFirestoreForEquipment) aren't stored inline in the equipment
+// doc — that would risk pushing it past Firestore's 1 MiB limit — so the
+// documents array just holds a `firestore-pdf:<id>` marker pointing at its
+// own doc in the `pdfAttachments` collection. This resolves that marker
+// into the actual base64 data URL the PDF viewer/AI reader can use, and
+// caches the result so reopening the same document doesn't refetch it.
+const resolvedDocFileCache = {};
+async function resolveDocFile(doc) {
+  const file = doc.file || '';
+  if (!file.startsWith('firestore-pdf:')) return file;
+  if (resolvedDocFileCache[file]) return resolvedDocFileCache[file];
+  const id = file.slice('firestore-pdf:'.length);
+  const snap = await db.collection('pdfAttachments').doc(id).get();
+  if (!snap.exists) throw new Error('This PDF could not be found — it may have been removed.');
+  const data = snap.data();
+  const resolved = `data:${data.contentType || 'application/pdf'};base64,${data.data}`;
+  resolvedDocFileCache[file] = resolved;
+  return resolved;
 }
 
 function youtubeEmbedUrl(url) {
@@ -3983,7 +4021,8 @@ async function getEquipmentDocsContext(equipment) {
   for (const doc of docs) {
     try {
       setAiStatus(`Reading ${doc.name}…`);
-      const loadingTask = pdfjsLib.getDocument(encodeURI(doc.file));
+      const fileUrl = await resolveDocFile(doc);
+      const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
       const pdf = await loadingTask.promise;
       let text = '';
       for (let p = 1; p <= pdf.numPages; p++) {
