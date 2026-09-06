@@ -112,13 +112,22 @@
 
   /* ---------- Exploded View ---------- */
   .explode-hint{color:var(--muted);font-size:.85rem;margin:-6px 0 14px}
-  .explode-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:-6px 0 14px}
+  .explode-tabs{
+    display:flex;gap:8px;margin:-6px 0 14px;
+    overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;padding-bottom:2px;
+  }
+  .explode-tabs::-webkit-scrollbar{display:none}
   .explode-tab{
     padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;
     font-size:.82rem;font-weight:600;cursor:pointer;color:var(--muted);
+    flex:0 0 auto;white-space:nowrap;
   }
   .explode-tab:hover{border-color:var(--brand);color:var(--brand)}
   .explode-tab.is-active{background:var(--brand);border-color:var(--brand);color:#fff}
+  @media (min-width:700px){
+    .explode-tabs{flex-wrap:wrap;overflow-x:visible}
+  }
   .explode-wrap{
     position:relative;border-radius:12px;overflow:hidden;background:#eef1f3;
     border:1px solid var(--border);
@@ -3429,6 +3438,22 @@ function getExplodedViews(e) {
 async function loadExplodedView(e) {
   explodeViews = getExplodedViews(e);
 
+  if (!explodeViews.length) {
+    el.explodedSection.style.display = 'none';
+    el.eqTabBtnDiagrams.style.display = 'none';
+    if (eqTabsPill) eqTabsPill.refresh(false);
+    return;
+  }
+
+  // Show the Diagrams tab right away — we already know from the equipment
+  // doc itself that at least one diagram exists, so there's no reason to
+  // make the docked tab bar wait on a Firestore round-trip just to reveal
+  // itself. Any views still missing a URL (the metadata-only format) get
+  // resolved below and the image/tabs render once that settles.
+  el.explodedSection.style.display = 'block';
+  el.eqTabBtnDiagrams.style.display = 'flex';
+  if (eqTabsPill) eqTabsPill.refresh(false);
+
   // Metadata-only entries (the current format) need their image looked up
   // from its own doc — see admin.html's EV_DIAGRAMS_COLLECTION comment for
   // why diagrams aren't stored inline on the equipment doc anymore.
@@ -3452,9 +3477,7 @@ async function loadExplodedView(e) {
     if (eqTabsPill) eqTabsPill.refresh(false);
     return;
   }
-  el.explodedSection.style.display = 'block';
-  el.eqTabBtnDiagrams.style.display = 'flex';
-  if (eqTabsPill) eqTabsPill.refresh(false);
+
   renderExplodeTabs();
   selectExplodeView(explodeViews[0].id);
 }
