@@ -299,6 +299,13 @@
     #printRoot{display:block;position:absolute;top:0;left:0;width:100%}
     #printToolbar{display:none}
     .wo-print-page{border:none;margin:0;box-shadow:none;page-break-after:always}
+    /* Without this, browsers omit background colors when printing unless
+       the person manually ticks "Background graphics" in the print
+       dialog — which most people never do, and which isn't visible/
+       obvious in every browser's print UI. This forces it on, so the
+       dark title bars and shaded box headers always print solid instead
+       of coming out as washed-out, barely-visible text. */
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
   }
 </style>
 </head>
