@@ -62,12 +62,8 @@
   .shell-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px}
   .shell-row-top{height:56px;border-bottom:1px solid var(--border)}
   .shell-brand{display:flex;align-items:center;gap:10px}
-  .shell-org{font-size:.78rem;font-weight:700;letter-spacing:.4px;color:var(--text-muted);text-transform:uppercase}
-  .shell-module{font-size:1rem;font-weight:700;color:var(--text);display:flex;align-items:center}
-  .shell-module i{color:var(--brand);margin-right:6px}
   .header-back{display:flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:.85rem;font-weight:600}
   .header-back:hover{color:var(--brand)}
-
   .shell-actions{display:flex;align-items:center;gap:8px}
   .shell-user{display:none;align-items:center;gap:10px}
   .shell-user.show{display:flex}
@@ -132,7 +128,8 @@
   label.field-label{font-size:.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px}
   .field-group{margin-bottom:14px}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-  @media(max-width:600px){.field-row{grid-template-columns:1fr}}
+  .field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:600px){.field-row,.field-row-3{grid-template-columns:1fr}}
 
   .name-picker{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
   .name-picker .field-group{flex:1;min-width:200px;margin-bottom:0}
@@ -154,6 +151,8 @@
   .wo-status-badge::before{content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto}
   .wo-status-badge.status-assigned{color:var(--warning)}
   .wo-status-badge.status-assigned::before{background:var(--warning)}
+  .wo-status-badge.status-in_progress{color:var(--info)}
+  .wo-status-badge.status-in_progress::before{background:var(--info)}
   .wo-status-badge.status-completed{color:var(--success)}
   .wo-status-badge.status-completed::before{background:var(--success)}
 
@@ -185,8 +184,20 @@
   .tech-add-row{display:flex;gap:8px}
   .tech-add-row input{flex:1}
 
-  .equip-check-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px}
-  .equip-check-list label{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:400;cursor:pointer}
+  .check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);max-height:220px;overflow-y:auto}
+  .check-grid label{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:400;cursor:pointer}
+  .check-inline{display:flex;flex-wrap:wrap;gap:14px;padding:2px 0}
+  .check-inline label{display:flex;align-items:center;gap:7px;font-size:.85rem;font-weight:400;cursor:pointer}
+
+  details.form-section{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:14px;overflow:hidden}
+  details.form-section summary{
+    padding:11px 14px;font-weight:600;font-size:.85rem;cursor:pointer;background:#fafbfc;list-style:none;
+    display:flex;align-items:center;gap:8px;
+  }
+  details.form-section summary::-webkit-details-marker{display:none}
+  details.form-section summary i.chev{margin-left:auto;transition:transform .15s;color:var(--text-muted);font-size:.78rem}
+  details.form-section[open] summary i.chev{transform:rotate(90deg)}
+  details.form-section .section-body{padding:14px}
 
   .checklist-item{border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px}
   .checklist-q{font-size:.88rem;font-weight:600;margin-bottom:8px}
@@ -204,11 +215,19 @@
     font-size:.84rem;margin:12px 0;display:flex;gap:10px;align-items:flex-start;
   }
 
+  .job-clock{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:var(--info-bg);color:var(--info);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:14px;font-size:.85rem;
+  }
+  .job-clock.is-running{background:var(--success-bg);color:var(--success)}
+  .draft-note{font-size:.76rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin:8px 0 0}
+
   .detail-overlay{display:none;position:fixed;inset:0;background:rgba(20,22,24,.4);z-index:200;align-items:center;justify-content:center;padding:16px}
   .detail-overlay.show{display:flex}
-  .detail-panel{background:var(--surface);border-radius:var(--radius-lg);max-width:600px;width:100%;max-height:92vh;overflow-y:auto;border:1px solid var(--border)}
-  .detail-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+  .detail-panel{background:var(--surface);border-radius:var(--radius-lg);max-width:640px;width:100%;max-height:92vh;overflow-y:auto;border:1px solid var(--border)}
+  .detail-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1;gap:10px}
   .detail-head h3{margin:0;font-size:.95rem;font-weight:700}
+  .detail-head-actions{display:flex;gap:8px;align-items:center}
   .detail-body{padding:18px}
   .detail-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem}
   .detail-row:last-of-type{border-bottom:none}
@@ -217,11 +236,6 @@
   .detail-section-label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin:16px 0 6px}
   .detail-section-label:first-child{margin-top:0}
   .form-error{color:var(--danger);font-size:.82rem;margin-top:8px;min-height:1em}
-
-  .admin-gate{display:none}
-  .admin-gate.show{display:block}
-  .tech-gate{display:none}
-  .tech-gate.show{display:block}
 
   #adminSignInOverlay{position:fixed;inset:0;background:rgba(20,22,24,.45);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
   #adminSignInOverlay.is-open{display:flex}
@@ -250,6 +264,42 @@
   }
   .tab-pill-slider.is-dragging{transition:none}
   .tab-pill-slider.pill-fill{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand)}
+
+  /* ---------- Printable Work Order (matches the paper form) ---------- */
+  #printRoot{display:none}
+  .wo-print-page{
+    width:210mm;min-height:297mm;margin:0 auto 16px;background:#fff;padding:10mm;
+    font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10.5px;box-sizing:border-box;
+    border:1px solid #999;
+  }
+  .wpp-outer-border{border:2px solid #000;padding:6px}
+  .wpp-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:6px}
+  .wpp-head img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+  .wpp-head-text{font-size:8px;line-height:1.3}
+  .wpp-head-fields{flex:1;font-size:11px}
+  .wpp-bar{background:#333;color:#fff;font-weight:700;padding:4px 8px;display:flex;justify-content:space-between;margin:4px 0}
+  .wpp-box{border:1px solid #000;margin-bottom:4px}
+  .wpp-box-title{background:#e5e5e5;font-weight:700;padding:3px 6px;border-bottom:1px solid #000;font-size:10px}
+  .wpp-box-body{padding:5px 8px}
+  .wpp-checks{display:flex;flex-wrap:wrap;gap:14px;font-size:10px}
+  .wpp-checks span{display:inline-flex;align-items:center;gap:4px}
+  table.wpp-table{width:100%;border-collapse:collapse;font-size:9.5px}
+  table.wpp-table th, table.wpp-table td{border:1px solid #000;padding:3px 5px;text-align:left}
+  table.wpp-table th{background:#e5e5e5}
+  .wpp-two-col{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .wpp-remarks{font-size:9.5px;line-height:1.5;columns:2;column-gap:16px}
+  .wpp-remarks u{font-weight:700}
+  .wpp-footer-bar{background:#333;color:#fff;text-align:center;font-weight:700;padding:8px;margin-top:6px}
+  #printToolbar{
+    position:fixed;top:14px;right:14px;z-index:5000;display:flex;gap:8px;
+  }
+  @media print{
+    body *{visibility:hidden}
+    #printRoot, #printRoot *{visibility:visible}
+    #printRoot{display:block;position:absolute;top:0;left:0;width:100%}
+    #printToolbar{display:none}
+    .wo-print-page{border:none;margin:0;box-shadow:none;page-break-after:always}
+  }
 </style>
 </head>
 <body>
@@ -328,7 +378,7 @@
 
     <div class="card">
       <h2>Create Work Order</h2>
-      <p class="card-sub">Matches the paper Work Order — number, equipment, description, and who it's assigned to.</p>
+      <p class="card-sub">Matches the paper Work Order + LOTOTO + LMRA pack, field for field.</p>
       <form id="woForm">
         <div class="field-row">
           <div class="field-group">
@@ -356,6 +406,10 @@
           <label class="field-label" for="woDescriptionInput">Work Order Description *</label>
           <input type="text" id="woDescriptionInput" required maxlength="200" placeholder="e.g. Clean Mill 5 Separator Process Fan">
         </div>
+        <div class="field-group">
+          <label class="field-label" for="woCompaniesInput">Companies</label>
+          <input type="text" id="woCompaniesInput" maxlength="150" placeholder="Contractor / company name(s), if any">
+        </div>
         <div class="field-row">
           <div class="field-group">
             <label class="field-label" for="woScheduledDateInput">Scheduled Date</label>
@@ -368,10 +422,108 @@
         </div>
         <div class="field-group">
           <label class="field-label">Assign To *</label>
-          <div class="equip-check-list" id="woAssigneeChecks"></div>
+          <div class="check-grid" id="woAssigneeChecks"></div>
         </div>
+
+        <details class="form-section">
+          <summary>Associated Permits <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <div class="check-inline" id="grpPermits">
+              <label><input type="checkbox" data-group="permits" value="Fire"> Fire</label>
+              <label><input type="checkbox" data-group="permits" value="Confined Space"> Confined Space</label>
+              <label><input type="checkbox" data-group="permits" value="LMRA"> LMRA</label>
+            </div>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Equipment Preparation <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <div class="check-inline" style="margin-bottom:12px">
+              <label><input type="checkbox" id="epDraining"> Draining</label>
+              <label><input type="checkbox" id="epRinse"> Rinse</label>
+              <label><input type="checkbox" id="epInerting"> Inerting</label>
+              <label><input type="checkbox" id="epVentilation"> Ventilation</label>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label" for="epCycles">Number of Cycle(s)</label>
+                <input type="number" id="epCycles" min="0" step="1">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="epDuration">Duration (h)</label>
+                <input type="number" id="epDuration" min="0" step=".5">
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>LOTOTO Procedure — Safety <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <div class="check-inline" id="grpLototo" style="margin-bottom:12px">
+              <label><input type="checkbox" data-group="lototo" value="Electrical"> Electrical</label>
+              <label><input type="checkbox" data-group="lototo" value="Pneumatic"> Pneumatic</label>
+              <label><input type="checkbox" data-group="lototo" value="Hydraulic"> Hydraulic</label>
+              <label><input type="checkbox" data-group="lototo" value="Water"> Water</label>
+              <label><input type="checkbox" data-group="lototo" value="Mechanical"> Mechanical</label>
+              <label><input type="checkbox" data-group="lototo" value="Aeraulic"> Aeraulic</label>
+              <label><input type="checkbox" data-group="lototo" value="Steam"> Steam</label>
+              <label><input type="checkbox" data-group="lototo" value="Process"> Process</label>
+            </div>
+            <div class="check-inline">
+              <label><input type="checkbox" id="loUpline"> Other Equip. — Upline</label>
+              <label><input type="checkbox" id="loDownline"> Other Equip. — Downline</label>
+              <label><input type="checkbox" id="loDraught"> Draught at 10%</label>
+              <label><input type="checkbox" id="loPowerRecovery"> With power recovery</label>
+            </div>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Specific Risks — PPE <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <textarea id="woSpecificRisks" rows="2" maxlength="500" placeholder="Any specific risks or required PPE beyond the standard LMRA…"></textarea>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Environment Impacts <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <div class="check-inline" id="grpEnv">
+              <label><input type="checkbox" data-group="env" value="Air"> Air</label>
+              <label><input type="checkbox" data-group="env" value="Water Disposal"> Water Disposal</label>
+              <label><input type="checkbox" data-group="env" value="Water Consumption"> Water Consumption</label>
+              <label><input type="checkbox" data-group="env" value="Energy Consumption"> Energy Consumption</label>
+              <label><input type="checkbox" data-group="env" value="Waste Production"> Waste Production</label>
+              <label><input type="checkbox" data-group="env" value="Natural Resources Usage"> Natural Resources Usage</label>
+            </div>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Measure(s) for Specific Prevention <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <textarea id="woPreventionMeasures" rows="2" maxlength="500" placeholder="e.g. Cleaning of the area at the end of works and disposal of waste via the appropriate channels"></textarea>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Specific Equipment Required <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <div class="check-grid" id="grpSpecificEquip"></div>
+          </div>
+        </details>
+
+        <details class="form-section">
+          <summary>Detailed Description of the Activity <i class="fa-solid fa-chevron-right chev"></i></summary>
+          <div class="section-body">
+            <textarea id="woDetailedActivity" rows="3" maxlength="1000" placeholder="Full step-by-step description, if more detail than the WO Description is useful…"></textarea>
+          </div>
+        </details>
+
         <span id="woFormError" class="form-error"></span>
-        <button type="submit" class="btn-primary" id="woSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Create Work Order</button>
+        <button type="submit" class="btn-primary" id="woSubmitBtn" style="margin-top:10px"><i class="fa-solid fa-floppy-disk"></i> Create Work Order</button>
       </form>
     </div>
 
@@ -390,7 +542,10 @@
   <div class="detail-panel">
     <div class="detail-head">
       <h3 id="woDetailTitle">Work Order</h3>
-      <button type="button" class="btn-icon" id="woDetailCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="detail-head-actions">
+        <button type="button" class="btn-icon" id="woPrintBtn" title="Print / Save as PDF"><i class="fa-solid fa-print"></i></button>
+        <button type="button" class="btn-icon" id="woDetailCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
     </div>
     <div class="detail-body" id="woDetailBody"></div>
   </div>
@@ -420,6 +575,13 @@
   </div>
 </div>
 
+<!-- ================= Printable Work Order + LMRA (hidden except when printing) ================= -->
+<div id="printRoot"></div>
+<div id="printToolbar" class="no-print" style="display:none">
+  <button type="button" class="btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
+  <button type="button" class="btn-secondary" id="printCloseBtn"><i class="fa-solid fa-xmark"></i> Close</button>
+</div>
+
 <script>
 // ---------- Firebase (shared with the rest of InfoPort) ----------
 const firebaseConfig = {
@@ -433,6 +595,17 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+// Offline persistence — this is the "caching system" at the data layer:
+// reads are served from the local cache when offline, and writes (like
+// a technician tapping "Start Job" with no signal) queue locally and
+// sync automatically once back online, instead of failing outright.
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Offline persistence only works in one browser tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('This browser does not support offline persistence.');
+  }
+});
 const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
   console.error('Failed to set auth persistence', err);
@@ -447,7 +620,7 @@ function escapeHtml(str) {
 document.getElementById('pageLoadingOverlay').classList.add('is-hidden');
 
 // Anonymous sign-in, invisible to the user — gives technician actions
-// (marking a work order complete) request.auth != null in Firestore
+// (starting/finishing a work order) request.auth != null in Firestore
 // rules, without requiring any login screen. Same pattern equipment.html
 // uses for maintenance log entries. isAnonymous stays false for real
 // admin accounts, so this doesn't interfere with the admin check below.
@@ -472,12 +645,6 @@ window.addEventListener('load', () => {
 });
 
 // ---------- Admin authentication ----------
-// Same admins/{uid} accounts as the rest of InfoPort. Unlike the fully
-// gated admin pages, this page is USABLE WITHOUT SIGNING IN — that's the
-// whole point: any technician on a shared device can pick their name and
-// fill in an assigned work order with no login at all. Signing in only
-// reveals the "Manage" tab (create work orders, manage the technician
-// picklist, see everything).
 let isAdmin = false;
 
 async function checkAdminStatus(uid) {
@@ -556,10 +723,6 @@ document.getElementById('headerSignOutBtn').addEventListener('click', () => {
 });
 
 // ---------- Technicians (admin-maintained picklist) ----------
-// Firestore collection: technicians/{autoId} — { name, active, createdAt }
-// Public read (so any technician can see the picklist without signing
-// in), admin-only write (add/remove) — same isAdmin() pattern as every
-// other admin-managed list in the app.
 let allTechnicians = [];
 
 db.collection('technicians').orderBy('name').onSnapshot((snap) => {
@@ -649,6 +812,22 @@ db.collection('equipment').get().then((snap) => {
     EQUIPMENT_LIST.map((e) => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
 }).catch((err) => console.error('Failed to load equipment list', err));
 
+// ---------- Fixed option lists (match the paper form's own checkbox sets) ----------
+const SPECIFIC_EQUIPMENT = [
+  'Headband Lamp', 'Lighting', 'Isolation Transformer', 'Marking', 'Tarpaulin',
+  'Scaffolding', 'Stepladder', 'Ladder', 'Ventilator/Extractor', 'Forklift Truck',
+  'Sweeper', 'Stacker', 'Aerial Lift',
+];
+(function renderSpecificEquipChecks() {
+  document.getElementById('grpSpecificEquip').innerHTML = SPECIFIC_EQUIPMENT.map((opt) => `
+    <label><input type="checkbox" data-group="specificEquip" value="${escapeHtml(opt)}"> ${escapeHtml(opt)}</label>
+  `).join('');
+})();
+
+function collectCheckGroup(name) {
+  return Array.from(document.querySelectorAll(`input[data-group="${name}"]:checked`)).map((cb) => cb.value);
+}
+
 // ---------- LMRA-style checklist definition ----------
 // Same 6 general + 2 emergency questions as the paper Last Minute Risk
 // Analysis sheet (the sub-bullets under "Last analysis of the working
@@ -704,16 +883,41 @@ document.getElementById('woForm').addEventListener('submit', async (ev) => {
       equipmentName,
       equipmentTag: document.getElementById('woEquipmentTagInput').value.trim(),
       description,
+      companies: document.getElementById('woCompaniesInput').value.trim(),
       scheduledDate: document.getElementById('woScheduledDateInput').value || null,
       estimatedDuration: document.getElementById('woEstDurationInput').value
         ? Number(document.getElementById('woEstDurationInput').value) : null,
       assignedTo: assignees,
+
+      permits: collectCheckGroup('permits'),
+      equipPrep: {
+        draining: document.getElementById('epDraining').checked,
+        rinse: document.getElementById('epRinse').checked,
+        inerting: document.getElementById('epInerting').checked,
+        ventilation: document.getElementById('epVentilation').checked,
+        numberOfCycles: document.getElementById('epCycles').value ? Number(document.getElementById('epCycles').value) : null,
+        durationHours: document.getElementById('epDuration').value ? Number(document.getElementById('epDuration').value) : null,
+      },
+      lototo: {
+        types: collectCheckGroup('lototo'),
+        upline: document.getElementById('loUpline').checked,
+        downline: document.getElementById('loDownline').checked,
+        draughtAt10: document.getElementById('loDraught').checked,
+        withPowerRecovery: document.getElementById('loPowerRecovery').checked,
+      },
+      specificRisks: document.getElementById('woSpecificRisks').value.trim(),
+      envImpacts: collectCheckGroup('env'),
+      preventionMeasures: document.getElementById('woPreventionMeasures').value.trim(),
+      specificEquipment: collectCheckGroup('specificEquip'),
+      detailedActivity: document.getElementById('woDetailedActivity').value.trim(),
+
       status: 'assigned',
       createdBy: auth.currentUser ? auth.currentUser.email : 'unknown',
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     document.getElementById('woForm').reset();
-    document.querySelectorAll('#woAssigneeChecks input').forEach((cb) => { cb.checked = false; });
+    document.querySelectorAll('#woForm input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
+    document.querySelectorAll('#woForm details').forEach((d) => { d.open = false; });
   } catch (err) {
     console.error('Failed to create work order', err);
     errorEl.textContent = 'Could not create this work order. Please try again.';
@@ -731,6 +935,12 @@ db.collection('workOrders').orderBy('createdAt', 'desc').onSnapshot((snap) => {
   snap.forEach((doc) => allWorkOrders.push({ id: doc.id, ...doc.data() }));
   renderAllWorkOrdersTable();
   renderMyWorkOrders();
+  // Keep an open drawer's contents in sync with live updates (e.g. status
+  // changing after Start Job) instead of showing a stale snapshot.
+  if (activeWoId) {
+    const w = allWorkOrders.find((x) => x.id === activeWoId);
+    if (w) renderWoDetailBody(w); else closeWorkOrderDetail();
+  }
 }, (err) => {
   console.error('Failed to load work orders', err);
   document.getElementById('allWoTableWrap').innerHTML =
@@ -747,6 +957,7 @@ function formatTimestamp(ts) {
   if (!ts || typeof ts.toDate !== 'function') return '—';
   return ts.toDate().toLocaleString();
 }
+const STATUS_LABEL = { assigned: 'Assigned', in_progress: 'In Progress', completed: 'Completed' };
 
 // ---------- Admin: All Work Orders table ----------
 function renderAllWorkOrdersTable() {
@@ -767,7 +978,7 @@ function renderAllWorkOrdersTable() {
       </td>
       <td>${(w.assignedTo || []).map(escapeHtml).join(', ') || '—'}</td>
       <td>${formatWoDate(w.scheduledDate)}</td>
-      <td><span class="wo-status-badge status-${w.status === 'completed' ? 'completed' : 'assigned'}">${w.status === 'completed' ? 'Completed' : 'Assigned'}</span></td>
+      <td><span class="wo-status-badge status-${w.status || 'assigned'}">${STATUS_LABEL[w.status] || 'Assigned'}</span></td>
     </tr>
   `).join('');
   wrap.innerHTML = `
@@ -791,12 +1002,12 @@ function renderMyWorkOrders() {
 
   const assignedWrap = document.getElementById('myAssignedList');
   assignedWrap.innerHTML = assigned.length
-    ? assigned.map((w) => woRowHtml(w, false)).join('')
+    ? assigned.map((w) => woRowHtml(w)).join('')
     : '<p class="empty-state">Nothing assigned to you right now.</p>';
 
   const completedWrap = document.getElementById('myCompletedList');
   completedWrap.innerHTML = completed.length
-    ? completed.map((w) => woRowHtml(w, true)).join('')
+    ? completed.map((w) => woRowHtml(w)).join('')
     : '<p class="empty-state">Nothing completed yet.</p>';
 
   document.querySelectorAll('#myAssignedList .wo-row, #myCompletedList .wo-row').forEach((row) => {
@@ -804,7 +1015,8 @@ function renderMyWorkOrders() {
   });
 }
 
-function woRowHtml(w, isCompleted) {
+function woRowHtml(w) {
+  const status = w.status || 'assigned';
   return `
     <div class="wo-row" data-id="${w.id}">
       <div class="wo-row-main">
@@ -812,72 +1024,173 @@ function woRowHtml(w, isCompleted) {
         <div class="wo-desc">${escapeHtml(w.description)}</div>
         <div class="wo-meta">${escapeHtml(w.equipmentName || w.equipmentTag || 'No equipment set')} ${w.scheduledDate ? '· ' + formatWoDate(w.scheduledDate) : ''}</div>
       </div>
-      <span class="wo-status-badge status-${isCompleted ? 'completed' : 'assigned'}">${isCompleted ? 'Completed' : 'Assigned'}</span>
+      <span class="wo-status-badge status-${status}">${STATUS_LABEL[status]}</span>
     </div>
   `;
 }
 
-// ---------- Work Order detail / fill-in drawer ----------
-let clState = {}; // checklist answers while filling in: { q1: 'ok'|'nok'|'na', ... }
-let activeWoId = null;
+// ---------- Full read-only info block (every admin-set field — this is
+// what was previously missing: WO Editor, Equipment Preparation, LOTOTO,
+// Environment Impacts, Specific Equipment Required, Detailed Activity). ----------
+function fullInfoHtml(w) {
+  const permits = (w.permits || []).join(', ') || 'None specified';
+  const ep = w.equipPrep || {};
+  const epParts = [];
+  if (ep.draining) epParts.push('Draining');
+  if (ep.rinse) epParts.push('Rinse');
+  if (ep.inerting) epParts.push('Inerting');
+  if (ep.ventilation) epParts.push('Ventilation');
+  const lo = w.lototo || {};
+  const loTypes = (lo.types || []).join(', ') || 'None specified';
+  const loExtras = [];
+  if (lo.upline) loExtras.push('Upline');
+  if (lo.downline) loExtras.push('Downline');
+  if (lo.draughtAt10) loExtras.push('Draught at 10%');
+  if (lo.withPowerRecovery) loExtras.push('With power recovery');
 
-function openWorkOrderDetail(id, isAdminView) {
-  const w = allWorkOrders.find((x) => x.id === id);
-  if (!w) return;
-  activeWoId = id;
-  document.getElementById('woDetailTitle').textContent = `Work Order ${w.woNumber}`;
-  const body = document.getElementById('woDetailBody');
-
-  const infoHtml = `
+  return `
+    <div class="detail-section-label">Work Order</div>
     <div class="detail-row"><span class="k">Work Order N°</span><span class="v mono">${escapeHtml(w.woNumber)}</span></div>
     ${w.costCentre ? `<div class="detail-row"><span class="k">Cost Centre</span><span class="v">${escapeHtml(w.costCentre)}</span></div>` : ''}
     <div class="detail-row"><span class="k">Equipment</span><span class="v">${escapeHtml(w.equipmentName || '—')}</span></div>
     ${w.equipmentTag ? `<div class="detail-row"><span class="k">Equipment Tag</span><span class="v mono">${escapeHtml(w.equipmentTag)}</span></div>` : ''}
     <div class="detail-row"><span class="k">Description</span><span class="v">${escapeHtml(w.description)}</span></div>
+    ${w.companies ? `<div class="detail-row"><span class="k">Companies</span><span class="v">${escapeHtml(w.companies)}</span></div>` : ''}
     <div class="detail-row"><span class="k">Assigned To</span><span class="v">${(w.assignedTo || []).map(escapeHtml).join(', ') || '—'}</span></div>
     <div class="detail-row"><span class="k">Scheduled</span><span class="v">${formatWoDate(w.scheduledDate)}</span></div>
     ${w.estimatedDuration != null ? `<div class="detail-row"><span class="k">Estimated Duration</span><span class="v">${w.estimatedDuration} h</span></div>` : ''}
-  `;
 
-  if (w.status === 'completed') {
-    // Read-only summary — same view for admin or technician once it's done.
+    <div class="detail-section-label">Associated Permits</div>
+    <div class="detail-row"><span class="k">Permits</span><span class="v">${escapeHtml(permits)}</span></div>
+
+    <div class="detail-section-label">Equipment Preparation</div>
+    <div class="detail-row"><span class="k">Prep steps</span><span class="v">${escapeHtml(epParts.length ? epParts.join(', ') : 'None specified')}</span></div>
+    ${ep.numberOfCycles != null ? `<div class="detail-row"><span class="k">Number of Cycles</span><span class="v">${ep.numberOfCycles}</span></div>` : ''}
+    ${ep.durationHours != null ? `<div class="detail-row"><span class="k">Duration</span><span class="v">${ep.durationHours} h</span></div>` : ''}
+
+    <div class="detail-section-label">LOTOTO Procedure — Safety</div>
+    <div class="detail-row"><span class="k">Types</span><span class="v">${escapeHtml(loTypes)}</span></div>
+    ${loExtras.length ? `<div class="detail-row"><span class="k">Other</span><span class="v">${escapeHtml(loExtras.join(', '))}</span></div>` : ''}
+
+    ${w.specificRisks ? `<div class="detail-section-label">Specific Risks — PPE</div><div class="detail-row"><span class="k">Notes</span><span class="v">${escapeHtml(w.specificRisks)}</span></div>` : ''}
+
+    ${(w.envImpacts || []).length ? `<div class="detail-section-label">Environment Impacts</div><div class="detail-row"><span class="k">Impacts</span><span class="v">${escapeHtml(w.envImpacts.join(', '))}</span></div>` : ''}
+
+    ${w.preventionMeasures ? `<div class="detail-section-label">Prevention Measures</div><div class="detail-row"><span class="k">Measures</span><span class="v">${escapeHtml(w.preventionMeasures)}</span></div>` : ''}
+
+    ${(w.specificEquipment || []).length ? `<div class="detail-section-label">Specific Equipment Required</div><div class="detail-row"><span class="k">Equipment</span><span class="v">${escapeHtml(w.specificEquipment.join(', '))}</span></div>` : ''}
+
+    ${w.detailedActivity ? `<div class="detail-section-label">Detailed Description of the Activity</div><div class="detail-row"><span class="k">Details</span><span class="v">${escapeHtml(w.detailedActivity)}</span></div>` : ''}
+  `;
+}
+
+// ---------- Local draft cache — the "started, save, come back and
+// finish" workflow. Keyed per work order, per device. Firestore offline
+// persistence (enabled above) covers the two hard writes (Start / Finish);
+// this covers everything typed in between so a closed tab or dead
+// battery between them doesn't lose the checklist answers. ----------
+function draftKey(id) { return `wo-draft-${id}`; }
+function saveDraft(id) {
+  const val = (elId) => { const el = document.getElementById(elId); return el ? el.value : ''; };
+  const checkedVal = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+  const draft = {
+    checklist: clState,
+    realDurationActivities: val('woRealDurationActivities'),
+    comments: val('woComments'),
+    inChargeOfWork: val('pvInCharge'),
+    deliveredTo: val('pvDeliveredTo'),
+    shiftSupervisor: val('pvShiftSupervisor'),
+    received: checkedVal('eowReceived'),
+    unlockout: checkedVal('eowUnlockout'),
+    tidiness: checkedVal('eowTidiness'),
+    contractor: val('eowContractor'),
+  };
+  try { localStorage.setItem(draftKey(id), JSON.stringify(draft)); } catch (e) { console.error('Failed to save local draft', e); }
+  const note = document.getElementById('draftSavedNote');
+  if (note) note.innerHTML = `<i class="fa-solid fa-circle-check"></i> Saved on this device ${new Date().toLocaleTimeString()}`;
+}
+function loadDraft(id) {
+  try {
+    const raw = localStorage.getItem(draftKey(id));
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function clearDraft(id) { localStorage.removeItem(draftKey(id)); }
+
+// ---------- Work Order detail drawer ----------
+let clState = {};
+let activeWoId = null;
+let activeWoIsAdminView = false;
+
+function openWorkOrderDetail(id, isAdminView) {
+  const w = allWorkOrders.find((x) => x.id === id);
+  if (!w) return;
+  activeWoId = id;
+  activeWoIsAdminView = isAdminView;
+  document.getElementById('woDetailTitle').textContent = `Work Order ${w.woNumber}`;
+  renderWoDetailBody(w);
+  document.getElementById('woDetailOverlay').classList.add('show');
+}
+
+function renderWoDetailBody(w) {
+  const body = document.getElementById('woDetailBody');
+  const status = w.status || 'assigned';
+  const info = fullInfoHtml(w);
+
+  if (status === 'completed') {
     const clRows = CHECKLIST_ITEMS.map((item) => {
       const ans = (w.checklist || {})[item.id] || 'na';
       const label = ans === 'ok' ? 'OK' : ans === 'nok' ? 'NOK' : 'N/A';
       return `<div class="detail-row"><span class="k">${escapeHtml(item.text)}</span><span class="v">${label}</span></div>`;
     }).join('');
+    const pv = w.permitValidation || {};
+    const eow = w.endOfWork || {};
     body.innerHTML = `
-      <div class="detail-section-label">Work Order</div>
-      ${infoHtml}
+      ${info}
+      <div class="detail-section-label">Job Timing</div>
+      <div class="detail-row"><span class="k">Started</span><span class="v">${formatTimestamp(w.actualStartTime)}</span></div>
+      <div class="detail-row"><span class="k">Finished</span><span class="v">${formatTimestamp(w.actualEndTime)}</span></div>
+      <div class="detail-row"><span class="k">Real Duration (WO)</span><span class="v">${w.realDurationWO != null ? w.realDurationWO + ' h' : '—'}</span></div>
+      <div class="detail-row"><span class="k">Real Duration (Activities)</span><span class="v">${w.realDurationActivities != null ? w.realDurationActivities + ' h' : '—'}</span></div>
       <div class="detail-section-label">LMRA Checklist</div>
       ${clRows}
-      <div class="detail-section-label">Close-Out</div>
-      <div class="detail-row"><span class="k">Real Duration</span><span class="v">${w.realDuration != null ? w.realDuration + ' h' : '—'}</span></div>
+      <div class="detail-section-label">Feedback</div>
       <div class="detail-row"><span class="k">Comments</span><span class="v">${escapeHtml(w.comments || '—')}</span></div>
+      <div class="detail-section-label">Permit Validation</div>
+      <div class="detail-row"><span class="k">In Charge of Work</span><span class="v">${escapeHtml(pv.inChargeOfWork || '—')}</span></div>
+      <div class="detail-row"><span class="k">Delivered To</span><span class="v">${escapeHtml(pv.deliveredTo || '—')}</span></div>
+      <div class="detail-row"><span class="k">Shift Supervisor</span><span class="v">${escapeHtml(pv.shiftSupervisor || '—')}</span></div>
+      <div class="detail-section-label">End of Work</div>
+      <div class="detail-row"><span class="k">Received by Work Responsible</span><span class="v">${escapeHtml(eow.received || '—')}</span></div>
+      <div class="detail-row"><span class="k">Unlockout Procedure</span><span class="v">${escapeHtml(eow.unlockout || '—')}</span></div>
+      <div class="detail-row"><span class="k">Tidiness and Cleanliness</span><span class="v">${escapeHtml(eow.tidiness || '—')}</span></div>
+      ${eow.contractor ? `<div class="detail-row"><span class="k">Contractor</span><span class="v">${escapeHtml(eow.contractor)}</span></div>` : ''}
       <div class="detail-row"><span class="k">Completed By</span><span class="v">${escapeHtml(w.completedBy || '—')}</span></div>
-      <div class="detail-row"><span class="k">Completed At</span><span class="v">${formatTimestamp(w.completedAt)}</span></div>
-      ${isAdminView ? `<button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:16px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>` : ''}
+      ${activeWoIsAdminView ? `<button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:16px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>` : ''}
     `;
-    if (isAdminView) {
+    if (activeWoIsAdminView) document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
+    return;
+  }
+
+  if (status === 'in_progress') {
+    if (activeWoIsAdminView) {
+      body.innerHTML = `
+        ${info}
+        <div class="job-clock is-running"><i class="fa-solid fa-stopwatch"></i> Started ${formatTimestamp(w.actualStartTime)} by ${escapeHtml(w.startedBy || '—')} — in progress</div>
+        <p style="color:var(--text-muted);font-size:.83rem">The checklist and close-out details will appear here once the technician submits.</p>
+        <button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:6px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>
+      `;
       document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
+      return;
     }
-  } else if (isAdminView) {
-    // Admin looking at a not-yet-completed WO — read-only info + delete, no fill-in (that's the technician's job).
-    body.innerHTML = `
-      <div class="detail-section-label">Work Order</div>
-      ${infoHtml}
-      <div class="detail-section-label"></div>
-      <p style="color:var(--text-muted);font-size:.83rem">Not completed yet — the LMRA checklist and close-out details will appear here once the assigned technician submits them.</p>
-      <button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:6px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>
-    `;
-    document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
-  } else {
-    // Technician fill-in form.
+
+    const draft = loadDraft(w.id) || {};
     clState = {};
-    CHECKLIST_ITEMS.forEach((item) => { clState[item.id] = null; });
+    CHECKLIST_ITEMS.forEach((item) => { clState[item.id] = (draft.checklist && draft.checklist[item.id]) || null; });
+
     body.innerHTML = `
-      <div class="detail-section-label">Work Order</div>
-      ${infoHtml}
+      ${info}
+      <div class="job-clock is-running"><i class="fa-solid fa-stopwatch"></i> Started ${formatTimestamp(w.actualStartTime)}</div>
       <div class="detail-section-label">LMRA Checklist — Last Minute Risk Analysis</div>
       <p class="checklist-progress" id="clProgress">0 of ${CHECKLIST_ITEMS.length} answered</p>
       <div id="clItems">
@@ -896,20 +1209,73 @@ function openWorkOrderDetail(id, isAdminView) {
         <i class="fa-solid fa-triangle-exclamation"></i>
         <span>One or more items are marked NOK. Per the safety procedure: stop, correct the problem, and notify the person responsible for the work/site before continuing — don't just submit and proceed.</span>
       </div>
-      <div class="detail-section-label">Close-Out</div>
+
+      <div class="detail-section-label">Feedback</div>
       <div class="field-group">
-        <label class="field-label" for="woRealDuration">Real Duration of the Work (H)</label>
-        <input type="number" id="woRealDuration" min="0" step="0.5" placeholder="e.g. 2.5">
+        <label class="field-label" for="woRealDurationActivities">Real Duration of Activities (H)</label>
+        <input type="number" id="woRealDurationActivities" min="0" step="0.5" value="${escapeHtml(draft.realDurationActivities || '')}">
       </div>
       <div class="field-group">
         <label class="field-label" for="woComments">Comments from the Technician</label>
-        <textarea id="woComments" rows="3" maxlength="1000" placeholder="Anything worth noting about how the job went…"></textarea>
+        <textarea id="woComments" rows="3" maxlength="1000">${escapeHtml(draft.comments || '')}</textarea>
       </div>
+
+      <div class="detail-section-label">Permit Validation</div>
+      <div class="field-group">
+        <label class="field-label" for="pvInCharge">In Charge of Work (name)</label>
+        <input type="text" id="pvInCharge" maxlength="80" value="${escapeHtml(draft.inChargeOfWork || '')}">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="pvDeliveredTo">Delivered To (name)</label>
+        <input type="text" id="pvDeliveredTo" maxlength="80" value="${escapeHtml(draft.deliveredTo || '')}">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="pvShiftSupervisor">Shift Supervisor (name)</label>
+        <input type="text" id="pvShiftSupervisor" maxlength="80" value="${escapeHtml(draft.shiftSupervisor || '')}">
+      </div>
+
+      <div class="detail-section-label">End of Work</div>
+      <div class="field-group">
+        <label class="field-label">To be received by Work Responsible?</label>
+        <div class="check-inline">
+          <label><input type="radio" name="eowReceived" value="Yes" ${draft.received === 'Yes' ? 'checked' : ''}> Yes</label>
+          <label><input type="radio" name="eowReceived" value="No" ${draft.received === 'No' ? 'checked' : ''}> No</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Unlockout Procedure</label>
+        <div class="check-inline">
+          <label><input type="radio" name="eowUnlockout" value="OK" ${draft.unlockout === 'OK' ? 'checked' : ''}> OK</label>
+          <label><input type="radio" name="eowUnlockout" value="Not OK" ${draft.unlockout === 'Not OK' ? 'checked' : ''}> Not OK</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Tidiness and Cleanliness</label>
+        <div class="check-inline">
+          <label><input type="radio" name="eowTidiness" value="OK" ${draft.tidiness === 'OK' ? 'checked' : ''}> OK</label>
+          <label><input type="radio" name="eowTidiness" value="Not OK" ${draft.tidiness === 'Not OK' ? 'checked' : ''}> Not OK</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="eowContractor">Contractor (if applicable)</label>
+        <input type="text" id="eowContractor" maxlength="100" value="${escapeHtml(draft.contractor || '')}">
+      </div>
+
+      <p class="draft-note" id="draftSavedNote"><i class="fa-solid fa-circle-check"></i> Your answers are saved on this device as you go — safe to close the app and come back.</p>
+
       <span id="woCompleteError" class="form-error"></span>
       <button type="button" class="btn-primary" id="woCompleteBtn" style="width:100%;margin-top:6px" disabled>
-        <i class="fa-solid fa-check"></i> Mark Complete
+        <i class="fa-solid fa-flag-checkered"></i> Finish Job &amp; Submit
       </button>
     `;
+
+    CHECKLIST_ITEMS.forEach((item) => {
+      const ans = clState[item.id];
+      if (ans) {
+        const btn = document.querySelector(`.cl-btn[data-id="${item.id}"][data-ans="${ans}"]`);
+        if (btn) btn.classList.add(`is-selected-${ans}`);
+      }
+    });
 
     document.querySelectorAll('#clItems .cl-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -919,13 +1285,37 @@ function openWorkOrderDetail(id, isAdminView) {
         });
         btn.classList.add(`is-selected-${btn.dataset.ans}`);
         updateChecklistProgress();
+        saveDraft(w.id);
       });
     });
+    ['woRealDurationActivities', 'woComments', 'pvInCharge', 'pvDeliveredTo', 'pvShiftSupervisor', 'eowContractor'].forEach((id) => {
+      document.getElementById(id).addEventListener('input', () => saveDraft(w.id));
+    });
+    document.querySelectorAll('input[name="eowReceived"], input[name="eowUnlockout"], input[name="eowTidiness"]').forEach((r) => {
+      r.addEventListener('change', () => saveDraft(w.id));
+    });
 
+    updateChecklistProgress();
     document.getElementById('woCompleteBtn').addEventListener('click', () => submitWorkOrderCompletion(w.id));
+    return;
   }
 
-  document.getElementById('woDetailOverlay').classList.add('show');
+  // status === 'assigned' — not started yet.
+  if (activeWoIsAdminView) {
+    body.innerHTML = `
+      ${info}
+      <button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:16px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>
+    `;
+    document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
+  } else {
+    body.innerHTML = `
+      ${info}
+      <button type="button" class="btn-primary" id="woStartBtn" style="width:100%;margin-top:16px">
+        <i class="fa-solid fa-play"></i> Start Job
+      </button>
+    `;
+    document.getElementById('woStartBtn').addEventListener('click', () => startWorkOrder(w.id));
+  }
 }
 
 function updateChecklistProgress() {
@@ -936,16 +1326,44 @@ function updateChecklistProgress() {
   document.getElementById('woCompleteBtn').disabled = answered < CHECKLIST_ITEMS.length;
 }
 
+async function startWorkOrder(id) {
+  const technicianName = document.getElementById('techPicker').value;
+  if (!technicianName) { alert('Select your name at the top of the page first.'); return; }
+  if (!confirm('Start this job now? This records your start time.')) return;
+  const btn = document.getElementById('woStartBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting…';
+  try {
+    await db.collection('workOrders').doc(id).update({
+      status: 'in_progress',
+      actualStartTime: firebase.firestore.FieldValue.serverTimestamp(),
+      startedBy: technicianName,
+    });
+    // Offline persistence means this resolves even with no signal — it
+    // queues and syncs later, and the live listener re-renders this
+    // drawer automatically once the write actually lands.
+  } catch (err) {
+    console.error('Failed to start work order', err);
+    alert('Could not start this job right now. Please try again.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play"></i> Start Job';
+  }
+}
+
 async function submitWorkOrderCompletion(id) {
   const errorEl = document.getElementById('woCompleteError');
   errorEl.textContent = '';
   const technicianName = document.getElementById('techPicker').value;
-  if (!technicianName) {
-    errorEl.textContent = 'Select your name at the top of the page first.';
-    return;
-  }
-  const realDuration = document.getElementById('woRealDuration').value;
-  const comments = document.getElementById('woComments').value.trim();
+  if (!technicianName) { errorEl.textContent = 'Select your name at the top of the page first.'; return; }
+
+  const w = allWorkOrders.find((x) => x.id === id);
+  const startedAt = w && w.actualStartTime && w.actualStartTime.toDate ? w.actualStartTime.toDate() : null;
+  const now = new Date();
+  const realDurationWO = startedAt ? Math.round(((now - startedAt) / 3600000) * 100) / 100 : null;
+
+  const received = document.querySelector('input[name="eowReceived"]:checked');
+  const unlockout = document.querySelector('input[name="eowUnlockout"]:checked');
+  const tidiness = document.querySelector('input[name="eowTidiness"]:checked');
 
   const btn = document.getElementById('woCompleteBtn');
   btn.disabled = true;
@@ -954,18 +1372,33 @@ async function submitWorkOrderCompletion(id) {
   try {
     await db.collection('workOrders').doc(id).update({
       checklist: clState,
-      realDuration: realDuration ? Number(realDuration) : null,
-      comments,
+      realDurationActivities: document.getElementById('woRealDurationActivities').value
+        ? Number(document.getElementById('woRealDurationActivities').value) : null,
+      comments: document.getElementById('woComments').value.trim(),
+      permitValidation: {
+        inChargeOfWork: document.getElementById('pvInCharge').value.trim(),
+        deliveredTo: document.getElementById('pvDeliveredTo').value.trim(),
+        shiftSupervisor: document.getElementById('pvShiftSupervisor').value.trim(),
+      },
+      endOfWork: {
+        received: received ? received.value : null,
+        unlockout: unlockout ? unlockout.value : null,
+        tidiness: tidiness ? tidiness.value : null,
+        contractor: document.getElementById('eowContractor').value.trim(),
+      },
+      actualEndTime: firebase.firestore.FieldValue.serverTimestamp(),
+      realDurationWO,
       status: 'completed',
       completedBy: technicianName,
       completedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+    clearDraft(id);
     closeWorkOrderDetail();
   } catch (err) {
     console.error('Failed to submit work order completion', err);
-    errorEl.textContent = 'Could not submit this right now. Please check your connection and try again.';
+    errorEl.textContent = 'Could not submit this right now — your answers stay saved on this device, so it is safe to try again.';
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> Mark Complete';
+    btn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Finish Job & Submit';
   }
 }
 
@@ -973,6 +1406,7 @@ async function deleteWorkOrder(id) {
   if (!confirm('Delete this work order? This cannot be undone.')) return;
   try {
     await db.collection('workOrders').doc(id).delete();
+    clearDraft(id);
     closeWorkOrderDetail();
   } catch (err) {
     console.error('Failed to delete work order', err);
@@ -987,6 +1421,226 @@ function closeWorkOrderDetail() {
 document.getElementById('woDetailCloseBtn').addEventListener('click', closeWorkOrderDetail);
 document.getElementById('woDetailOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'woDetailOverlay') closeWorkOrderDetail();
+});
+
+// ---------- Print / PDF — recreates the paper Work Order + LOTOTO +
+// LMRA pack using the browser's own Print dialog ("Save as PDF" there
+// gives an actual PDF) rather than hand-drawing it with a PDF library,
+// which is far more reliable for a layout this detailed. ----------
+function chk(bool) { return bool ? '☑' : '☐'; }
+function chkListHtml(options, selected) {
+  const sel = new Set(selected || []);
+  return options.map((o) => `<span>${chk(sel.has(o))} ${escapeHtml(o)}</span>`).join('');
+}
+
+function buildPrintHtml(w) {
+  const ep = w.equipPrep || {};
+  const lo = w.lototo || {};
+  const eow = w.endOfWork || {};
+  const pv = w.permitValidation || {};
+  const cl = w.checklist || {};
+  const ansMark = (id) => {
+    const a = cl[id];
+    return { ok: a === 'ok' ? '<b>[OK]</b>' : 'OK', nok: a === 'nok' ? '<b>[NOK]</b>' : 'NOK', na: (a === 'na' || !a) ? '<b>[NA]</b>' : 'NA' };
+  };
+
+  const workersRows = (w.assignedTo || []).map((name) => `
+    <tr><td>${escapeHtml(name)}</td><td></td><td></td><td>${w.scheduledDate ? formatWoDate(w.scheduledDate) : ''}</td><td></td><td></td><td>${w.scheduledDate ? formatWoDate(w.scheduledDate) : ''}</td></tr>
+  `).join('') || '<tr><td colspan="7">—</td></tr>';
+
+  const page1 = `
+    <div class="wo-print-page">
+      <div class="wpp-outer-border">
+        <div class="wpp-head">
+          <img src="assets/logo.png" alt="GHACEM">
+          <div class="wpp-head-text">HEIDELBERGCEMENT Group<br>...The Nation Builder</div>
+          <div class="wpp-head-fields">Cost Centre: <b>${escapeHtml(w.costCentre || '—')}</b></div>
+        </div>
+        <div class="wpp-bar"><span>Work Order N° ${escapeHtml(w.woNumber)}</span><span>LOTOTO Procedure N° ____</span></div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">WO Editor</div>
+          <div class="wpp-box-body">
+            <div class="wpp-checks" style="margin-bottom:6px"><b>Associated Permits:</b> ${chkListHtml(['Fire', 'Confined Space', 'LMRA'], w.permits)}</div>
+            <div>${escapeHtml(w.equipmentTag || '')} — <b>${escapeHtml(w.equipmentName || '')}</b></div>
+            <div><b>WO Description:</b> ${escapeHtml(w.description)}</div>
+            <div><b>Companies:</b> ${escapeHtml(w.companies || '—')}</div>
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Equipment Preparation</div>
+          <div class="wpp-box-body wpp-checks">
+            <span>${chk(ep.draining)} Draining</span>
+            <span>${chk(ep.rinse)} Rinse</span>
+            <span>Number of Cycle(s): ${ep.numberOfCycles ?? '____'}</span>
+            <span>${chk(ep.inerting)} Inerting</span>
+            <span>${chk(ep.ventilation)} Ventilation</span>
+            <span>Duration (h): ${ep.durationHours ?? '____'}</span>
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">LOTOTO Procedure — Safety</div>
+          <div class="wpp-box-body wpp-checks">
+            ${chkListHtml(['Electrical', 'Pneumatic', 'Hydraulic', 'Water', 'Mechanical', 'Aeraulic', 'Steam', 'Process'], lo.types)}
+            <span>${chk(lo.upline)} Other Equip. Upline</span>
+            <span>${chk(lo.downline)} Other Equip. Downline</span>
+            <span>${chk(lo.draughtAt10)} Draught at 10%</span>
+            <span>${chk(lo.withPowerRecovery)} With power recovery</span>
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Workers</div>
+          <div class="wpp-box-body">
+            <table class="wpp-table">
+              <tr><th>Name</th><th>Company</th><th>Mobile</th><th>Start Date</th><th>From</th><th>WO Duration</th><th>End Date</th></tr>
+              ${workersRows}
+            </table>
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Specific Risks — PPE</div>
+          <div class="wpp-box-body">${escapeHtml(w.specificRisks || '—')}</div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Environment Impacts</div>
+          <div class="wpp-box-body wpp-checks">
+            ${chkListHtml(['Air', 'Water Disposal', 'Water Consumption', 'Energy Consumption', 'Waste Production', 'Natural Resources Usage'], w.envImpacts)}
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Measure(s) for Specific Prevention</div>
+          <div class="wpp-box-body">${escapeHtml(w.preventionMeasures || '—')}</div>
+        </div>
+
+        <div class="wpp-remarks">
+          <u>BEFORE STARTING WORKS</u><br>
+          - Have your PPE<br>
+          - Material in working order<br>
+          - Have your authorizations in order<br>
+          - See the PROJECT MANAGER, receive the recommendations and the work order (WO)<br>
+          - Go to the CCR Control Room, report the worksite<br>
+          - Follow LOTOTO procedure<br>
+          - Receive the authorization to carry out the work from the Shift Supervisor<br><br>
+          <u>WORK COMPLETED or END OF THE DAY</u><br>
+          - Contact the Shift Supervisor<br>
+          - Check in and validate the end of work<br>
+          At the Control Room CCR, with the Work Order (WO):<br>
+          - Report your departure and/or the end of worksite<br>
+          - Unlock the installation
+        </div>
+
+        <div class="wpp-footer-bar">CCR Control Room: — &nbsp;&nbsp;&nbsp; CLINIQUE:</div>
+      </div>
+    </div>
+  `;
+
+  const page2 = `
+    <div class="wo-print-page">
+      <div class="wpp-outer-border">
+        <div class="wpp-bar"><span>Work Order N° ${escapeHtml(w.woNumber)}</span></div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Specific Equipment Required</div>
+          <div class="wpp-box-body wpp-checks">${chkListHtml(SPECIFIC_EQUIPMENT, w.specificEquipment)}</div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Detailed Description of the Activity</div>
+          <div class="wpp-box-body">
+            ${escapeHtml(w.detailedActivity || '—')}<br><br>
+            Start/End Date: ${formatWoDate(w.scheduledDate)} &nbsp;&nbsp; Estimated duration (H): ${w.estimatedDuration ?? '—'}
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Feedback</div>
+          <div class="wpp-box-body">
+            - Real Duration of the WO (H): ${w.realDurationWO ?? '—'}<br>
+            - Real Duration of Activities (H): ${w.realDurationActivities ?? '—'}<br>
+            - Comments from the Technician: ${escapeHtml(w.comments || '—')}
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">Permit Validation</div>
+          <div class="wpp-box-body">
+            <table class="wpp-table">
+              <tr><th></th><th>Name</th><th>Date</th></tr>
+              <tr><td>In Charge of Work</td><td>${escapeHtml(pv.inChargeOfWork || '—')}</td><td>${formatTimestamp(w.completedAt)}</td></tr>
+              <tr><td>Delivered To</td><td>${escapeHtml(pv.deliveredTo || '—')}</td><td>${formatTimestamp(w.completedAt)}</td></tr>
+              <tr><td>Shift Supervisor</td><td>${escapeHtml(pv.shiftSupervisor || '—')}</td><td>${formatTimestamp(w.completedAt)}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="wpp-box">
+          <div class="wpp-box-title">End of Work</div>
+          <div class="wpp-box-body wpp-checks">
+            <span>To be received by Work Responsible: ${escapeHtml(eow.received || '—')}</span>
+            <span>Unlockout Procedure: ${escapeHtml(eow.unlockout || '—')}</span>
+            <span>Tidiness and Cleanliness: ${escapeHtml(eow.tidiness || '—')}</span>
+            <span>Contractor: ${escapeHtml(eow.contractor || '—')}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const lmraRows = CHECKLIST_ITEMS.map((item, i) => {
+    const m = ansMark(item.id);
+    return `<tr><td>${i + 1}) ${escapeHtml(item.text)}</td><td style="text-align:center">${m.ok}</td><td style="text-align:center">${m.nok}</td><td style="text-align:center">${m.na}</td></tr>`;
+  }).join('');
+
+  const page3 = `
+    <div class="wo-print-page">
+      <div class="wpp-outer-border">
+        <div class="wpp-head">
+          <img src="assets/logo.png" alt="GHACEM">
+          <div class="wpp-head-text">HEIDELBERGCEMENT Group<br>...The Nation Builder</div>
+        </div>
+        <div class="wpp-bar" style="justify-content:center">Last Minute Risk Analysis</div>
+        <div class="wpp-box">
+          <div class="wpp-box-title">Work Description: ${escapeHtml(w.description)}</div>
+          <div class="wpp-box-body">
+            <table class="wpp-table">
+              <tr><th>Question</th><th>OK</th><th>NOK</th><th>NA</th></tr>
+              ${lmraRows}
+            </table>
+          </div>
+        </div>
+        <div class="wpp-box">
+          <div class="wpp-box-title">Signatures</div>
+          <div class="wpp-box-body">
+            Date, name and signature of all Workers: ${escapeHtml((w.assignedTo || []).join(', ')) || '—'}
+          </div>
+        </div>
+        <p style="font-size:9px">NA - Non Applicable &nbsp;&nbsp;&nbsp; Work Order N° ${escapeHtml(w.woNumber)} &nbsp;&nbsp;&nbsp; In Charge of Work: ${escapeHtml(pv.inChargeOfWork || '—')} &nbsp;&nbsp;&nbsp; Printed on: ${new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+  `;
+
+  return page1 + page2 + page3;
+}
+
+function openPrintView(id) {
+  const w = allWorkOrders.find((x) => x.id === id);
+  if (!w) return;
+  document.getElementById('printRoot').innerHTML = buildPrintHtml(w);
+  document.getElementById('printToolbar').style.display = 'flex';
+  window.scrollTo(0, 0);
+}
+document.getElementById('woPrintBtn').addEventListener('click', () => {
+  if (activeWoId) openPrintView(activeWoId);
+});
+document.getElementById('printCloseBtn').addEventListener('click', () => {
+  document.getElementById('printToolbar').style.display = 'none';
+  document.getElementById('printRoot').innerHTML = '';
 });
 </script>
 </body>
