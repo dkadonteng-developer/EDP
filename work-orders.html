@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>InfoPort — Work Orders</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<meta name="theme-color" content="#006937">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="IP Work Orders">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="tab-pill-slider.js" defer></script>
+
+<style>
+  #pageLoadingOverlay{
+    position:fixed;inset:0;z-index:99999;background:#006937;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    transition:opacity .3s ease;
+  }
+  #pageLoadingOverlay.is-hidden{opacity:0;pointer-events:none}
+  #pageLoadingOverlay img{width:64px;height:64px;border-radius:50%;background:#dacb04;object-fit:cover}
+  #pageLoadingOverlay .plo-spinner{
+    width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
+    animation:ploSpin .7s linear infinite;
+  }
+  @keyframes ploSpin{to{transform:rotate(360deg)}}
+  #pageLoadingOverlay .plo-label{color:#fff;font-family:'Poppins',Arial,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.3px}
+
+  :root{
+    --brand:#006937;
+    --brand-light:#00a651;
+    --brand-dark:#004d28;
+    --bg:#f3f4f6;
+    --surface:#ffffff;
+    --border:#dde1e6;
+    --border-strong:#c7cdd4;
+    --text:#1a1d21;
+    --text-secondary:#5b6470;
+    --text-muted:#8a929c;
+    --danger:#b3261e;
+    --danger-bg:#fbeaea;
+    --warning:#8a5a00;
+    --warning-bg:#fbf1de;
+    --info:#0b5fae;
+    --info-bg:#e8f1fb;
+    --success:#0f6e42;
+    --success-bg:#e6f2ec;
+    --radius-sm:4px;
+    --radius-md:6px;
+    --radius-lg:8px;
+  }
+  *{box-sizing:border-box}
+  html{overflow-x:hidden}
+  body{font-family:'Poppins',Arial,sans-serif;background:var(--bg);margin:0;color:var(--text);overflow-x:hidden;font-size:14px}
+  a{color:inherit}
+  .mono{font-family:'Courier New',monospace}
+
+  .app-shell-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+  .shell-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px}
+  .shell-row-top{height:56px;border-bottom:1px solid var(--border)}
+  .shell-brand{display:flex;align-items:center;gap:10px}
+  .shell-org{font-size:.78rem;font-weight:700;letter-spacing:.4px;color:var(--text-muted);text-transform:uppercase}
+  .shell-module{font-size:1rem;font-weight:700;color:var(--text);display:flex;align-items:center}
+  .shell-module i{color:var(--brand);margin-right:6px}
+  .header-back{display:flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:.85rem;font-weight:600}
+  .header-back:hover{color:var(--brand)}
+
+  .shell-actions{display:flex;align-items:center;gap:8px}
+  .shell-user{display:none;align-items:center;gap:10px}
+  .shell-user.show{display:flex}
+  .shell-user-avatar{
+    width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-size:.78rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .shell-user-info{display:flex;flex-direction:column;line-height:1.25}
+  .shell-user-email{font-size:.8rem;font-weight:600;color:var(--text);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .shell-user-role{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px}
+  #adminSignInBtn, #headerSignOutBtn{
+    background:none;border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;
+    border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  #adminSignInBtn:hover{background:#f5f6f8}
+  #headerSignOutBtn{display:none;width:32px;height:32px;padding:0;align-items:center;justify-content:center}
+  #headerSignOutBtn.show{display:inline-flex}
+  #headerSignOutBtn:hover{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bg)}
+
+  .shell-row-crumb{height:auto;padding:14px 20px 0;flex-direction:column;align-items:flex-start;gap:2px}
+  .shell-title{font-size:1.4rem;font-weight:700;margin:0}
+  .shell-subtitle{color:var(--text-secondary);font-size:.85rem;margin:0 0 14px}
+
+  @media(max-width:640px){
+    .shell-row{padding:0 12px}
+    .shell-row-crumb{padding:12px 12px 0}
+    .shell-user-email{display:none}
+  }
+
+  .container{max-width:1100px;margin:auto;padding:20px 20px 100px}
+
+  .btn-primary{
+    background:var(--brand);color:#fff;border:1px solid var(--brand);padding:9px 16px;border-radius:var(--radius-sm);
+    font-family:inherit;font-size:.83rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;
+    justify-content:center;gap:7px;transition:background .12s;white-space:nowrap;
+  }
+  .btn-primary:hover{background:var(--brand-dark)}
+  .btn-primary:disabled{background:#ccc;border-color:#ccc;cursor:not-allowed}
+  .btn-secondary{
+    background:var(--surface);color:var(--text-secondary);border:1px solid var(--border);padding:8px 14px;border-radius:var(--radius-sm);
+    font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    transition:background .12s,border-color .12s;white-space:nowrap;
+  }
+  .btn-secondary:hover{background:#f5f6f8;border-color:var(--border-strong)}
+  .btn-icon{
+    background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);width:30px;height:30px;
+    border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;
+  }
+  .btn-icon:hover{background:#f5f6f8;color:var(--text)}
+  .btn-icon.danger:hover{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bg)}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px}
+  .card h2{font-size:1rem;margin:0 0 4px;font-weight:700}
+  .card .card-sub{color:var(--text-secondary);font-size:.82rem;margin:0 0 14px}
+
+  select, input[type="text"], input[type="number"], input[type="date"], textarea{
+    font-family:inherit;font-size:15px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    outline:none;background:var(--surface);color:var(--text);width:100%;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--brand)}
+  label.field-label{font-size:.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px}
+  .field-group{margin-bottom:14px}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:600px){.field-row{grid-template-columns:1fr}}
+
+  .name-picker{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+  .name-picker .field-group{flex:1;min-width:200px;margin-bottom:0}
+
+  .empty-state{color:var(--text-muted);font-size:.86rem;padding:24px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .loading-text{color:var(--text-muted);font-size:.84rem;padding:18px;text-align:center}
+
+  .wo-list{display:flex;flex-direction:column;gap:10px}
+  .wo-row{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;cursor:pointer;
+  }
+  .wo-row:hover{border-color:var(--border-strong)}
+  .wo-row-main{min-width:0}
+  .wo-number{font-size:.72rem;color:var(--text-muted);font-weight:700;letter-spacing:.3px}
+  .wo-desc{font-weight:600;color:var(--text);font-size:.92rem;margin:2px 0}
+  .wo-meta{font-size:.78rem;color:var(--text-secondary)}
+  .wo-status-badge{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:600;white-space:nowrap;flex:0 0 auto}
+  .wo-status-badge::before{content:"";width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  .wo-status-badge.status-assigned{color:var(--warning)}
+  .wo-status-badge.status-assigned::before{background:var(--warning)}
+  .wo-status-badge.status-completed{color:var(--success)}
+  .wo-status-badge.status-completed::before{background:var(--success)}
+
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow-x:auto}
+  table.data-table{width:100%;border-collapse:collapse;min-width:680px;font-size:.83rem}
+  table.data-table thead th{
+    text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.3px;color:var(--text-muted);font-weight:700;
+    padding:10px 14px;border-bottom:1px solid var(--border);background:#fafbfc;white-space:nowrap;
+  }
+  table.data-table tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+  table.data-table tbody tr:last-child{border-bottom:none}
+  table.data-table tbody tr:hover{background:#fafbfc}
+  table.data-table td{padding:10px 14px;vertical-align:middle}
+  @media(max-width:760px){
+    table.data-table{min-width:0}
+    table.data-table thead{display:none}
+    table.data-table, table.data-table tbody, table.data-table tr, table.data-table td{display:block;width:100%}
+    table.data-table tr{border-bottom:1px solid var(--border);padding:12px 14px}
+    table.data-table td{padding:3px 0;border:none}
+  }
+
+  .tech-chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .tech-chip{
+    background:#f5f6f8;border:1px solid var(--border);border-radius:20px;padding:6px 10px 6px 14px;
+    font-size:.82rem;display:inline-flex;align-items:center;gap:8px;
+  }
+  .tech-chip button{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px}
+  .tech-chip button:hover{color:var(--danger)}
+  .tech-add-row{display:flex;gap:8px}
+  .tech-add-row input{flex:1}
+
+  .equip-check-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px}
+  .equip-check-list label{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:400;cursor:pointer}
+
+  .checklist-item{border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px}
+  .checklist-q{font-size:.88rem;font-weight:600;margin-bottom:8px}
+  .checklist-answers{display:flex;gap:8px}
+  .cl-btn{
+    flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);padding:8px 4px;
+    border-radius:var(--radius-sm);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;
+  }
+  .cl-btn.is-selected-ok{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+  .cl-btn.is-selected-nok{background:var(--danger-bg);border-color:var(--danger);color:var(--danger)}
+  .cl-btn.is-selected-na{background:#f0f1f3;border-color:var(--border-strong);color:var(--text-secondary)}
+  .checklist-progress{font-size:.8rem;color:var(--text-secondary);margin-bottom:14px}
+  .nok-warning{
+    background:var(--danger-bg);color:var(--danger);border-radius:var(--radius-md);padding:12px 14px;
+    font-size:.84rem;margin:12px 0;display:flex;gap:10px;align-items:flex-start;
+  }
+
+  .detail-overlay{display:none;position:fixed;inset:0;background:rgba(20,22,24,.4);z-index:200;align-items:center;justify-content:center;padding:16px}
+  .detail-overlay.show{display:flex}
+  .detail-panel{background:var(--surface);border-radius:var(--radius-lg);max-width:600px;width:100%;max-height:92vh;overflow-y:auto;border:1px solid var(--border)}
+  .detail-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+  .detail-head h3{margin:0;font-size:.95rem;font-weight:700}
+  .detail-body{padding:18px}
+  .detail-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:.83rem}
+  .detail-row:last-of-type{border-bottom:none}
+  .detail-row .k{color:var(--text-muted)}
+  .detail-row .v{color:var(--text);font-weight:600;text-align:right}
+  .detail-section-label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;margin:16px 0 6px}
+  .detail-section-label:first-child{margin-top:0}
+  .form-error{color:var(--danger);font-size:.82rem;margin-top:8px;min-height:1em}
+
+  .admin-gate{display:none}
+  .admin-gate.show{display:block}
+  .tech-gate{display:none}
+  .tech-gate.show{display:block}
+
+  #adminSignInOverlay{position:fixed;inset:0;background:rgba(20,22,24,.45);z-index:3000;display:none;align-items:center;justify-content:center;padding:16px}
+  #adminSignInOverlay.is-open{display:flex}
+  .admin-modal{background:var(--surface);border-radius:var(--radius-lg);max-width:360px;width:100%;display:flex;flex-direction:column;border:1px solid var(--border);overflow:hidden}
+  .admin-modal-head{background:var(--brand);color:#fff;padding:16px 18px;position:relative}
+  .admin-modal-head h3{margin:0 0 3px;font-size:1rem}
+  .admin-modal-head p{margin:0;font-size:.8rem;opacity:.92}
+  .admin-modal-close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.2);border:none;color:#fff;width:26px;height:26px;border-radius:var(--radius-sm);cursor:pointer}
+  .admin-modal-close:hover{background:rgba(255,255,255,.35)}
+  .admin-modal-body{padding:18px}
+  .admin-modal-body form{display:flex;flex-direction:column;gap:12px}
+  .admin-signin-error{color:var(--danger);font-size:.8rem;min-height:1em}
+
+  .page-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:0 0 18px}
+  .page-tab-btn{
+    background:none;border:none;color:var(--text-secondary);padding:10px 16px;font-family:inherit;font-size:.83rem;
+    font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;position:relative;z-index:1;
+    transition:color .15s ease;border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  }
+  .page-tab-btn.active{color:#fff}
+  .page-tab-panel{display:none}
+  .page-tab-panel.active{display:block}
+  .tab-pill-slider{
+    position:absolute;top:0;left:0;z-index:0;pointer-events:none;opacity:0;
+    transition:transform .2s cubic-bezier(.4,0,.2,1),width .2s cubic-bezier(.4,0,.2,1),height .2s cubic-bezier(.4,0,.2,1),opacity .15s ease;
+  }
+  .tab-pill-slider.is-dragging{transition:none}
+  .tab-pill-slider.pill-fill{border-radius:var(--radius-sm) var(--radius-sm) 0 0;background:var(--brand)}
+</style>
+</head>
+<body>
+
+<div id="pageLoadingOverlay">
+  <img src="assets/logo.png" alt="">
+  <div class="plo-spinner"></div>
+  <span class="plo-label">Loading…</span>
+</div>
+
+<header class="app-shell-header">
+  <div class="shell-row shell-row-top">
+    <div class="shell-brand">
+      <a href="index.html" class="header-back"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+    </div>
+    <div class="shell-actions">
+      <button type="button" id="adminSignInBtn"><i class="fa-solid fa-user-shield"></i> Admin</button>
+      <div class="shell-user" id="shellUser">
+        <div class="shell-user-avatar" id="shellUserAvatar"></div>
+        <div class="shell-user-info">
+          <span class="shell-user-email" id="headerSignedInAs"></span>
+          <span class="shell-user-role">Admin</span>
+        </div>
+        <button type="button" id="headerSignOutBtn" title="Sign out"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </div>
+  </div>
+  <div class="shell-row shell-row-crumb">
+    <h1 class="shell-title"><i class="fa-solid fa-list-check"></i> Work Orders</h1>
+    <p class="shell-subtitle">Assigned jobs, LMRA safety checklist &amp; sign-off</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="page-tabs">
+    <button type="button" class="page-tab-btn active" data-tab="techTab"><i class="fa-solid fa-user-helmet-safety"></i> My Work Orders</button>
+    <button type="button" class="page-tab-btn" data-tab="adminTab" id="adminTabBtn" style="display:none"><i class="fa-solid fa-gear"></i> Manage <span class="tab-count" id="assignedCount" style="background:var(--danger);color:#fff;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:var(--radius-sm);min-width:15px;text-align:center"></span></button>
+  </div>
+
+  <!-- ================= TECHNICIAN VIEW ================= -->
+  <div id="techTab" class="page-tab-panel active">
+    <div class="card">
+      <h2>Who are you?</h2>
+      <p class="card-sub">Pick your name to see the work orders assigned to you.</p>
+      <div class="name-picker">
+        <div class="field-group">
+          <select id="techPicker">
+            <option value="">Select your name…</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="techWoSection" style="display:none">
+      <h2 style="font-size:.95rem;margin:20px 0 10px">Assigned to me</h2>
+      <div class="wo-list" id="myAssignedList"><p class="loading-text">Loading…</p></div>
+
+      <h2 style="font-size:.95rem;margin:24px 0 10px">Recently completed by me</h2>
+      <div class="wo-list" id="myCompletedList"><p class="empty-state">Nothing completed yet.</p></div>
+    </div>
+  </div>
+
+  <!-- ================= ADMIN VIEW ================= -->
+  <div id="adminTab" class="page-tab-panel">
+
+    <div class="card">
+      <h2>Technicians</h2>
+      <p class="card-sub">Names available in the "Assign to" picklist below and on the technician side.</p>
+      <div class="tech-chip-list" id="techChipList"></div>
+      <div class="tech-add-row">
+        <input type="text" id="newTechName" placeholder="Full name…" maxlength="80">
+        <button type="button" class="btn-primary" id="addTechBtn"><i class="fa-solid fa-plus"></i> Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Create Work Order</h2>
+      <p class="card-sub">Matches the paper Work Order — number, equipment, description, and who it's assigned to.</p>
+      <form id="woForm">
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="woNumberInput">Work Order N° *</label>
+            <input type="text" id="woNumberInput" required maxlength="40" placeholder="e.g. 826038278">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="woCostCentreInput">Cost Centre</label>
+            <input type="text" id="woCostCentreInput" maxlength="80" placeholder="e.g. 84105000-MILLING">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="woEquipmentSelect">Equipment</label>
+            <select id="woEquipmentSelect">
+              <option value="">Select equipment (optional)…</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="woEquipmentTagInput">Equipment Tag (SAP code)</label>
+            <input type="text" id="woEquipmentTagInput" maxlength="60" placeholder="e.g. 10CM05SP01FN01">
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="woDescriptionInput">Work Order Description *</label>
+          <input type="text" id="woDescriptionInput" required maxlength="200" placeholder="e.g. Clean Mill 5 Separator Process Fan">
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="woScheduledDateInput">Scheduled Date</label>
+            <input type="date" id="woScheduledDateInput">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="woEstDurationInput">Estimated Duration (H)</label>
+            <input type="number" id="woEstDurationInput" min="0" step="0.5" placeholder="e.g. 2">
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Assign To *</label>
+          <div class="equip-check-list" id="woAssigneeChecks"></div>
+        </div>
+        <span id="woFormError" class="form-error"></span>
+        <button type="submit" class="btn-primary" id="woSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Create Work Order</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>All Work Orders</h2>
+      <p class="card-sub">Every work order regardless of status or assignee.</p>
+      <div id="allWoTableWrap"><p class="loading-text">Loading…</p></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ================= Work Order fill-in / detail drawer ================= -->
+<div class="detail-overlay" id="woDetailOverlay">
+  <div class="detail-panel">
+    <div class="detail-head">
+      <h3 id="woDetailTitle">Work Order</h3>
+      <button type="button" class="btn-icon" id="woDetailCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="detail-body" id="woDetailBody"></div>
+  </div>
+</div>
+
+<div id="adminSignInOverlay">
+  <div class="admin-modal">
+    <div class="admin-modal-head">
+      <h3>Admin Sign In</h3>
+      <p>Sign in to create and manage work orders.</p>
+      <button type="button" class="admin-modal-close" id="adminModalCloseX"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="adminSignInForm">
+        <div class="field-group">
+          <label class="field-label" for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" required autocomplete="username">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required autocomplete="current-password">
+        </div>
+        <div class="admin-signin-error" id="adminSignInError"></div>
+        <button type="submit" class="btn-primary" id="adminSignInSubmitBtn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Firebase (shared with the rest of InfoPort) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyBS3ZZWSUoquqAiPTU0PaUGGh0d8Iwd27U",
+  authDomain: "edp-equipment.firebaseapp.com",
+  projectId: "edp-equipment",
+  storageBucket: "edp-equipment.firebasestorage.app",
+  messagingSenderId: "556924119553",
+  appId: "1:556924119553:web:55b229fc6c6089b708ee00",
+  measurementId: "G-YGXNH7T0T0"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+  console.error('Failed to set auth persistence', err);
+});
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+document.getElementById('pageLoadingOverlay').classList.add('is-hidden');
+
+// Anonymous sign-in, invisible to the user — gives technician actions
+// (marking a work order complete) request.auth != null in Firestore
+// rules, without requiring any login screen. Same pattern equipment.html
+// uses for maintenance log entries. isAnonymous stays false for real
+// admin accounts, so this doesn't interfere with the admin check below.
+auth.signInAnonymously().catch((err) => {
+  console.error('Anonymous sign-in failed', err);
+});
+
+// ---------- Page tabs ----------
+let pageTabsPill = null;
+function activateTab(tabId) {
+  document.querySelectorAll('.page-tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.page-tab-panel').forEach((p) => p.classList.toggle('active', p.id === tabId));
+  if (pageTabsPill) pageTabsPill.refresh(true);
+}
+document.querySelectorAll('.page-tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+window.addEventListener('load', () => {
+  if (typeof initTabPillSlider === 'function') {
+    pageTabsPill = initTabPillSlider(document.querySelector('.page-tabs'), { activeClass: 'active', pillClass: 'pill-fill' });
+  }
+});
+
+// ---------- Admin authentication ----------
+// Same admins/{uid} accounts as the rest of InfoPort. Unlike the fully
+// gated admin pages, this page is USABLE WITHOUT SIGNING IN — that's the
+// whole point: any technician on a shared device can pick their name and
+// fill in an assigned work order with no login at all. Signing in only
+// reveals the "Manage" tab (create work orders, manage the technician
+// picklist, see everything).
+let isAdmin = false;
+
+async function checkAdminStatus(uid) {
+  try {
+    const doc = await db.collection('admins').doc(uid).get();
+    return doc.exists;
+  } catch (err) {
+    console.error('Admin membership check failed', err);
+    return false;
+  }
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (user && !user.isAnonymous) {
+    isAdmin = await checkAdminStatus(user.uid);
+  } else {
+    isAdmin = false;
+  }
+  renderAdminState(user);
+});
+
+function renderAdminState(user) {
+  const adminTabBtn = document.getElementById('adminTabBtn');
+  const signInBtn = document.getElementById('adminSignInBtn');
+  const signOutBtn = document.getElementById('headerSignOutBtn');
+  const shellUser = document.getElementById('shellUser');
+
+  if (isAdmin) {
+    adminTabBtn.style.display = 'flex';
+    signInBtn.style.display = 'none';
+    signOutBtn.classList.add('show');
+    shellUser.classList.add('show');
+    document.getElementById('headerSignedInAs').textContent = user.email;
+    document.getElementById('shellUserAvatar').textContent = (user.email || '?').charAt(0).toUpperCase();
+  } else {
+    adminTabBtn.style.display = 'none';
+    signInBtn.style.display = 'inline-flex';
+    signOutBtn.classList.remove('show');
+    shellUser.classList.remove('show');
+    if (document.getElementById('adminTab').classList.contains('active')) activateTab('techTab');
+  }
+}
+
+document.getElementById('adminSignInBtn').addEventListener('click', () => {
+  document.getElementById('adminSignInOverlay').classList.add('is-open');
+});
+document.getElementById('adminModalCloseX').addEventListener('click', () => {
+  document.getElementById('adminSignInOverlay').classList.remove('is-open');
+});
+document.getElementById('adminSignInForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('adminSignInError');
+  const submitBtn = document.getElementById('adminSignInSubmitBtn');
+  errorEl.textContent = '';
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    document.getElementById('adminSignInOverlay').classList.remove('is-open');
+    document.getElementById('adminSignInForm').reset();
+  } catch (err) {
+    console.error('Sign-in failed', err);
+    const code = err && err.code;
+    errorEl.textContent = (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found')
+      ? 'Incorrect email or password.'
+      : `Sign-in failed (${code || 'unknown error'}). Please try again.`;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+  }
+});
+document.getElementById('headerSignOutBtn').addEventListener('click', () => {
+  if (confirm('Sign out of admin mode?')) auth.signOut();
+});
+
+// ---------- Technicians (admin-maintained picklist) ----------
+// Firestore collection: technicians/{autoId} — { name, active, createdAt }
+// Public read (so any technician can see the picklist without signing
+// in), admin-only write (add/remove) — same isAdmin() pattern as every
+// other admin-managed list in the app.
+let allTechnicians = [];
+
+db.collection('technicians').orderBy('name').onSnapshot((snap) => {
+  allTechnicians = [];
+  snap.forEach((doc) => allTechnicians.push({ id: doc.id, ...doc.data() }));
+  renderTechnicianPicker();
+  renderTechnicianChips();
+  renderAssigneeChecks();
+}, (err) => console.error('Failed to load technicians', err));
+
+function renderTechnicianPicker() {
+  const sel = document.getElementById('techPicker');
+  const current = sel.value || localStorage.getItem('woTechnicianName') || '';
+  sel.innerHTML = '<option value="">Select your name…</option>' +
+    allTechnicians.filter((t) => t.active !== false)
+      .map((t) => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('');
+  if (current && allTechnicians.some((t) => t.name === current)) {
+    sel.value = current;
+    if (!sel.dataset.loaded) { sel.dataset.loaded = '1'; onTechnicianPicked(); }
+  }
+}
+
+function renderTechnicianChips() {
+  const wrap = document.getElementById('techChipList');
+  if (!allTechnicians.length) {
+    wrap.innerHTML = '<span style="color:var(--text-muted);font-size:.85rem">No technicians added yet.</span>';
+    return;
+  }
+  wrap.innerHTML = allTechnicians.map((t) => `
+    <span class="tech-chip">${escapeHtml(t.name)} <button type="button" data-id="${t.id}" title="Remove"><i class="fa-solid fa-xmark"></i></button></span>
+  `).join('');
+  wrap.querySelectorAll('button[data-id]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Remove this technician from the picklist? Existing work orders already assigned to them are unaffected.')) return;
+      db.collection('technicians').doc(btn.dataset.id).delete()
+        .catch((err) => { console.error('Failed to remove technician', err); alert('Could not remove this technician. Please try again.'); });
+    });
+  });
+}
+
+function renderAssigneeChecks() {
+  const wrap = document.getElementById('woAssigneeChecks');
+  if (!allTechnicians.length) {
+    wrap.innerHTML = '<span style="color:var(--text-muted);font-size:.85rem">Add technicians above first.</span>';
+    return;
+  }
+  wrap.innerHTML = allTechnicians.filter((t) => t.active !== false).map((t) => `
+    <label><input type="checkbox" value="${escapeHtml(t.name)}"> ${escapeHtml(t.name)}</label>
+  `).join('');
+}
+
+document.getElementById('addTechBtn').addEventListener('click', async () => {
+  const input = document.getElementById('newTechName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (allTechnicians.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+    alert('That name is already on the list.');
+    return;
+  }
+  try {
+    await db.collection('technicians').add({ name, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    input.value = '';
+  } catch (err) {
+    console.error('Failed to add technician', err);
+    alert('Could not add this technician. Please try again.');
+  }
+});
+
+document.getElementById('techPicker').addEventListener('change', onTechnicianPicked);
+function onTechnicianPicked() {
+  const name = document.getElementById('techPicker').value;
+  document.getElementById('techWoSection').style.display = name ? 'block' : 'none';
+  if (name) {
+    localStorage.setItem('woTechnicianName', name);
+    renderMyWorkOrders();
+  } else {
+    localStorage.removeItem('woTechnicianName');
+  }
+}
+
+// ---------- Equipment (for the admin's Create Work Order form) ----------
+let EQUIPMENT_LIST = [];
+db.collection('equipment').get().then((snap) => {
+  EQUIPMENT_LIST = snap.docs.map((doc) => ({ id: doc.id, name: doc.data().name || doc.id }));
+  const sel = document.getElementById('woEquipmentSelect');
+  sel.innerHTML = '<option value="">Select equipment (optional)…</option>' +
+    EQUIPMENT_LIST.map((e) => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+}).catch((err) => console.error('Failed to load equipment list', err));
+
+// ---------- LMRA-style checklist definition ----------
+// Same 6 general + 2 emergency questions as the paper Last Minute Risk
+// Analysis sheet (the sub-bullets under "Last analysis of the working
+// environment" are broken out individually, same as the paper does),
+// answered OK / NOK / NA per item, matching the paper's own labels.
+const CHECKLIST_ITEMS = [
+  { id: 'q1', text: 'Everyone knows what to do? Received the safety instructions?' },
+  { id: 'q2', text: 'Right tools/equipment on hand — compliant and in good condition?' },
+  { id: 'q3', text: 'Moving and/or electrical equipment locked out / tagged out?' },
+  { id: 'q4', text: 'Fall protection devices in place and sufficient?' },
+  { id: 'q5', text: 'Protections against high temperatures taken?' },
+  { id: 'q6', text: 'Protections to avoid contact with electric current taken?' },
+  { id: 'q7', text: 'Protections to avoid contact with dangerous products taken?' },
+  { id: 'q8', text: 'All necessary PPE available?' },
+  { id: 'q9', text: 'Work area clean and unobstructed?' },
+  { id: 'q10', text: 'Steps taken to avoid an accident in the vicinity of the work area?' },
+  { id: 'q11', text: 'Emergency exit cleared and accessible?' },
+  { id: 'q12', text: 'Meeting point known?' },
+];
+
+// ---------- Work Order creation (admin) ----------
+document.getElementById('woForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const errorEl = document.getElementById('woFormError');
+  errorEl.textContent = '';
+
+  const woNumber = document.getElementById('woNumberInput').value.trim();
+  const description = document.getElementById('woDescriptionInput').value.trim();
+  const assignees = Array.from(document.querySelectorAll('#woAssigneeChecks input:checked')).map((cb) => cb.value);
+
+  if (!woNumber || !description) {
+    errorEl.textContent = 'Work Order N° and Description are required.';
+    return;
+  }
+  if (!assignees.length) {
+    errorEl.textContent = 'Assign this work order to at least one technician.';
+    return;
+  }
+
+  const equipSelect = document.getElementById('woEquipmentSelect');
+  const equipmentId = equipSelect.value || null;
+  const equipmentName = equipmentId ? (EQUIPMENT_LIST.find((e) => e.id === equipmentId) || {}).name || '' : '';
+
+  const submitBtn = document.getElementById('woSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating…';
+
+  try {
+    await db.collection('workOrders').add({
+      woNumber,
+      costCentre: document.getElementById('woCostCentreInput').value.trim(),
+      equipmentId,
+      equipmentName,
+      equipmentTag: document.getElementById('woEquipmentTagInput').value.trim(),
+      description,
+      scheduledDate: document.getElementById('woScheduledDateInput').value || null,
+      estimatedDuration: document.getElementById('woEstDurationInput').value
+        ? Number(document.getElementById('woEstDurationInput').value) : null,
+      assignedTo: assignees,
+      status: 'assigned',
+      createdBy: auth.currentUser ? auth.currentUser.email : 'unknown',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    document.getElementById('woForm').reset();
+    document.querySelectorAll('#woAssigneeChecks input').forEach((cb) => { cb.checked = false; });
+  } catch (err) {
+    console.error('Failed to create work order', err);
+    errorEl.textContent = 'Could not create this work order. Please try again.';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Create Work Order';
+  }
+});
+
+// ---------- Live Work Orders listener ----------
+let allWorkOrders = [];
+
+db.collection('workOrders').orderBy('createdAt', 'desc').onSnapshot((snap) => {
+  allWorkOrders = [];
+  snap.forEach((doc) => allWorkOrders.push({ id: doc.id, ...doc.data() }));
+  renderAllWorkOrdersTable();
+  renderMyWorkOrders();
+}, (err) => {
+  console.error('Failed to load work orders', err);
+  document.getElementById('allWoTableWrap').innerHTML =
+    '<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Could not load work orders right now.</p></div>';
+});
+
+function formatWoDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (isNaN(d)) return dateStr;
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function formatTimestamp(ts) {
+  if (!ts || typeof ts.toDate !== 'function') return '—';
+  return ts.toDate().toLocaleString();
+}
+
+// ---------- Admin: All Work Orders table ----------
+function renderAllWorkOrdersTable() {
+  const wrap = document.getElementById('allWoTableWrap');
+  const assignedCount = allWorkOrders.filter((w) => w.status !== 'completed').length;
+  document.getElementById('assignedCount').textContent = assignedCount || '';
+
+  if (!allWorkOrders.length) {
+    wrap.innerHTML = '<div class="empty-state"><i class="fa-solid fa-clipboard"></i><p>No work orders yet — create one above.</p></div>';
+    return;
+  }
+  const rows = allWorkOrders.map((w) => `
+    <tr data-id="${w.id}">
+      <td><span class="mono">${escapeHtml(w.woNumber)}</span></td>
+      <td>
+        <div style="font-weight:600">${escapeHtml(w.description)}</div>
+        <div style="font-size:.76rem;color:var(--text-muted)">${escapeHtml(w.equipmentName || w.equipmentTag || '—')}</div>
+      </td>
+      <td>${(w.assignedTo || []).map(escapeHtml).join(', ') || '—'}</td>
+      <td>${formatWoDate(w.scheduledDate)}</td>
+      <td><span class="wo-status-badge status-${w.status === 'completed' ? 'completed' : 'assigned'}">${w.status === 'completed' ? 'Completed' : 'Assigned'}</span></td>
+    </tr>
+  `).join('');
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>WO N°</th><th>Description / Equipment</th><th>Assigned To</th><th>Scheduled</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  wrap.querySelectorAll('tr[data-id]').forEach((tr) => {
+    tr.addEventListener('click', () => openWorkOrderDetail(tr.dataset.id, true));
+  });
+}
+
+// ---------- Technician: My Work Orders ----------
+function renderMyWorkOrders() {
+  const name = document.getElementById('techPicker').value;
+  if (!name) return;
+
+  const mine = allWorkOrders.filter((w) => (w.assignedTo || []).includes(name));
+  const assigned = mine.filter((w) => w.status !== 'completed');
+  const completed = mine.filter((w) => w.status === 'completed').slice(0, 10);
+
+  const assignedWrap = document.getElementById('myAssignedList');
+  assignedWrap.innerHTML = assigned.length
+    ? assigned.map((w) => woRowHtml(w, false)).join('')
+    : '<p class="empty-state">Nothing assigned to you right now.</p>';
+
+  const completedWrap = document.getElementById('myCompletedList');
+  completedWrap.innerHTML = completed.length
+    ? completed.map((w) => woRowHtml(w, true)).join('')
+    : '<p class="empty-state">Nothing completed yet.</p>';
+
+  document.querySelectorAll('#myAssignedList .wo-row, #myCompletedList .wo-row').forEach((row) => {
+    row.addEventListener('click', () => openWorkOrderDetail(row.dataset.id, false));
+  });
+}
+
+function woRowHtml(w, isCompleted) {
+  return `
+    <div class="wo-row" data-id="${w.id}">
+      <div class="wo-row-main">
+        <div class="wo-number">WO ${escapeHtml(w.woNumber)}</div>
+        <div class="wo-desc">${escapeHtml(w.description)}</div>
+        <div class="wo-meta">${escapeHtml(w.equipmentName || w.equipmentTag || 'No equipment set')} ${w.scheduledDate ? '· ' + formatWoDate(w.scheduledDate) : ''}</div>
+      </div>
+      <span class="wo-status-badge status-${isCompleted ? 'completed' : 'assigned'}">${isCompleted ? 'Completed' : 'Assigned'}</span>
+    </div>
+  `;
+}
+
+// ---------- Work Order detail / fill-in drawer ----------
+let clState = {}; // checklist answers while filling in: { q1: 'ok'|'nok'|'na', ... }
+let activeWoId = null;
+
+function openWorkOrderDetail(id, isAdminView) {
+  const w = allWorkOrders.find((x) => x.id === id);
+  if (!w) return;
+  activeWoId = id;
+  document.getElementById('woDetailTitle').textContent = `Work Order ${w.woNumber}`;
+  const body = document.getElementById('woDetailBody');
+
+  const infoHtml = `
+    <div class="detail-row"><span class="k">Work Order N°</span><span class="v mono">${escapeHtml(w.woNumber)}</span></div>
+    ${w.costCentre ? `<div class="detail-row"><span class="k">Cost Centre</span><span class="v">${escapeHtml(w.costCentre)}</span></div>` : ''}
+    <div class="detail-row"><span class="k">Equipment</span><span class="v">${escapeHtml(w.equipmentName || '—')}</span></div>
+    ${w.equipmentTag ? `<div class="detail-row"><span class="k">Equipment Tag</span><span class="v mono">${escapeHtml(w.equipmentTag)}</span></div>` : ''}
+    <div class="detail-row"><span class="k">Description</span><span class="v">${escapeHtml(w.description)}</span></div>
+    <div class="detail-row"><span class="k">Assigned To</span><span class="v">${(w.assignedTo || []).map(escapeHtml).join(', ') || '—'}</span></div>
+    <div class="detail-row"><span class="k">Scheduled</span><span class="v">${formatWoDate(w.scheduledDate)}</span></div>
+    ${w.estimatedDuration != null ? `<div class="detail-row"><span class="k">Estimated Duration</span><span class="v">${w.estimatedDuration} h</span></div>` : ''}
+  `;
+
+  if (w.status === 'completed') {
+    // Read-only summary — same view for admin or technician once it's done.
+    const clRows = CHECKLIST_ITEMS.map((item) => {
+      const ans = (w.checklist || {})[item.id] || 'na';
+      const label = ans === 'ok' ? 'OK' : ans === 'nok' ? 'NOK' : 'N/A';
+      return `<div class="detail-row"><span class="k">${escapeHtml(item.text)}</span><span class="v">${label}</span></div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="detail-section-label">Work Order</div>
+      ${infoHtml}
+      <div class="detail-section-label">LMRA Checklist</div>
+      ${clRows}
+      <div class="detail-section-label">Close-Out</div>
+      <div class="detail-row"><span class="k">Real Duration</span><span class="v">${w.realDuration != null ? w.realDuration + ' h' : '—'}</span></div>
+      <div class="detail-row"><span class="k">Comments</span><span class="v">${escapeHtml(w.comments || '—')}</span></div>
+      <div class="detail-row"><span class="k">Completed By</span><span class="v">${escapeHtml(w.completedBy || '—')}</span></div>
+      <div class="detail-row"><span class="k">Completed At</span><span class="v">${formatTimestamp(w.completedAt)}</span></div>
+      ${isAdminView ? `<button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:16px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>` : ''}
+    `;
+    if (isAdminView) {
+      document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
+    }
+  } else if (isAdminView) {
+    // Admin looking at a not-yet-completed WO — read-only info + delete, no fill-in (that's the technician's job).
+    body.innerHTML = `
+      <div class="detail-section-label">Work Order</div>
+      ${infoHtml}
+      <div class="detail-section-label"></div>
+      <p style="color:var(--text-muted);font-size:.83rem">Not completed yet — the LMRA checklist and close-out details will appear here once the assigned technician submits them.</p>
+      <button type="button" class="btn-secondary" id="woDeleteBtn" style="margin-top:6px;width:100%;color:var(--danger);border-color:var(--danger-bg)"><i class="fa-solid fa-trash"></i> Delete Work Order</button>
+    `;
+    document.getElementById('woDeleteBtn').addEventListener('click', () => deleteWorkOrder(w.id));
+  } else {
+    // Technician fill-in form.
+    clState = {};
+    CHECKLIST_ITEMS.forEach((item) => { clState[item.id] = null; });
+    body.innerHTML = `
+      <div class="detail-section-label">Work Order</div>
+      ${infoHtml}
+      <div class="detail-section-label">LMRA Checklist — Last Minute Risk Analysis</div>
+      <p class="checklist-progress" id="clProgress">0 of ${CHECKLIST_ITEMS.length} answered</p>
+      <div id="clItems">
+        ${CHECKLIST_ITEMS.map((item) => `
+          <div class="checklist-item" data-id="${item.id}">
+            <div class="checklist-q">${escapeHtml(item.text)}</div>
+            <div class="checklist-answers">
+              <button type="button" class="cl-btn" data-id="${item.id}" data-ans="ok">OK</button>
+              <button type="button" class="cl-btn" data-id="${item.id}" data-ans="nok">NOK</button>
+              <button type="button" class="cl-btn" data-id="${item.id}" data-ans="na">N/A</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div id="clNokWarning" style="display:none" class="nok-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>One or more items are marked NOK. Per the safety procedure: stop, correct the problem, and notify the person responsible for the work/site before continuing — don't just submit and proceed.</span>
+      </div>
+      <div class="detail-section-label">Close-Out</div>
+      <div class="field-group">
+        <label class="field-label" for="woRealDuration">Real Duration of the Work (H)</label>
+        <input type="number" id="woRealDuration" min="0" step="0.5" placeholder="e.g. 2.5">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="woComments">Comments from the Technician</label>
+        <textarea id="woComments" rows="3" maxlength="1000" placeholder="Anything worth noting about how the job went…"></textarea>
+      </div>
+      <span id="woCompleteError" class="form-error"></span>
+      <button type="button" class="btn-primary" id="woCompleteBtn" style="width:100%;margin-top:6px" disabled>
+        <i class="fa-solid fa-check"></i> Mark Complete
+      </button>
+    `;
+
+    document.querySelectorAll('#clItems .cl-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        clState[btn.dataset.id] = btn.dataset.ans;
+        document.querySelectorAll(`.cl-btn[data-id="${btn.dataset.id}"]`).forEach((b) => {
+          b.classList.remove('is-selected-ok', 'is-selected-nok', 'is-selected-na');
+        });
+        btn.classList.add(`is-selected-${btn.dataset.ans}`);
+        updateChecklistProgress();
+      });
+    });
+
+    document.getElementById('woCompleteBtn').addEventListener('click', () => submitWorkOrderCompletion(w.id));
+  }
+
+  document.getElementById('woDetailOverlay').classList.add('show');
+}
+
+function updateChecklistProgress() {
+  const answered = Object.values(clState).filter(Boolean).length;
+  document.getElementById('clProgress').textContent = `${answered} of ${CHECKLIST_ITEMS.length} answered`;
+  const hasNok = Object.values(clState).includes('nok');
+  document.getElementById('clNokWarning').style.display = hasNok ? 'flex' : 'none';
+  document.getElementById('woCompleteBtn').disabled = answered < CHECKLIST_ITEMS.length;
+}
+
+async function submitWorkOrderCompletion(id) {
+  const errorEl = document.getElementById('woCompleteError');
+  errorEl.textContent = '';
+  const technicianName = document.getElementById('techPicker').value;
+  if (!technicianName) {
+    errorEl.textContent = 'Select your name at the top of the page first.';
+    return;
+  }
+  const realDuration = document.getElementById('woRealDuration').value;
+  const comments = document.getElementById('woComments').value.trim();
+
+  const btn = document.getElementById('woCompleteBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting…';
+
+  try {
+    await db.collection('workOrders').doc(id).update({
+      checklist: clState,
+      realDuration: realDuration ? Number(realDuration) : null,
+      comments,
+      status: 'completed',
+      completedBy: technicianName,
+      completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    closeWorkOrderDetail();
+  } catch (err) {
+    console.error('Failed to submit work order completion', err);
+    errorEl.textContent = 'Could not submit this right now. Please check your connection and try again.';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Mark Complete';
+  }
+}
+
+async function deleteWorkOrder(id) {
+  if (!confirm('Delete this work order? This cannot be undone.')) return;
+  try {
+    await db.collection('workOrders').doc(id).delete();
+    closeWorkOrderDetail();
+  } catch (err) {
+    console.error('Failed to delete work order', err);
+    alert('Could not delete this work order. Please try again.');
+  }
+}
+
+function closeWorkOrderDetail() {
+  activeWoId = null;
+  document.getElementById('woDetailOverlay').classList.remove('show');
+}
+document.getElementById('woDetailCloseBtn').addEventListener('click', closeWorkOrderDetail);
+document.getElementById('woDetailOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'woDetailOverlay') closeWorkOrderDetail();
+});
+</script>
+</body>
+</html>
