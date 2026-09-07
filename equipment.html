@@ -900,6 +900,19 @@
   .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
   .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
   .resource-preview-body video{max-width:100%;max-height:100%}
+  .resource-preview-loading{
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+    color:var(--muted);width:100%;height:100%;min-height:300px;
+  }
+  /* Internal Resources reuses the same zoomable PDF viewer (#pdfViewerBox)
+     as the Documents tab instead of a plain iframe, so it gets the same
+     working +/-, fit-to-width, and pinch behavior. It needs to stretch to
+     fill the modal here instead of the Documents tab's own fixed sizing. */
+  #resourcePreviewBody #pdfViewerBox.is-visible{
+    width:100%;height:100%;display:flex;flex-direction:column;
+  }
+  #resourcePreviewBody .pdf-canvas-scroll{flex:1;max-height:none;height:auto}
+  #resourcePreviewBody #pdfViewerBox #fullscreenBtn{display:none}
   @media(max-width:600px){
     #resourcePreviewOverlay{padding:0}
     #resourcePreviewWrap{max-width:none;max-height:none;width:100vw;height:100vh;border-radius:0}
@@ -1559,6 +1572,8 @@
             <div id="pdfPagesContainer"></div>
           </div>
         </div>
+
+        <div id="pdfViewerBoxHome" style="display:none"></div>
 
         <div id="genericPreviewBox">
           <div class="generic-preview-toolbar">
@@ -2636,12 +2651,52 @@ function setupPageObserver() {
   });
 }
 
+// #pdfViewerBox (the toolbar with working zoom/prev/next, plus the actual
+// pdf.js canvas viewer) normally lives in the Documents tab. Internal
+// Resources previously showed PDFs in a plain <iframe> instead, at the
+// mercy of whatever PDF plugin the browser happens to embed there — no
+// zoom buttons, no control over the initial zoom level, nothing we can
+// script. Rather than build and maintain a second copy of the whole
+// zoom/pinch/render engine, openResourcePreview borrows this exact same
+// element (move, not clone — its pdf.js canvas and all its event
+// listeners come along for free) for the duration of the preview, then
+// returnPdfViewerBoxHome() puts it back exactly where it started.
+const pdfViewerHomeAnchor = document.getElementById('pdfViewerBoxHome');
+function returnPdfViewerBoxHome() {
+  pdfViewerHomeAnchor.parentNode.insertBefore(el.pdfViewerBox, pdfViewerHomeAnchor);
+}
+
+// Core pdf.js loading, shared by the Documents tab and Internal
+// Resources. Deliberately doesn't touch anything specific to either
+// caller (search bar, generic-preview panel, resource modal chrome) —
+// callers handle their own surrounding UI before/after calling this.
+async function loadPdfIntoViewer(fileUrl) {
+  try {
+    const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
+    pdfDoc = await loadingTask.promise;
+    // Must be visible (not display:none) before measuring its width below —
+    // a hidden element (and its children) always reports clientWidth 0,
+    // which was silently defeating fitScaleToContainer() and leaving PDFs
+    // at whatever scale was last set instead of actually fitting the page.
+    el.pdfViewerBox.classList.add('is-visible');
+    scale = await fitScaleToContainer();
+    el.pageCountLabel.textContent = pdfDoc.numPages;
+    await buildPageEntries();
+    return true;
+  } catch (err) {
+    console.error('Failed to load PDF', err);
+    el.pdfViewerBox.classList.remove('is-visible');
+    return false;
+  }
+}
+
 async function openDocument(doc, docEl) {
   currentDoc = doc;
   document.querySelectorAll('.doc').forEach(d => d.classList.remove('active'));
   if (docEl) docEl.classList.add('active');
 
   el.viewerEmpty.style.display = 'none';
+  returnPdfViewerBoxHome();
 
   let fileUrl;
   try {
@@ -2683,18 +2738,9 @@ async function openDocument(doc, docEl) {
   currentMarkEl = null;
   el.matchCounter.textContent = '';
 
-  try {
-    const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
-    pdfDoc = await loadingTask.promise;
-    scale = await fitScaleToContainer();
-    el.pageCountLabel.textContent = pdfDoc.numPages;
-    el.pdfLoading.style.display = 'none';
-    el.pdfViewerBox.classList.add('is-visible');
-    await buildPageEntries();
-  } catch (err) {
-    console.error('Failed to load PDF', err);
-    el.pdfLoading.style.display = 'flex';
-    el.pdfViewerBox.classList.remove('is-visible');
+  const ok = await loadPdfIntoViewer(fileUrl);
+  el.pdfLoading.style.display = ok ? 'none' : 'flex';
+  if (!ok) {
     el.pdfLoading.innerHTML = `
       <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
       <span>Could not load this PDF. It may be missing or blocked.</span>`;
@@ -3364,13 +3410,42 @@ function vimeoEmbedUrl(url) {
   return m ? `https://player.vimeo.com/video/${m[1]}` : url;
 }
 
-function openResourcePreview(resource) {
+async function openResourcePreview(resource) {
   resourcePreviewEl.title.textContent = resource.name || 'Resource';
   resourcePreviewEl.openTab.href = resource.url;
   resourcePreviewEl.hint.style.display = 'none';
   const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
+
+  // #pdfViewerBox might still be sitting in here from a previous resource
+  // — always park it back in the Documents tab before touching innerHTML
+  // below, since overwriting innerHTML while it's a child would destroy it.
+  returnPdfViewerBoxHome();
+
+  if (kind === 'pdf') {
+    // Show a loading placeholder alongside (not instead of) pdfViewerBox —
+    // it needs to be in the visible, open modal (not hidden/display:none)
+    // *before* loadPdfIntoViewer measures its width, or the fit-to-width
+    // calculation silently falls back to a stale scale (see the comment
+    // inside loadPdfIntoViewer).
+    resourcePreviewEl.body.innerHTML = '<div class="resource-preview-loading" id="resourcePdfLoading"><div class="spinner"></div><span>Loading document…</span></div>';
+    resourcePreviewEl.body.appendChild(el.pdfViewerBox);
+    el.pdfViewerBox.classList.remove('is-visible');
+    resourcePreviewEl.overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    const ok = await loadPdfIntoViewer(resource.url);
+    const loadingEl = document.getElementById('resourcePdfLoading');
+    if (loadingEl) loadingEl.remove();
+    if (!ok) {
+      resourcePreviewEl.body.innerHTML = `
+        <div class="resource-preview-loading">
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
+          <span>Could not load this PDF. It may be missing or blocked.</span>
+        </div>`;
+    }
+    return;
+  }
 
   let html;
   let usesPlainIframe = false;
@@ -3383,11 +3458,10 @@ function openResourcePreview(resource) {
   } else if (kind === 'vimeo') {
     html = `<iframe src="${escapeHtml(vimeoEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else {
-    // PDFs and anything else the browser can render inline (most modern
-    // browsers show PDFs natively in an iframe). Many hosts refuse to be
-    // embedded at all (X-Frame-Options/CSP) — that's the site's own
-    // setting, not something fixable here — so surface a clear
-    // explanation after a moment instead of leaving a blank frame.
+    // A website link. Many hosts refuse to be embedded at all
+    // (X-Frame-Options/CSP) — that's the site's own setting, not
+    // something fixable here — so surface a clear explanation after a
+    // moment instead of leaving a blank frame.
     html = `<iframe src="${safeUrl}" title="${safeName}"></iframe>`;
     usesPlainIframe = true;
   }
@@ -3408,6 +3482,7 @@ function closeResourcePreview() {
   if (isResourcePreviewFullscreen()) exitResourcePreviewFullscreen();
   resourcePreviewEl.overlay.classList.remove('is-open');
   document.body.style.overflow = '';
+  returnPdfViewerBoxHome(); // must happen before clearing innerHTML below
   resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
   resourcePreviewEl.hint.style.display = 'none';
   previewHintToken++; // invalidate any pending "still loading?" timer
