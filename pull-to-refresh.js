@@ -77,17 +77,20 @@
 
   document.addEventListener('touchstart', (ev) => {
     if (refreshing || ev.touches.length !== 1) return;
-    // Any open modal/overlay in this app (resource preview, PDF viewer,
-    // Take 5, etc.) sets document.body.style.overflow = 'hidden' while
-    // it's open — reuse that as a blanket "don't pull-to-refresh right
-    // now" signal, rather than relying only on insideNestedScroller()
-    // below. That check can't tell "touch is on modal content that
-    // simply doesn't need to scroll" apart from "touch isn't in a modal
-    // at all" — and content that render as real page DOM (not an
-    // iframe, which pull-to-refresh never even sees) can trigger a false
-    // reload from an ordinary tap/drag once a modal is open but its
-    // content happens to fit without overflowing.
-    if (document.body.style.overflow === 'hidden') return;
+    // Any open modal/overlay in this app sets one of two scroll-lock
+    // styles on <body> while it's open: overflow:hidden (most modals,
+    // e.g. Take 5) or position:fixed (the resource preview and fullscreen
+    // PDF viewer, which need the more iOS-reliable lock pattern). Either
+    // one is a blanket "don't pull-to-refresh right now" signal, more
+    // robust than relying only on insideNestedScroller() below — that
+    // check can't tell "touch is on modal content that simply doesn't
+    // need to scroll" apart from "touch isn't in a modal at all", and
+    // content that renders as real page DOM (not an iframe, which
+    // pull-to-refresh never even sees) can trigger a false reload from an
+    // ordinary tap/drag once a modal is open but its content happens to
+    // fit without overflowing.
+    const bodyStyle = document.body.style;
+    if (bodyStyle.overflow === 'hidden' || bodyStyle.position === 'fixed') return;
     if (!atPageTop() || insideNestedScroller(ev.target)) return;
     startY = ev.touches[0].clientY;
     pulling = true;
@@ -100,6 +103,13 @@
 
   document.addEventListener('touchmove', (ev) => {
     if (!pulling || startY === null) return;
+    const bodyStyle = document.body.style;
+    if (bodyStyle.overflow === 'hidden' || bodyStyle.position === 'fixed') {
+      pulling = false;
+      startY = null;
+      resetIndicator();
+      return;
+    }
     const dy = ev.touches[0].clientY - startY;
     // Bail out on an aborted pull (scrolled back up, or the page itself
     // scrolled away from the top mid-gesture) — and reset the indicator's
