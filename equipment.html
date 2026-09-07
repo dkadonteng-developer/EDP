@@ -2983,6 +2983,31 @@ let scaleBeforeFullscreen = null;
 let usingFakeFullscreen = false;
 let preFullscreenScrollY = 0;
 
+// Standard iOS scroll-lock pattern: pin body in place at its current visual
+// offset, rather than just setting overflow:hidden. Plain overflow:hidden
+// doesn't reliably stop background touch-scroll on iOS Safari — the body
+// can still shift under a modal, which among other things can confuse
+// pull-to-refresh.js's "is the page at the very top" check into arming a
+// gesture it shouldn't while a modal is open. Shared here since both the
+// fullscreen viewer and the resource preview modal need it.
+let resourceModalScrollY = 0;
+function lockBodyScroll() {
+  resourceModalScrollY = window.scrollY || document.documentElement.scrollTop;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${resourceModalScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+function unlockBodyScroll() {
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  requestAnimationFrame(() => window.scrollTo(0, resourceModalScrollY));
+}
+
 function isFullscreenActive() {
   return !!(document.fullscreenElement || document.webkitFullscreenElement) || usingFakeFullscreen;
 }
@@ -3433,7 +3458,7 @@ async function openResourcePreview(resource) {
     resourcePreviewEl.body.appendChild(el.pdfViewerBox);
     el.pdfViewerBox.classList.remove('is-visible');
     resourcePreviewEl.overlay.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
     const ok = await loadPdfIntoViewer(resource.url);
     const loadingEl = document.getElementById('resourcePdfLoading');
     if (loadingEl) loadingEl.remove();
@@ -3468,7 +3493,7 @@ async function openResourcePreview(resource) {
 
   resourcePreviewEl.body.innerHTML = html;
   resourcePreviewEl.overlay.classList.add('is-open');
-  document.body.style.overflow = 'hidden';
+  lockBodyScroll();
 
   if (usesPlainIframe) {
     const token = ++previewHintToken;
@@ -3481,7 +3506,7 @@ async function openResourcePreview(resource) {
 function closeResourcePreview() {
   if (isResourcePreviewFullscreen()) exitResourcePreviewFullscreen();
   resourcePreviewEl.overlay.classList.remove('is-open');
-  document.body.style.overflow = '';
+  unlockBodyScroll();
   returnPdfViewerBoxHome(); // must happen before clearing innerHTML below
   resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
   resourcePreviewEl.hint.style.display = 'none';
