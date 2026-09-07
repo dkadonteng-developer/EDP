@@ -895,14 +895,15 @@
   }
   .resource-preview-actions a:hover,.resource-preview-actions button:hover{background:rgba(255,255,255,.3)}
   .resource-preview-body{
-    flex:1;min-height:0;overflow:auto;background:#f0f2f4;display:flex;align-items:center;justify-content:center;
+    position:relative;flex:1;min-height:0;overflow:auto;background:#f0f2f4;display:flex;align-items:center;justify-content:center;
   }
   .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
   .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
   .resource-preview-body video{max-width:100%;max-height:100%}
   .resource-preview-loading{
+    position:absolute;inset:0;z-index:1;background:#f0f2f4;
     display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
-    color:var(--muted);width:100%;height:100%;min-height:300px;
+    color:var(--muted);
   }
   /* Internal Resources reuses the same zoomable PDF viewer (#pdfViewerBox)
      as the Documents tab instead of a plain iframe, so it gets the same
