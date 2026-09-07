@@ -900,24 +900,6 @@
   .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
   .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
   .resource-preview-body video{max-width:100%;max-height:100%}
-  /* Dedicated PDF viewer for this modal — see the markup comment. */
-  .res-pdf-toolbar{
-    display:flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;
-    padding:8px 10px;background:#f7f9fa;border-bottom:1px solid var(--border);
-  }
-  .res-pdf-toolbar button{
-    border:1px solid var(--border);background:#fff;border-radius:8px;padding:7px 11px;
-    cursor:pointer;color:var(--brand);font-size:.85rem;
-  }
-  .res-pdf-toolbar button:disabled{opacity:.4;cursor:not-allowed}
-  .res-pdf-pageinfo{font-size:.85rem;color:var(--muted);min-width:56px;text-align:center}
-  .res-pdf-scroll{
-    flex:1;min-height:0;overflow:auto;background:#f0f2f4;padding:12px;
-    -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;
-  }
-  #resPdfPages{display:flex;flex-direction:column;align-items:center;gap:14px}
-  .res-pdf-page{position:relative;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.15)}
-  .res-pdf-page canvas{display:block;width:100%;height:100%}
   @media(max-width:600px){
     #resourcePreviewOverlay{padding:0}
     #resourcePreviewWrap{max-width:none;max-height:none;width:100vw;height:100vh;border-radius:0}
@@ -1784,24 +1766,7 @@
     <div class="embed-hint" id="resourcePreviewHint" style="display:none;">
       <i class="fa-solid fa-circle-info"></i> If this looks blank, the site may not allow embedded previews — use "Open in new tab" above instead.
     </div>
-    <div class="res-pdf-toolbar" id="resPdfToolbar" style="display:none">
-      <button type="button" id="resPdfPrev" title="Previous page"><i class="fa-solid fa-chevron-left"></i></button>
-      <span class="res-pdf-pageinfo"><span id="resPdfPageNum">1</span> / <span id="resPdfPageCount">1</span></span>
-      <button type="button" id="resPdfNext" title="Next page"><i class="fa-solid fa-chevron-right"></i></button>
-      <button type="button" id="resPdfZoomOut" title="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-      <button type="button" id="resPdfZoomIn" title="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
-      <button type="button" id="resPdfFit" title="Fit to width"><i class="fa-solid fa-arrows-left-right-to-line"></i></button>
-    </div>
     <div class="resource-preview-body" id="resourcePreviewBody"></div>
-    <!-- This viewer is a PERMANENT sibling of #resourcePreviewBody, not a
-         child of it: closeResourcePreview() clears that body with
-         innerHTML='', and nothing here may be destroyed by that. It is
-         also entirely independent of the Documents tab's #pdfViewerBox —
-         moving that live viewer in and out of this modal is what crashed
-         iOS before, so the two never share a DOM node. -->
-    <div class="res-pdf-scroll" id="resPdfScroll" style="display:none">
-      <div id="resPdfPages"></div>
-    </div>
   </div>
 </div>
 
@@ -2672,9 +2637,28 @@ function setupPageObserver() {
 }
 
 // Core pdf.js loading for the Documents tab's viewer.
+// Turns whatever is stored for a document into something pdf.js can load
+// cheaply. A normal http(s) path is passed through as a URL. A base64
+// data: URL (how small PDFs uploaded from admin.html are stored) is
+// decoded ONCE here into raw bytes and handed over as bytes instead.
+// Passing the data: URL string to getDocument() directly makes pdf.js
+// re-fetch and copy those megabytes through several intermediate forms,
+// which is very likely what was exhausting memory and crashing the
+// renderer on iOS — the browser's own built-in viewer never had that
+// problem with the same file because it decodes natively.
+function pdfSourceFor(fileUrl) {
+  const m = /^data:application\/pdf;base64,/i.exec(fileUrl || '');
+  if (!m) return encodeURI(fileUrl);
+  const b64 = fileUrl.slice(m[0].length);
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { data: bytes };
+}
+
 async function loadPdfIntoViewer(fileUrl) {
   try {
-    const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
+    const loadingTask = pdfjsLib.getDocument(pdfSourceFor(fileUrl));
     pdfDoc = await loadingTask.promise;
     // Must be visible (not display:none) before measuring its width below —
     // a hidden element (and its children) always reports clientWidth 0,
@@ -3447,233 +3431,27 @@ function vimeoEmbedUrl(url) {
   return m ? `https://player.vimeo.com/video/${m[1]}` : url;
 }
 
-// ---------- Dedicated PDF viewer for the Internal Resources modal ----------
-// Fully self-contained: its own pdf.js document, scale, page entries and
-// observer. It shares no DOM node or state with the Documents tab's
-// viewer — that separation is deliberate (see the markup comment above).
-
-const resPdfEl = {
-  toolbar: document.getElementById('resPdfToolbar'),
-  scroll: document.getElementById('resPdfScroll'),
-  pages: document.getElementById('resPdfPages'),
-  pageNum: document.getElementById('resPdfPageNum'),
-  pageCount: document.getElementById('resPdfPageCount'),
-  prev: document.getElementById('resPdfPrev'),
-  next: document.getElementById('resPdfNext'),
-  zoomIn: document.getElementById('resPdfZoomIn'),
-  zoomOut: document.getElementById('resPdfZoomOut'),
-  fit: document.getElementById('resPdfFit'),
-};
-
-const resPdf = { doc: null, scale: 1, entries: [], observer: null, current: 1 };
-
-function resPdfTeardown() {
-  if (resPdf.observer) { resPdf.observer.disconnect(); resPdf.observer = null; }
-  // Explicitly drop canvas backing stores before releasing the entries —
-  // on iOS these aren't reclaimed promptly just by removing the nodes.
-  resPdf.entries.forEach((e) => { e.canvas.width = 0; e.canvas.height = 0; });
-  resPdf.entries = [];
-  resPdfEl.pages.innerHTML = '';
-  if (resPdf.doc) { try { resPdf.doc.destroy(); } catch (err) {} resPdf.doc = null; }
-  resPdfEl.scroll.style.display = 'none';
-  resPdfEl.toolbar.style.display = 'none';
-}
-
-async function resPdfFitScale() {
-  if (!resPdf.doc) return resPdf.scale;
-  const page = await resPdf.doc.getPage(1);
-  const unscaled = page.getViewport({ scale: 1 }).width;
-  const available = resPdfEl.scroll.clientWidth - 24;
-  if (available <= 0 || !unscaled) return resPdf.scale;
-  return Math.max(PDF_MIN_SCALE, Math.min(available / unscaled, PDF_MAX_SCALE));
-}
-
-async function resPdfRenderPage(i) {
-  const entry = resPdf.entries[i];
-  if (!entry || entry.renderedAtScale === resPdf.scale || entry.rendering) return;
-  const requested = resPdf.scale;
-  entry.rendering = true;
-  try {
-    const page = await resPdf.doc.getPage(i + 1);
-    const viewport = page.getViewport({ scale: requested });
-
-    // Same memory caps as the Documents tab viewer: keep any single page's
-    // bitmap bounded so a large page at high zoom can't exhaust memory.
-    let outputScale = Math.min(window.devicePixelRatio || 1, 2);
-    const MAX_CANVAS_PIXELS = 3_000_000;
-    const raw = viewport.width * outputScale * viewport.height * outputScale;
-    if (raw > MAX_CANVAS_PIXELS) outputScale *= Math.sqrt(MAX_CANVAS_PIXELS / raw);
-
-    const canvas = entry.canvas;
-    canvas.width = Math.floor(viewport.width * outputScale);
-    canvas.height = Math.floor(viewport.height * outputScale);
-    entry.wrap.style.width = Math.floor(viewport.width) + 'px';
-    entry.wrap.style.height = Math.floor(viewport.height) + 'px';
-
-    const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport, transform }).promise;
-    entry.renderedAtScale = requested;
-  } catch (err) {
-    console.error('Resource PDF page render failed', err);
-  } finally {
-    entry.rendering = false;
-  }
-  if (resPdf.doc && resPdf.scale !== requested) resPdfRenderPage(i);
-}
-
-async function resPdfBuildPages() {
-  if (resPdf.observer) resPdf.observer.disconnect();
-  resPdfEl.pages.innerHTML = '';
-  resPdf.entries = [];
-
-  const page1 = await resPdf.doc.getPage(1);
-  const base = page1.getViewport({ scale: resPdf.scale });
-
-  for (let i = 0; i < resPdf.doc.numPages; i++) {
-    const wrap = document.createElement('div');
-    wrap.className = 'res-pdf-page';
-    wrap.style.width = Math.floor(base.width) + 'px';
-    wrap.style.height = Math.floor(base.height) + 'px';
-    wrap.dataset.index = i;
-    const canvas = document.createElement('canvas');
-    wrap.appendChild(canvas);
-    resPdfEl.pages.appendChild(wrap);
-    resPdf.entries.push({ wrap, canvas, renderedAtScale: null, rendering: false });
-  }
-
-  resPdf.observer = new IntersectionObserver((entries) => {
-    entries.forEach((en) => {
-      const i = parseInt(en.target.dataset.index, 10);
-      if (!en.isIntersecting) return;
-      resPdfRenderPage(i);
-      if (en.intersectionRatio > 0.5) {
-        resPdf.current = i + 1;
-        resPdfEl.pageNum.textContent = resPdf.current;
-        resPdfEl.prev.disabled = resPdf.current <= 1;
-        resPdfEl.next.disabled = resPdf.current >= resPdf.doc.numPages;
-      }
-    });
-  }, { root: resPdfEl.scroll, rootMargin: '250px 0px', threshold: [0, 0.5] });
-
-  resPdf.entries.forEach((e) => resPdf.observer.observe(e.wrap));
-}
-
-async function resPdfRescale(newScale) {
-  if (!resPdf.doc) return;
-  newScale = Math.max(PDF_MIN_SCALE, Math.min(newScale, PDF_MAX_SCALE));
-  if (Math.abs(newScale - resPdf.scale) < 0.01) return;
-  resPdf.scale = newScale;
-  // Resize every placeholder immediately so scroll position stays sane,
-  // but only re-render the pages actually on screen; the rest re-render
-  // lazily when scrolled back into view.
-  const page1 = await resPdf.doc.getPage(1);
-  const base = page1.getViewport({ scale: newScale });
-  resPdf.entries.forEach((e) => {
-    if (e.renderedAtScale === null) {
-      e.wrap.style.width = Math.floor(base.width) + 'px';
-      e.wrap.style.height = Math.floor(base.height) + 'px';
-    }
-  });
-  const rect = resPdfEl.scroll.getBoundingClientRect();
-  resPdf.entries.forEach((e, i) => {
-    const r = e.wrap.getBoundingClientRect();
-    if (r.bottom > rect.top - 250 && r.top < rect.bottom + 250) resPdfRenderPage(i);
-  });
-}
-
-resPdfEl.zoomIn.addEventListener('click', () => resPdfRescale(resPdf.scale + 0.25));
-resPdfEl.zoomOut.addEventListener('click', () => resPdfRescale(resPdf.scale - 0.25));
-resPdfEl.fit.addEventListener('click', async () => resPdfRescale(await resPdfFitScale()));
-resPdfEl.prev.addEventListener('click', () => resPdfGoTo(resPdf.current - 1));
-resPdfEl.next.addEventListener('click', () => resPdfGoTo(resPdf.current + 1));
-
-function resPdfGoTo(n) {
-  if (!resPdf.doc) return;
-  n = Math.min(Math.max(n, 1), resPdf.doc.numPages);
-  const entry = resPdf.entries[n - 1];
-  if (entry) entry.wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// Pinch to zoom: cheap CSS transform while the fingers are down, then one
-// real re-render on release so the result stays crisp.
-let resPinch = null;
-resPdfEl.scroll.addEventListener('touchstart', (ev) => {
-  if (ev.touches.length !== 2 || !resPdf.doc) return;
-  const dx = ev.touches[0].clientX - ev.touches[1].clientX;
-  const dy = ev.touches[0].clientY - ev.touches[1].clientY;
-  resPinch = { startDist: Math.hypot(dx, dy), startScale: resPdf.scale, live: resPdf.scale };
-}, { passive: true });
-
-resPdfEl.scroll.addEventListener('touchmove', (ev) => {
-  if (!resPinch || ev.touches.length !== 2) return;
-  ev.preventDefault();
-  const dx = ev.touches[0].clientX - ev.touches[1].clientX;
-  const dy = ev.touches[0].clientY - ev.touches[1].clientY;
-  const factor = Math.hypot(dx, dy) / resPinch.startDist;
-  resPinch.live = Math.max(PDF_MIN_SCALE, Math.min(resPinch.startScale * factor, PDF_MAX_SCALE));
-  resPdfEl.pages.style.transformOrigin = 'top center';
-  resPdfEl.pages.style.transform = `scale(${resPinch.live / resPdf.scale})`;
-}, { passive: false });
-
-function resEndPinch() {
-  if (!resPinch) return;
-  const final = resPinch.live;
-  resPinch = null;
-  resPdfEl.pages.style.transform = '';
-  resPdfRescale(final);
-}
-resPdfEl.scroll.addEventListener('touchend', resEndPinch, { passive: true });
-resPdfEl.scroll.addEventListener('touchcancel', resEndPinch, { passive: true });
-
-async function openResourcePdf(url) {
-  resPdfEl.scroll.style.display = 'block';
-  resPdfEl.toolbar.style.display = 'flex';
-  try {
-    resPdf.doc = await pdfjsLib.getDocument(url).promise;
-    resPdfEl.pageCount.textContent = resPdf.doc.numPages;
-    resPdfEl.pageNum.textContent = '1';
-    resPdf.current = 1;
-    resPdfEl.prev.disabled = true;
-    resPdfEl.next.disabled = resPdf.doc.numPages <= 1;
-    resPdf.scale = 1;
-    resPdf.scale = await resPdfFitScale();
-    await resPdfBuildPages();
-    return true;
-  } catch (err) {
-    console.error('Failed to load resource PDF', err);
-    resPdfTeardown();
-    return false;
-  }
-}
-
 async function openResourcePreview(resource) {
-  resourcePreviewEl.title.textContent = resource.name || 'Resource';
-  resourcePreviewEl.openTab.href = resource.url;
-  resourcePreviewEl.hint.style.display = 'none';
   const kind = guessResourceKind(resource.url);
-  const safeName = escapeHtml(resource.name || '');
-  const safeUrl = escapeHtml(resource.url);
 
-  resPdfTeardown(); // always start from a clean slate
-
+  // PDFs open in the Documents tab's viewer — the same one used for
+  // document previews, so they get its +/- zoom buttons, fit-to-width
+  // and pinch support. Deliberately NOT rendered inside this modal:
+  // every attempt to run pdf.js in here (whether by relocating the
+  // Documents viewer or building a second one) crashed the renderer on
+  // iOS. Reusing the viewer where it already lives avoids that entirely.
   if (kind === 'pdf') {
-    resourcePreviewEl.body.innerHTML = '';
-    resourcePreviewEl.body.style.display = 'none';
-    resourcePreviewEl.overlay.classList.add('is-open');
-    lockBodyScroll();
-    const ok = await openResourcePdf(resource.url);
-    if (!ok) {
-      resourcePreviewEl.body.style.display = '';
-      resourcePreviewEl.body.innerHTML = `
-        <div style="padding:24px;text-align:center;color:var(--muted)">
-          <i class="fa-solid fa-triangle-exclamation" style="color:var(--danger);font-size:1.6rem"></i>
-          <p>Could not load this PDF. Try "Open in new tab" above.</p>
-        </div>`;
-    }
+    closeResourcePreview();
+    showEqTab('documents');
+    openDocument({ name: resource.name, file: resource.url }, null);
     return;
   }
 
-  resourcePreviewEl.body.style.display = '';
+  resourcePreviewEl.title.textContent = resource.name || 'Resource';
+  resourcePreviewEl.openTab.href = resource.url;
+  resourcePreviewEl.hint.style.display = 'none';
+  const safeName = escapeHtml(resource.name || '');
+  const safeUrl = escapeHtml(resource.url);
 
   let html;
   let usesPlainIframe = false;
@@ -3723,7 +3501,6 @@ function closeResourcePreview() {
   if (isResourcePreviewFullscreen()) exitResourcePreviewFullscreen();
   resourcePreviewEl.overlay.classList.remove('is-open');
   unlockBodyScroll();
-  resPdfTeardown(); // frees canvases + the pdf.js document
   resourcePreviewEl.body.style.display = '';
   resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
   resourcePreviewEl.hint.style.display = 'none';
