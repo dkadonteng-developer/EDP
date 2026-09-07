@@ -77,6 +77,17 @@
 
   document.addEventListener('touchstart', (ev) => {
     if (refreshing || ev.touches.length !== 1) return;
+    // Any open modal/overlay in this app (resource preview, PDF viewer,
+    // Take 5, etc.) sets document.body.style.overflow = 'hidden' while
+    // it's open — reuse that as a blanket "don't pull-to-refresh right
+    // now" signal, rather than relying only on insideNestedScroller()
+    // below. That check can't tell "touch is on modal content that
+    // simply doesn't need to scroll" apart from "touch isn't in a modal
+    // at all" — and content that render as real page DOM (not an
+    // iframe, which pull-to-refresh never even sees) can trigger a false
+    // reload from an ordinary tap/drag once a modal is open but its
+    // content happens to fit without overflowing.
+    if (document.body.style.overflow === 'hidden') return;
     if (!atPageTop() || insideNestedScroller(ev.target)) return;
     startY = ev.touches[0].clientY;
     pulling = true;
