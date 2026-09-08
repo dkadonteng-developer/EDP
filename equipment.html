@@ -2637,28 +2637,9 @@ function setupPageObserver() {
 }
 
 // Core pdf.js loading for the Documents tab's viewer.
-// Turns whatever is stored for a document into something pdf.js can load
-// cheaply. A normal http(s) path is passed through as a URL. A base64
-// data: URL (how small PDFs uploaded from admin.html are stored) is
-// decoded ONCE here into raw bytes and handed over as bytes instead.
-// Passing the data: URL string to getDocument() directly makes pdf.js
-// re-fetch and copy those megabytes through several intermediate forms,
-// which is very likely what was exhausting memory and crashing the
-// renderer on iOS — the browser's own built-in viewer never had that
-// problem with the same file because it decodes natively.
-function pdfSourceFor(fileUrl) {
-  const m = /^data:application\/pdf;base64,/i.exec(fileUrl || '');
-  if (!m) return encodeURI(fileUrl);
-  const b64 = fileUrl.slice(m[0].length);
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return { data: bytes };
-}
-
 async function loadPdfIntoViewer(fileUrl) {
   try {
-    const loadingTask = pdfjsLib.getDocument(pdfSourceFor(fileUrl));
+    const loadingTask = pdfjsLib.getDocument(encodeURI(fileUrl));
     pdfDoc = await loadingTask.promise;
     // Must be visible (not display:none) before measuring its width below —
     // a hidden element (and its children) always reports clientWidth 0,
@@ -3432,24 +3413,10 @@ function vimeoEmbedUrl(url) {
 }
 
 async function openResourcePreview(resource) {
-  const kind = guessResourceKind(resource.url);
-
-  // PDFs open in the Documents tab's viewer — the same one used for
-  // document previews, so they get its +/- zoom buttons, fit-to-width
-  // and pinch support. Deliberately NOT rendered inside this modal:
-  // every attempt to run pdf.js in here (whether by relocating the
-  // Documents viewer or building a second one) crashed the renderer on
-  // iOS. Reusing the viewer where it already lives avoids that entirely.
-  if (kind === 'pdf') {
-    closeResourcePreview();
-    showEqTab('documents');
-    openDocument({ name: resource.name, file: resource.url }, null);
-    return;
-  }
-
   resourcePreviewEl.title.textContent = resource.name || 'Resource';
   resourcePreviewEl.openTab.href = resource.url;
   resourcePreviewEl.hint.style.display = 'none';
+  const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
 
