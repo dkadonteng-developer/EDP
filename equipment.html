@@ -900,6 +900,17 @@
   .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
   .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
   .resource-preview-body video{max-width:100%;max-height:100%}
+  .ios-pdf-cta{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;gap:6px;padding:34px 26px;max-width:340px;margin:auto;
+  }
+  .ios-pdf-cta > i{font-size:2.6rem;color:var(--danger);margin-bottom:6px}
+  .ios-pdf-cta h4{margin:0;font-size:1.05rem;color:var(--text);word-break:break-word}
+  .ios-pdf-cta p{margin:0 0 14px;font-size:.86rem;color:var(--muted);line-height:1.45}
+  .ios-pdf-open{
+    display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;
+    padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600;font-size:.92rem;
+  }
   @media(max-width:600px){
     #resourcePreviewOverlay{padding:0}
     #resourcePreviewWrap{max-width:none;max-height:none;width:100vw;height:100vh;border-radius:0}
@@ -3419,6 +3430,30 @@ async function openResourcePreview(resource) {
   const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
+
+  // iOS renders a PDF inside an iframe as a flat, non-interactive preview:
+  // no scrolling, no pinch-zoom, no gestures at all. That's a WebKit
+  // restriction, not something page code can override — so rather than
+  // hand iPhone/iPad users a dead embed they can't zoom, send them to
+  // Safari's own full-screen PDF viewer, which does support pinch-zoom.
+  // (pdf.js deliberately isn't used here — rendering it inside this modal
+  // crashed the renderer; see the note further down.)
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (kind === 'pdf' && isIOS) {
+    resourcePreviewEl.body.innerHTML = `
+      <div class="ios-pdf-cta">
+        <i class="fa-solid fa-file-pdf"></i>
+        <h4>${safeName || 'PDF document'}</h4>
+        <p>iOS can't zoom a PDF previewed inside an app. Open it full screen to scroll and pinch to zoom.</p>
+        <a class="ios-pdf-open" href="${resource.url}" target="_blank" rel="noopener">
+          <i class="fa-solid fa-up-right-from-square"></i> Open PDF
+        </a>
+      </div>`;
+    resourcePreviewEl.overlay.classList.add('is-open');
+    lockBodyScroll();
+    return;
+  }
 
   let html;
   let usesPlainIframe = false;
