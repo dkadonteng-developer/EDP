@@ -898,7 +898,10 @@
     position:relative;flex:1;min-height:0;overflow:auto;background:#f0f2f4;display:flex;align-items:center;justify-content:center;
   }
   .resource-preview-body img{max-width:100%;max-height:100%;object-fit:contain}
-  .resource-preview-body iframe{width:100%;height:100%;border:none;min-height:70vh}
+  .resource-preview-body iframe{
+    width:100%;height:100%;border:none;min-height:70vh;
+    transform-origin:top center;transition:transform .15s ease;
+  }
   .resource-preview-body video{max-width:100%;max-height:100%}
   @media(max-width:600px){
     #resourcePreviewOverlay{padding:0}
@@ -1758,6 +1761,8 @@
     <div class="resource-preview-head">
       <span id="resourcePreviewTitle">Resource</span>
       <div class="resource-preview-actions">
+        <button type="button" id="resourcePreviewZoomOut" title="Zoom out" style="display:none"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+        <button type="button" id="resourcePreviewZoomIn" title="Zoom in" style="display:none"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
         <a id="resourcePreviewOpenTab" href="#" target="_blank" rel="noopener" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i></a>
         <button type="button" id="resourcePreviewFullscreenBtn" title="Toggle full screen"><i class="fa-solid fa-expand"></i></button>
         <button type="button" id="resourcePreviewCloseX" title="Close"><i class="fa-solid fa-xmark"></i></button>
@@ -3363,6 +3368,8 @@ const resourcePreviewEl = {
   title: document.getElementById('resourcePreviewTitle'),
   body: document.getElementById('resourcePreviewBody'),
   hint: document.getElementById('resourcePreviewHint'),
+  zoomOut: document.getElementById('resourcePreviewZoomOut'),
+  zoomIn: document.getElementById('resourcePreviewZoomIn'),
   openTab: document.getElementById('resourcePreviewOpenTab'),
   fullscreenBtn: document.getElementById('resourcePreviewFullscreenBtn'),
   closeX: document.getElementById('resourcePreviewCloseX'),
@@ -3412,6 +3419,32 @@ function vimeoEmbedUrl(url) {
   return m ? `https://player.vimeo.com/video/${m[1]}` : url;
 }
 
+// ---------- Zoom for the resource preview's PDF iframe ----------
+// The browser's built-in PDF viewer inside the iframe is a black box we
+// can't script into — no access to its internal zoom state. So instead
+// of trying to control it, these buttons visually scale the iframe
+// element itself with a CSS transform, the same technique already used
+// for the live pinch-zoom preview on the Documents tab. This never
+// touches pdf.js, never renders a page, never loads a PDF document a
+// second time — it's a pure CSS transform on an element that's already
+// on screen, so it carries none of the risk that crashed every attempt
+// to render PDF content directly inside this modal.
+let resIframeZoom = 1;
+const RES_ZOOM_MIN = 0.5;
+const RES_ZOOM_MAX = 3;
+function applyResIframeZoom() {
+  const iframe = resourcePreviewEl.body.querySelector('iframe');
+  if (iframe) iframe.style.transform = `scale(${resIframeZoom})`;
+}
+resourcePreviewEl.zoomIn.addEventListener('click', () => {
+  resIframeZoom = Math.min(resIframeZoom + 0.25, RES_ZOOM_MAX);
+  applyResIframeZoom();
+});
+resourcePreviewEl.zoomOut.addEventListener('click', () => {
+  resIframeZoom = Math.max(resIframeZoom - 0.25, RES_ZOOM_MIN);
+  applyResIframeZoom();
+});
+
 async function openResourcePreview(resource) {
   resourcePreviewEl.title.textContent = resource.name || 'Resource';
   resourcePreviewEl.openTab.href = resource.url;
@@ -3419,6 +3452,10 @@ async function openResourcePreview(resource) {
   const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
+
+  resIframeZoom = 1;
+  resourcePreviewEl.zoomIn.style.display = kind === 'pdf' ? 'flex' : 'none';
+  resourcePreviewEl.zoomOut.style.display = kind === 'pdf' ? 'flex' : 'none';
 
   let html;
   let usesPlainIframe = false;
@@ -3482,6 +3519,9 @@ function closeResourcePreview() {
   resourcePreviewEl.body.style.display = '';
   resourcePreviewEl.body.innerHTML = ''; // stop any playing video/embed
   resourcePreviewEl.hint.style.display = 'none';
+  resIframeZoom = 1;
+  resourcePreviewEl.zoomIn.style.display = 'none';
+  resourcePreviewEl.zoomOut.style.display = 'none';
   previewHintToken++; // invalidate any pending "still loading?" timer
 }
 
