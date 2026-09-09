@@ -3413,29 +3413,10 @@ function vimeoEmbedUrl(url) {
 }
 
 async function openResourcePreview(resource) {
-  const kind = guessResourceKind(resource.url);
-
-  // PDFs open in the Documents tab's viewer — the same viewer used for
-  // document previews, which works on iPhone and has the +/- zoom
-  // buttons, fit-to-width and pinch support. It is NOT rendered inside
-  // this modal: every attempt to run pdf.js in here (relocating the
-  // Documents viewer, or building a second one) crashed the renderer.
-  // Reusing the viewer where it already lives sidesteps that entirely.
-  if (kind === 'pdf') {
-    // Close whichever panel this was launched from (the Internal
-    // Resources list, or a part's panel) so the Documents tab underneath
-    // is actually visible, and release the scroll lock they applied.
-    resourcesEl.overlay.classList.remove('is-open');
-    el.partPanelOverlay.classList.remove('is-open');
-    document.body.style.overflow = '';
-    showEqTab('documents');
-    openDocument({ name: resource.name, file: resource.url }, null);
-    return;
-  }
-
   resourcePreviewEl.title.textContent = resource.name || 'Resource';
   resourcePreviewEl.openTab.href = resource.url;
   resourcePreviewEl.hint.style.display = 'none';
+  const kind = guessResourceKind(resource.url);
   const safeName = escapeHtml(resource.name || '');
   const safeUrl = escapeHtml(resource.url);
 
