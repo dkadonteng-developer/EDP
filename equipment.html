@@ -3430,8 +3430,8 @@ async function openResourcePreview(resource) {
     html = `<iframe src="${escapeHtml(youtubeEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
   } else if (kind === 'vimeo') {
     html = `<iframe src="${escapeHtml(vimeoEmbedUrl(resource.url))}" title="${safeName}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-  } else {
-    // PDFs and websites both render in a plain iframe here, deliberately.
+  } else if (kind === 'pdf') {
+    // PDFs render in a plain iframe here, deliberately.
     //
     // An earlier attempt reused the Documents tab's own pdf.js viewer
     // (#pdfViewerBox) in this modal to gain +/- zoom buttons, by moving
@@ -3444,7 +3444,18 @@ async function openResourcePreview(resource) {
     // type. The browser's built-in PDF viewer shown here supports native
     // pinch-to-zoom on its own, which is what actually matters on a phone.
     //
-    // Many websites also refuse to be embedded at all
+    // Without a hint, that built-in viewer opens most PDFs at 100% actual
+    // size, which usually looks "zoomed in" on a phone screen — so this
+    // adds a standard PDF Open Parameters fragment asking it to fit the
+    // page to the viewer's width instead. view=FitH is read by Chrome's
+    // built-in PDF viewer (desktop and Android — same engine); zoom=Fit
+    // is the equivalent Firefox reads. A browser that honors neither just
+    // ignores the fragment, so this can't make anything worse.
+    const pdfUrl = resource.url + (resource.url.includes('#') ? '&' : '#') + 'view=FitH&zoom=Fit';
+    html = `<iframe src="${escapeHtml(pdfUrl)}" title="${safeName}"></iframe>`;
+    usesPlainIframe = true;
+  } else {
+    // A website link. Many hosts refuse to be embedded at all
     // (X-Frame-Options/CSP) — that's the site's own setting, not
     // something fixable here — so surface a clear explanation after a
     // moment instead of leaving a blank frame.
